@@ -1,13 +1,13 @@
 import { FOLDER_LAYOUTS, type FolderLayout } from '@stepsvault/sync-core';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import {
-  ActivityScreen, AudioSourcesScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyVaultState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
+  ADDON_AGENT_SKILL, ActivityScreen, AgentBox, AudioSourcesScreen, FourArrowLoader, GENERATOR_AGENT_SKILL, GreenPillButton, Icon, SiteLogo, SquareIconTile, WebsiteGeneratorsScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyVaultState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
   PermissionLostState, PhoneStatusView, SongFolderLockedState, SongsFolderMissingState, SongsFolderPreview, StatusChip, SyncHomeScreen, SyncShell, UpdateBanner, SONG_STATUSES, SONG_STATUS_DISPLAYS,
   type LinkCodeState, type SyncPlatform, type SyncScreen,
 } from '../src/index';
 import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PARTY_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
 
-type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone';
+type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone' | 'intro-pieces';
 type SyncPhase = 'idle' | 'syncing' | 'finished';
 
 const PREVIEW_SCREENS: readonly { value: PreviewScreen; label: string }[] = [
@@ -15,13 +15,14 @@ const PREVIEW_SCREENS: readonly { value: PreviewScreen; label: string }[] = [
   { value: 'connect-unsupported', label: '1 · Unsupported browser' },
   { value: 'folder-preview', label: '1 · Check the folder' },
   { value: 'songs', label: '2 + 3 · Songs and details' },
-  { value: 'audio-sources', label: '4 · Audio sources' },
+  { value: 'audio-sources', label: '4 · Music & addons' },
   { value: 'generators', label: '4b · Generators, Make a song' },
   { value: 'folder-layout', label: '5 · Folder layout' },
   { value: 'activity', label: '6 · Activity' },
   { value: 'account', label: '7 · Desktop sign in, linked computers' },
   { value: 'states', label: 'States · chips, empty and errors' },
   { value: 'phone', label: 'Phone · status only' },
+  { value: 'intro-pieces', label: 'Shared pieces · for the intro page' },
 ];
 
 const SCREENS_BY_NAVIGATION: Readonly<Record<SyncScreen, PreviewScreen>> = { 'songs': 'songs', 'audio-sources': 'audio-sources', 'generators': 'generators', 'folder-layout': 'folder-layout', 'activity': 'activity', 'account': 'account' };
@@ -42,7 +43,7 @@ export function PreviewApp(): ReactElement {
   return (
     <>
       <div className="preview-controls">
-        <b>DanceDance Sync preview</b>
+        <b>dancedance.studio Sync preview</b>
         <label>Screen <select value={screen} onChange={(event) => { setScreen(event.target.value as PreviewScreen); }}>{PREVIEW_SCREENS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         <label>Frame <select value={platform} onChange={(event) => { setPlatform(event.target.value as SyncPlatform); }}><option value="website">Website</option><option value="desktop">Desktop app</option></select></label>
         <label>Sync <select value={syncPhase} onChange={(event) => { setSyncPhase(event.target.value as SyncPhase); }}><option value="idle">Idle</option><option value="syncing">Syncing</option><option value="finished">Finished</option></select></label>
@@ -55,11 +56,11 @@ export function PreviewApp(): ReactElement {
 }
 
 function PreviewFrame({ platform, screen, children }: { platform: SyncPlatform; screen: PreviewScreen; children: ReactNode }): ReactElement {
-  if (screen === 'states' || screen === 'phone') return <>{children}</>;
+  if (screen === 'states' || screen === 'phone' || screen === 'intro-pieces') return <>{children}</>;
   if (platform === 'website') return <div className="preview-website-page">{children}</div>;
   return (
     <div className="preview-window">
-      <div className="preview-window-bar">DanceDance Sync</div>
+      <div className="preview-window-bar">dancedance.studio Sync</div>
       {children}
     </div>
   );
@@ -68,6 +69,7 @@ function PreviewFrame({ platform, screen, children }: { platform: SyncPlatform; 
 function PreviewScreenContent({ screen, platform, syncPhase, onNavigate }: { screen: PreviewScreen; platform: SyncPlatform; syncPhase: SyncPhase; onNavigate: (screen: SyncScreen) => void }): ReactElement {
   if (screen === 'states') return <StatesBoard />;
   if (screen === 'phone') return <PhoneBoard />;
+  if (screen === 'intro-pieces') return <IntroPiecesBoard />;
   const isBare = screen === 'connect' || screen === 'connect-unsupported' || screen === 'folder-preview';
   const currentScreen = (Object.keys(SCREENS_BY_NAVIGATION) as SyncScreen[]).find((syncScreen) => SCREENS_BY_NAVIGATION[syncScreen] === screen) ?? 'songs';
   return (
@@ -84,7 +86,7 @@ function PreviewScreenContent({ screen, platform, syncPhase, onNavigate }: { scr
       {screen === 'folder-preview' && <SongsFolderPreview songsFolderPath={platform === 'website' ? 'Songs  (C:\\Games\\StepMania 5 LTEK Edition)' : FAKE_GAME.songsFolderPath} playerGroups={FAKE_PLAYER_GROUPS} layoutText="by genre" onChangeLayout={noop} onChooseAnotherFolder={noop} onContinue={noop} />}
       {screen === 'songs' && <SongsPreview platform={platform} syncPhase={syncPhase} onNavigate={onNavigate} />}
       {screen === 'audio-sources' && <AudioSourcesPreview onNavigate={onNavigate} />}
-      {screen === 'generators' && <GeneratorsPreview />}
+      {screen === 'generators' && (platform === 'website' ? <WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR} makeSongHref="#make-a-song" desktopAppHref="#desktop-app" playPageHref="#play" /> : <GeneratorsPreview />)}
       {screen === 'folder-layout' && <FolderLayoutPreview />}
       {screen === 'activity' && <ActivityPreview />}
       {screen === 'account' && <AccountPreview />}
@@ -208,7 +210,7 @@ function AccountPreview(): ReactElement {
           <DesktopSignInScreen signIn={isSignedIn ? { kind: 'signed-in', playerName: 'Noa', computerName: 'LIVING-ROOM-PC' } : { kind: 'waiting-for-code', code: 'K7Q4ZP', expiresInText: '9:12', computerName: 'LIVING-ROOM-PC', systemName: 'Windows 11' }} onOpenLinkPage={noop} onGetNewCode={noop} onConnectGame={noop} />
         </div>
         <div className="preview-card">
-          <LinkCodeForm characters={characters} state={linkCodeState} computerText="LIVING-ROOM-PC · Windows 11 · StepsVault Sync 1.2" linkedComputerName="LIVING-ROOM-PC" onChangeCharacters={(next) => { setCharacters(next); setLinkCodeState('typing'); }} onSubmitCode={(code) => { setLinkCodeState(code === 'K7Q4ZP' ? 'great' : 'miss'); }} onLinkComputer={() => { setLinkCodeState('linked'); setIsSignedIn(true); }} onTryAgain={() => { setCharacters(['', '', '', '', '', '']); setLinkCodeState('typing'); }} />
+          <LinkCodeForm characters={characters} state={linkCodeState} computerText="LIVING-ROOM-PC · Windows 11 · dancedance.studio Sync 1.2" linkedComputerName="LIVING-ROOM-PC" onChangeCharacters={(next) => { setCharacters(next); setLinkCodeState('typing'); }} onSubmitCode={(code) => { setLinkCodeState(code === 'K7Q4ZP' ? 'great' : 'miss'); }} onLinkComputer={() => { setLinkCodeState('linked'); setIsSignedIn(true); }} onTryAgain={() => { setCharacters(['', '', '', '', '', '']); setLinkCodeState('typing'); }} />
         </div>
       </div>
       <h2 className="sv-sync-heading-2">Your linked computers</h2>
@@ -257,6 +259,37 @@ function PhoneBoard(): ReactElement {
             <PhoneStatusView computerName="LIVING-ROOM-PC" gameName="StepMania 5 LTEK" overallStatus="synced" lastSyncText="2 hours ago" syncedCount={8} needsAudioCount={2} updateCount={2} songs={FAKE_SONG_ROWS.slice(0, 4).map((row) => ({ vaultSongId: row.vaultSongId, title: row.title, coverArtUrl: row.coverArtUrl, status: row.status }))} />
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function IntroPiecesBoard(): ReactElement {
+  return (
+    <div className="sv-sync-root sv-sync-stage">
+      <div className="preview-board">
+        <section>
+          <h2 className="preview-section-title">Square icon tiles · one colour per feature</h2>
+          <div className="preview-chips">
+            <SquareIconTile tone="sync"><Icon name="folder-download" size={22} strokeWidth={2} /></SquareIconTile>
+            <SquareIconTile tone="addons"><Icon name="note" size={22} strokeWidth={2} /></SquareIconTile>
+            <SquareIconTile tone="generators"><Icon name="generator" size={22} strokeWidth={2} /></SquareIconTile>
+            <SquareIconTile tone="groups"><Icon name="groups" size={22} strokeWidth={2} /></SquareIconTile>
+            <SquareIconTile tone="neutral" size={52}><SiteLogo /></SquareIconTile>
+          </div>
+        </section>
+        <section>
+          <h2 className="preview-section-title">Agent boxes</h2>
+          <div className="preview-pair"><AgentBox skill={ADDON_AGENT_SKILL} /><AgentBox skill={GENERATOR_AGENT_SKILL} /></div>
+        </section>
+        <section>
+          <h2 className="preview-section-title">Green pill and four-arrow loader</h2>
+          <div className="preview-chips">
+            <GreenPillButton onClick={noop} icon={<Icon name="download" size={18} strokeWidth={2.4} />}>Get the app for Windows</GreenPillButton>
+            <GreenPillButton onClick={noop} isBusy icon={<Icon name="refresh" size={20} strokeWidth={2.4} className="sv-sync-slow-turn" />}>Syncing…</GreenPillButton>
+            <FourArrowLoader label="Waiting for a step…" />
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -88,7 +88,7 @@ export const FAKE_PLAYER_GROUPS: readonly PlayerGroupView[] = [
 ];
 
 export const FAKE_MUSIC_FOLDERS: readonly MusicFolderView[] = [
-  { folderPath: 'C:\\Users\\Noa\\Music', scanState: 'scanned', summaryText: '1,240 files · 15 vault songs found' },
+  { folderPath: 'C:\\Users\\Noa\\Music', scanState: 'scanned', summaryText: '1,240 files · 15 library songs found' },
   { folderPath: 'D:\\Rips\\Albums', scanState: 'scanning', summaryText: 'Scanning…' },
 ];
 
