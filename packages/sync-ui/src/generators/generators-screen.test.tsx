@@ -339,4 +339,17 @@ describe('WebsiteGeneratorsScreen', () => {
     expect(within(yourGenerators).getByRole('link', { name: 'Get the app' }).getAttribute('href')).toBe('/sync/about#get-the-app');
     expect(within(yourGenerators).getByRole('button', { name: 'Copy for your agent' })).toBeDefined();
   });
+
+  it('hides what only the app can do, and offers a yellow Get the app button to the download page instead', () => {
+    render(<WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR} makeSongHref="/make" desktopAppHref="/sync/download" playPageHref="/play" />);
+    expect(screen.queryByRole('button', { name: 'Add a generator' })).toBeNull();
+    expect(screen.queryByRole('article')).toBeNull();
+    expect(screen.queryByText('Songs being made')).toBeNull();
+    expect(screen.queryByText('My generated songs')).toBeNull();
+    expect(screen.queryByText(/No generators of your own yet/)).toBeNull();
+    const getTheApp = screen.getByRole('link', { name: 'Get the app' });
+    expect(getTheApp.getAttribute('href')).toBe('/sync/download');
+    expect(getTheApp.className).toBe('sv-sync-button');
+    expect(getTheApp.closest('.sv-sync-generators-app-note')?.textContent).toContain('Your generators run on your computer, in the dancedance.studio Sync app. Get the app to add one. Songs they make play on the Play page.');
+  });
 });

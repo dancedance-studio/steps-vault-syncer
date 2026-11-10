@@ -988,3 +988,12 @@
   .sv-sync-four-arrows-arrow { animation: none !important; opacity: .7; }
   .sv-sync-slow-turn { animation: none !important; }
 }
+
+/* ---------- v3.84: website Generators, slim app header, sync ended on phones, Sync now while busy ---------- */
+.sv-sync-generators-app-note { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 14px; background: #12151f; border: 1px solid var(--sv-sync-border); }
+.sv-sync-generators-app-note p { margin: 0; font-size: 15px; line-height: 1.5; color: #cdd3e3; }
+.sv-sync-root .sv-sync-generators-app-note p a { color: #8fd3ff; }
+@media (max-width: 720px) {
+  .sv-sync-generators-app-note { grid-template-columns: auto minmax(0, 1fr); }
+  .sv-sync-generators-app-note .sv-sync-button { grid-column: 1 / -1; justify-self: start; }
+}
