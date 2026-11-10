@@ -87,7 +87,7 @@ export type MusicFolderScanState = 'scanned' | 'scanning' | 'waiting';
 export interface MusicFolderView {
   folderPath: string;
   scanState: MusicFolderScanState;
-  /** For example "1,240 files · 15 vault songs found". */
+  /** For example "1,240 files · 15 library songs found". */
   summaryText: string;
 }
 

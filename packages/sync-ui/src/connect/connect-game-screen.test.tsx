@@ -5,16 +5,29 @@ import { ConnectGameScreen } from './connect-game-screen';
 import { SongsFolderPreview } from './songs-folder-preview';
 
 describe('ConnectGameScreen', () => {
-  it('on the website, offers one folder button and explains the browser prompt', () => {
+  it('on the website, is one split panel: choose the folder first, then click Allow', () => {
     const onChooseSongsFolder = vi.fn();
     render(<ConnectGameScreen platform="website" isBrowserSupported onChooseSongsFolder={onChooseSongsFolder} desktopAppHref="#app" onCopySyncAddress={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: /CHOOSE MY SONGS FOLDER/ }));
+    const first = screen.getByRole('region', { name: 'Choose your Songs folder' });
+    expect(first.textContent).toContain('FIRST');
+    expect(first.textContent).toContain('Usually C:\\Games\\StepMania 5\\Songs');
+    fireEvent.click(within(first).getByRole('button', { name: 'Choose my Songs folder' }));
     expect(onChooseSongsFolder).toHaveBeenCalledOnce();
-    expect(screen.getByRole('img', { name: /browser asking for permission/ })).toBeDefined();
-    expect(screen.getByText(/Your browser asks again after a restart/)).toBeDefined();
+    const then = screen.getByRole('region', { name: 'Click Allow' });
+    expect(then.textContent).toContain('THEN');
+    expect(within(then).getByRole('img', { name: /browser asking for permission/ })).toBeDefined();
+    expect(screen.getByText('Your browser asks once, and again after a restart.')).toBeDefined();
   });
 
-  it('in Firefox or Safari, blocks calmly and explains how to open Edge', () => {
+  it('never offers the desktop app to someone who chose the browser', () => {
+    render(<ConnectGameScreen platform="website" isBrowserSupported onChooseSongsFolder={vi.fn()} desktopAppHref="#app" onCopySyncAddress={vi.fn()} />);
+    expect(screen.queryByText(/desktop app/i)).toBeNull();
+    expect(screen.queryByText(/New to Sync/i)).toBeNull();
+    expect(document.querySelector('a[href="#app"]')).toBeNull();
+    expect(screen.queryAllByRole('link')).toHaveLength(0);
+  });
+
+  it('in Firefox or Safari, blocks calmly, explains how to open Edge and still offers the app', () => {
     const onCopySyncAddress = vi.fn();
     render(<ConnectGameScreen platform="website" isBrowserSupported={false} onChooseSongsFolder={vi.fn()} desktopAppHref="#app" onCopySyncAddress={onCopySyncAddress} />);
     expect(screen.getByRole('alert').textContent).toContain('Sync needs Chrome or Edge on a computer');
@@ -46,7 +59,7 @@ describe('ConnectGameScreen', () => {
 });
 
 describe('SongsFolderPreview', () => {
-  it('shows every group of the player locked, and where StepsVault songs will go', () => {
+  it('shows every group of the player locked, and where dancedance.studio songs will go', () => {
     render(<SongsFolderPreview songsFolderPath="C:\\Games\\StepMania 5\\Songs" playerGroups={FAKE_PLAYER_GROUPS} layoutText="by genre" onChangeLayout={vi.fn()} onChooseAnotherFolder={vi.fn()} onContinue={vi.fn()} />);
     expect(screen.getByText('1,312 songs in 7 groups. We never touch them.')).toBeDefined();
     const groups = within(screen.getByRole('list', { name: 'Groups in your Songs folder' })).getAllByRole('listitem');

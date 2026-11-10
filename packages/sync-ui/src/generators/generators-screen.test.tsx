@@ -6,6 +6,7 @@ import { STEPSVAULT_GENERATOR_ID } from '../views/build-generator-views';
 import { GENERATOR_GETS, GENERATOR_NEVER_GETS } from './add-generator-dialog';
 import { GeneratorsScreen, type GeneratorsScreenProps } from './generators-screen';
 import { PlayOnWebsite } from './play-on-website';
+import { WebsiteGeneratorsScreen } from './website-generators-screen';
 
 const PICKED_FILE = { musicId: 'picked-file', title: 'my new song', artist: 'Unknown artist', sourceText: 'my_new_song.mp3', lengthText: '3:05', hasVideo: false };
 
@@ -41,7 +42,7 @@ async function goToSetupStep(): Promise<HTMLElement> {
 }
 
 describe('GeneratorsScreen', () => {
-  it('shows StepsVault’s generator first, then community generators with where they run and their options', () => {
+  it('shows the dancedance.studio generator first, then the player’s own generators with where they run and their options', () => {
     const props = renderGenerators();
     expect(screen.getByRole('region', { name: 'dancedance.studio generator' }).textContent).toContain('Songs go to the library for everyone. Each song uses 1 token.');
     expect(screen.getByLabelText('You have 37 tokens')).toBeDefined();
@@ -51,6 +52,23 @@ describe('GeneratorsScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove Groove Lab' }));
     expect(props.onSetGeneratorOption).toHaveBeenCalledWith({ generatorId: 'stepcat.tap-forge', optionId: 'jumps', value: 'many' });
     expect(props.onRemoveGenerator).toHaveBeenCalledWith('grooveworks.groove-lab');
+  });
+
+  it('marks the default generator 1 TOKEN with the logo, and “Your generators” FREE with green tiles and the agent row', () => {
+    renderGenerators();
+    const defaultCard = screen.getByRole('region', { name: 'dancedance.studio generator' });
+    expect(defaultCard.textContent).toContain('Default');
+    expect(within(defaultCard).getByText('1 TOKEN')).toBeDefined();
+    expect(defaultCard.querySelector('.sv-sync-square-tile--neutral svg')).not.toBeNull();
+    const yourGenerators = screen.getByRole('region', { name: 'Your generators' });
+    expect(yourGenerators.textContent).toContain('Yours, or made by other people. Free. Only add ones you trust.');
+    expect(screen.queryByText('Community generators')).toBeNull();
+    const tapForge = screen.getByRole('article', { name: 'Tap Forge' });
+    expect(within(tapForge).getByText('FREE')).toBeDefined();
+    expect(tapForge.querySelector('.sv-sync-square-tile--generators')?.textContent).toBe('TF');
+    expect(within(yourGenerators).getByText('Connect your own generator')).toBeDefined();
+    expect(within(yourGenerators).getByText('One AI prompt connects yours · free on your computer')).toBeDefined();
+    expect(within(yourGenerators).getByRole('link', { name: 'make-a-generator on GitHub' }).getAttribute('href')).toBe('https://github.com/steps-vault/steps-vault-syncer/tree/main/.claude/skills/make-a-generator');
   });
 
   it('shows what an internet generator gets and warns that the music is sent there before adding it', async () => {
@@ -308,5 +326,17 @@ describe('Play on the website', () => {
   it('sits on the Generators screen in the desktop app', () => {
     renderGenerators({ playOnWebsite: { pairing: { bridgeAddress: 'http://127.0.0.1:47821', code: null, pairedBrowserCount: 2 }, ...pairingActions } });
     expect(screen.getByRole('region', { name: 'Play on the website' }).textContent).toContain('2 browsers are paired.');
+  });
+});
+
+describe('WebsiteGeneratorsScreen', () => {
+  it('shows the site’s generator, and says the player’s own generators run in the desktop app', () => {
+    render(<WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR} makeSongHref="/make" desktopAppHref="/sync/about#get-the-app" playPageHref="/play" />);
+    expect(screen.getByRole('link', { name: 'Make a song' }).getAttribute('href')).toBe('/make');
+    expect(within(screen.getByRole('region', { name: 'dancedance.studio generator' })).getByText('1 TOKEN')).toBeDefined();
+    const yourGenerators = screen.getByRole('region', { name: 'Your generators' });
+    expect(yourGenerators.textContent).toContain('Your generators run on your computer, in the dancedance.studio Sync app.');
+    expect(within(yourGenerators).getByRole('link', { name: 'Get the app' }).getAttribute('href')).toBe('/sync/about#get-the-app');
+    expect(within(yourGenerators).getByRole('button', { name: 'Copy for your agent' })).toBeDefined();
   });
 });

@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { ArrowReceptor } from '../icons/arrow-receptor';
 import { Icon } from '../icons/icon';
 import { SITE_NAME } from '../shared/brand-names';
+import { FourArrowLoader } from '../shared/four-arrow-loader';
 import { JudgmentText } from '../progress/judgment-flash';
 import type { SignInState } from '../sync-ui-types';
 
@@ -39,7 +40,7 @@ export function DesktopSignInScreen({ signIn, onOpenLinkPage, onGetNewCode, onCo
       <div className="sv-sync-big-code sv-sync-tabular" aria-label={`Code ${signIn.code.split('').join(' ')}`}>{formatLinkCode(signIn.code)}</div>
       <div className="sv-sync-small sv-sync-tabular sv-sync-warning-text">Expires in {signIn.expiresInText}</div>
       <button className="sv-sync-button" type="button" onClick={onOpenLinkPage}><Icon name="external" />Open {LINK_PAGE_ADDRESS}</button>
-      <div className="sv-sync-waiting-line" role="status"><span className="sv-sync-spin sv-sync-spin-box"><ArrowReceptor direction="up" size={18} /></span>Waiting for the code…</div>
+      <FourArrowLoader className="sv-sync-waiting-line" label="Waiting for the code…" />
       <div className="sv-sync-computer-box">This computer: <b className="sv-sync-strong">{signIn.computerName}</b> · {signIn.systemName}<br />No password is stored on this computer.</div>
       <button className="sv-sync-link-button" type="button" onClick={onGetNewCode}>Get a new code</button>
     </section>

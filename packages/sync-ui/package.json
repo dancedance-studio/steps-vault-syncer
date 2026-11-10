@@ -1,7 +1,7 @@
 {
   "name": "@stepsvault/sync-ui",
   "version": "0.1.0",
-  "description": "The StepsVault Sync screens as React components, shared by the website and the desktop app.",
+  "description": "The dancedance.studio Sync screens as React components, shared by the website and the desktop app.",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {

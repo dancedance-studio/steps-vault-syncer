@@ -4,6 +4,7 @@ import { APP_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
 import type { ConnectedGameView, SyncPlatform, SyncScreen, TrayStatus } from '../sync-ui-types';
 import { SyncNavigation } from './sync-navigation';
+import { SyncPageHeader, type AboutSyncLinkView } from './sync-page-header';
 
 const TRAY_STATUS_LABELS: Readonly<Record<TrayStatus, string>> = { 'synced': 'Synced', 'syncing': 'Syncing…', 'needs-attention': 'Needs attention', 'paused': 'Paused' };
 
@@ -18,8 +19,10 @@ export interface SyncShellProps {
   currentScreen: SyncScreen;
   onNavigate: (screen: SyncScreen) => void;
   hrefsByScreen?: Partial<Record<SyncScreen, string>>;
-  /** Website only: show the Generators screen in the menu. */
+  /** @deprecated Generators now always shows on the website; kept so older callers still compile. */
   hasWebsiteGenerators?: boolean;
+  /** "What Sync can do →": the website passes its router's link to /sync/about; the app's default opens the site. */
+  aboutSyncLink?: AboutSyncLinkView;
   /** Desktop only: the game, tray status and player at the bottom of the side menu. */
   desktopSidebar?: DesktopSidebarView;
   /** Desktop only: shown above every screen, for example the UpdateBanner. */
@@ -38,32 +41,20 @@ export function SyncShell(props: SyncShellProps): ReactElement {
     <div className={joinClassNames('sv-sync-root sv-sync-stage sv-sync-shell', `sv-sync-shell--${props.platform}`, props.isBare === true && 'sv-sync-shell--bare')}>
       {props.platform === 'desktop' && <h1 className="sv-sync-visually-hidden">{APP_NAME}</h1>}
       {props.platform === 'desktop' && props.banner}
-      {props.platform === 'website' && props.isBare !== true && <WebsiteSyncHeader />}
+      {props.platform === 'website' && props.isBare !== true && <SyncPageHeader platform="website" aboutSyncLink={props.aboutSyncLink} />}
       {props.platform === 'website' && props.isBare === true && <h1 className="sv-sync-visually-hidden">Sync to my game</h1>}
       <div className="sv-sync-shell-body">
         {props.isBare !== true && (
           <div className="sv-sync-sidebar">
-            <SyncNavigation platform={props.platform} currentScreen={props.currentScreen} onNavigate={props.onNavigate} hrefsByScreen={props.hrefsByScreen} hasWebsiteGenerators={props.hasWebsiteGenerators} />
+            <SyncNavigation platform={props.platform} currentScreen={props.currentScreen} onNavigate={props.onNavigate} hrefsByScreen={props.hrefsByScreen} />
             {props.platform === 'desktop' && props.desktopSidebar && <DesktopSidebarFooter sidebar={props.desktopSidebar} />}
           </div>
         )}
-        <main className="sv-sync-main">{props.children}</main>
+        <main className="sv-sync-main">
+          {props.platform === 'desktop' && props.isBare !== true && <SyncPageHeader platform="desktop" aboutSyncLink={props.aboutSyncLink} />}
+          {props.children}
+        </main>
       </div>
-    </div>
-  );
-}
-
-function WebsiteSyncHeader(): ReactElement {
-  return (
-    <div className="sv-sync-website-header">
-      <div>
-        <h1 className="sv-sync-display-title">Sync to my game</h1>
-        <p className="sv-sync-lede">Your library&apos;s songs in your own StepMania, lined up with your own music.</p>
-      </div>
-      <span className="sv-sync-website-hint">
-        <Icon name="info" size={14} />
-        Works in Chrome and Edge
-      </span>
     </div>
   );
 }

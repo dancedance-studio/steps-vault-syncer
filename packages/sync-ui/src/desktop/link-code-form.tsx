@@ -11,7 +11,7 @@ export interface LinkCodeFormProps {
   /** Six characters, '' where nothing is typed yet. */
   characters: readonly string[];
   state: LinkCodeState;
-  /** For example "LIVING-ROOM-PC · Windows 11 · DanceDance Sync 1.2". */
+  /** For example "LIVING-ROOM-PC · Windows 11 · dancedance.studio Sync 1.2". */
   computerText: string | null;
   linkedComputerName: string | null;
   onChangeCharacters: (characters: string[]) => void;

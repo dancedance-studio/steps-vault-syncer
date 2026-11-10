@@ -1,10 +1,14 @@
 import { useState, type ReactElement, type ReactNode } from 'react';
 import { Icon, type IconName } from '../icons/icon';
+import { AgentRow } from '../shared/agent-row';
+import { ADDON_AGENT_SKILL } from '../shared/agent-skills';
 import { SITE_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
+import { FourArrowLoader } from '../shared/four-arrow-loader';
 import { LifeBar } from '../shared/life-bar';
 import { EmptyBox } from '../shared/miss-line';
 import { InfoPanel, InfoToggleButton } from '../shared/small-parts';
+import { FEATURE_TONE_COLORS } from '../shared/square-icon-tile';
 import { StatusChip } from '../status/status-chip';
 import type { AddonInstallPreview, AddonLookupResult, AddonView, MusicFolderScanState, MusicFolderView, PickedFileView, ServiceLookupRequest } from '../sync-ui-types';
 import { AddAddonDialog, ADDON_TRUST_NOTE } from './add-addon-dialog';
@@ -13,7 +17,7 @@ import { AddonCard } from './addon-card';
 const NUMBER_FORMAT = new Intl.NumberFormat('en-US');
 const SCAN_STATE_DISPLAYS: Readonly<Record<MusicFolderScanState, { label: string; iconName: IconName; className: string }>> = {
   scanned: { label: 'Scanned', iconName: 'check', className: 'sv-sync-tone--synced' },
-  scanning: { label: 'Scanning…', iconName: 'spin', className: 'sv-sync-tone--syncing' },
+  scanning: { label: 'Scanning…', iconName: 'none', className: 'sv-sync-tone--syncing' },
   waiting: { label: 'Waiting', iconName: 'none', className: 'sv-sync-tone--removed-from-vault' },
 };
 
@@ -42,15 +46,15 @@ export interface AudioSourcesScreenProps {
   canUseStartCommand?: boolean;
 }
 
-/** Screen 4: where Sync looks for the player's own copy of each song. */
+/** Screen 4, Music & addons: where Sync looks for the player's own copy of each song. */
 export function AudioSourcesScreen(props: AudioSourcesScreenProps): ReactElement {
   const [isAddingAddon, setIsAddingAddon] = useState(false);
   const [isExplainingAddons, setIsExplainingAddons] = useState(false);
   return (
     <div className="sv-sync-screen">
       <div className="sv-sync-stack-small">
-        <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Audio sources</h2>
-        <p className="sv-sync-text sv-sync-text--medium">{SITE_NAME} never sends anyone music.</p>
+        <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Music &amp; addons</h2>
+        <p className="sv-sync-text sv-sync-text--medium">Where Sync finds each song’s music. {SITE_NAME} never sends anyone music.</p>
       </div>
       <div className="sv-sync-two-columns">
         <MusicFolderSource {...props} />
@@ -68,6 +72,7 @@ export function AudioSourcesScreen(props: AudioSourcesScreenProps): ReactElement
           </div>
           {props.addons.length > 0 && <button className="sv-sync-button" type="button" onClick={() => { setIsAddingAddon(true); }}><Icon name="plus" strokeWidth={2.6} />Add addon</button>}
         </div>
+        <AgentRow skill={ADDON_AGENT_SKILL} toneColor={FEATURE_TONE_COLORS.addons} />
         <div className="sv-sync-addon-list">
           {props.addons.map((addon) => <AddonCard key={addon.addonId} addon={addon} onToggle={props.onToggleAddon} onRemove={props.onRemoveAddon} onSetOption={props.onSetAddonOption} />)}
           {props.addons.length === 0 && <EmptyBox action={<button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => { setIsAddingAddon(true); }}>Add addon</button>}>No addons yet. Sync works without them.</EmptyBox>}
@@ -119,7 +124,7 @@ function MusicFolderRow({ folder, onRemove }: { folder: MusicFolderView; onRemov
         <span className="sv-sync-small sv-sync-subtle sv-sync-tabular">{folder.summaryText}</span>
       </span>
       <span className={joinClassNames('sv-sync-chip', display.className)}>
-        <Icon name={display.iconName} size={14} strokeWidth={2.4} className={folder.scanState === 'scanning' ? 'sv-sync-spin' : undefined} />
+        {folder.scanState === 'scanning' ? <FourArrowLoader size={10} /> : <Icon name={display.iconName} size={14} strokeWidth={2.4} />}
         {display.label}
       </span>
       <button className="sv-sync-close-button" type="button" aria-label={`Remove ${folder.folderPath}`} onClick={() => { onRemove(folder.folderPath); }}>

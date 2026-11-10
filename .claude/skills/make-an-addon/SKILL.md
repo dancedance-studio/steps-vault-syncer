@@ -1,11 +1,11 @@
 ---
 name: make-an-addon
-description: Build a StepsVault Sync addon - a small web service that tells Sync where to find a song's music (and video). Use when someone wants to make, test or fix an addon for StepsVault Sync, or asks how addons work.
+description: Build a dancedance.studio Sync addon - a small web service that tells Sync where to find a song's music (and video). Use when someone wants to make, test or fix an addon for dancedance.studio Sync, or asks how addons work.
 ---
 
-# Make a StepsVault Sync addon
+# Make a dancedance.studio Sync addon
 
-An **addon** helps Sync find the music for a song in the player's vault: a file on your server, a file on the
+An **addon** helps Sync find the music for a song in the player's library: a file on your server, a file on the
 player's own computer, or a page the player can open (a store). Sync calls it, checks what it gets, and does
 everything else. The full rules are in `docs/addons.md`; read it before you start. This skill is the short path.
 

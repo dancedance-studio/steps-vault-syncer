@@ -28,7 +28,7 @@ export class InvalidSscError extends Error {
 export function buildPlayerSsc({ sscText, musicFileName, shiftSeconds, videoFileName = null }: { sscText: string; musicFileName: string; shiftSeconds: number; videoFileName?: string | null }): string {
   if (SSC_SPECIAL_CHARACTERS_PATTERN.test(musicFileName)) throw new InvalidSscError(`The music file name "${musicFileName}" can't be written into a song file. This is a bug in Sync; please report it.`);
   if (!Number.isFinite(shiftSeconds)) throw new InvalidSscError('The timing shift for this song is not a number. Match its audio again.');
-  if (!hasTag({ sscText, pattern: OFFSET_TAG_PATTERN })) throw new InvalidSscError('This song file has no #OFFSET, so its steps can’t be lined up. Report the song on StepsVault.');
+  if (!hasTag({ sscText, pattern: OFFSET_TAG_PATTERN })) throw new InvalidSscError('This song file has no #OFFSET, so its steps can’t be lined up. Report the song on dancedance.studio.');
   const playerSsc = sscText
     .replace(MUSIC_TAG_PATTERN, (_match, tag: string, _value: string, end: string) => `${tag}${musicFileName}${end}`)
     .replace(OFFSET_TAG_PATTERN, (_match, tag: string, value: string, end: string) => `${tag}${formatSeconds(getShiftedOffset({ offsetSeconds: parseSeconds(value), shiftSeconds }))}${end}`)
@@ -43,7 +43,7 @@ export function withBackgroundVideo({ sscText, videoFileName }: { sscText: strin
   const offsetSeconds = parseSeconds(/^#OFFSET:([^;]*);/m.exec(sscText)?.[1] ?? '');
   const bpmsMatch = /^#BPMS:[^=;]*=([^,;]*)[^;]*;(\r?\n)/m.exec(sscText);
   const firstBpm = Number(bpmsMatch?.[1]);
-  if (!bpmsMatch || !Number.isFinite(firstBpm) || firstBpm <= 0) throw new InvalidSscError('This song file has no tempo (#BPMS), so its video can’t be lined up. Report the song on StepsVault.');
+  if (!bpmsMatch || !Number.isFinite(firstBpm) || firstBpm <= 0) throw new InvalidSscError('This song file has no tempo (#BPMS), so its video can’t be lined up. Report the song on dancedance.studio.');
   const lineEnding = bpmsMatch[2] ?? '\n';
   const startBeat = (offsetSeconds * firstBpm) / SECONDS_PER_MINUTE;
   const backgroundLine = `#BGCHANGES:${startBeat.toFixed(BEAT_DECIMALS)}=${videoFileName}=1.000=0=0=1=====,${lineEnding}${NO_SONG_BACKGROUND_ENTRY};${lineEnding}`;
@@ -58,7 +58,7 @@ export function getShiftedOffset({ offsetSeconds, shiftSeconds }: { offsetSecond
 
 function parseSeconds(value: string): number {
   const seconds = Number(value.trim());
-  if (value.trim() === '' || !Number.isFinite(seconds)) throw new InvalidSscError(`"${value}" is not a time in seconds. Report the song on StepsVault.`);
+  if (value.trim() === '' || !Number.isFinite(seconds)) throw new InvalidSscError(`"${value}" is not a time in seconds. Report the song on dancedance.studio.`);
   return seconds;
 }
 

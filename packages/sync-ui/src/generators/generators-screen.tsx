@@ -1,9 +1,12 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement, type ReactNode } from 'react';
 import { Icon } from '../icons/icon';
+import { AgentRow } from '../shared/agent-row';
+import { GENERATOR_AGENT_SKILL } from '../shared/agent-skills';
 import { LIBRARY_GENERATOR_NAME } from '../shared/brand-names';
 import { InfoPanel, InfoToggleButton, Note } from '../shared/small-parts';
+import { FEATURE_TONE_COLORS } from '../shared/square-icon-tile';
 import type { GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorLookupResult, GeneratorView, PreselectedSongView, ServiceLookupRequest, StepsVaultGeneratorView } from '../sync-ui-types';
-import { AddGeneratorDialog, GENERATOR_TRUST_NOTE } from './add-generator-dialog';
+import { AddGeneratorDialog } from './add-generator-dialog';
 import { GeneratedSongList } from './generated-song-list';
 import { GeneratorCard, StepsVaultGeneratorCard } from './generator-card';
 import { GeneratorJobList, type GeneratorJobActions } from './generator-jobs';
@@ -38,14 +41,15 @@ export interface GeneratorsScreenProps extends MusicSources, GeneratorJobActions
   playOnWebsite?: PlayOnWebsiteProps;
 }
 
+export const YOUR_GENERATORS_NOTE = 'Yours, or made by other people. Free. Only add ones you trust.';
+
 /** Make a song is closed, or open with the song it was opened for (null for a plain Make a song). */
 type MakeSongDialogState = { isOpen: false } | { isOpen: true; preselectedSong: PreselectedSongView | null };
 
-/** The Generators section: the site's own generator, the player's community generators, and Make a song. */
+/** The Generators section: the site's own generator, the player's own generators, and Make a song. */
 export function GeneratorsScreen(props: GeneratorsScreenProps): ReactElement {
   const [isAddingGenerator, setIsAddingGenerator] = useState(false);
   const [makeSongDialog, setMakeSongDialog] = useState<MakeSongDialogState>({ isOpen: false });
-  const [isExplaining, setIsExplaining] = useState(false);
   const preselectedSong = props.preselectedSong ?? null;
   const hasOwnGenerator = props.generators.length > 0;
   useEffect(() => {
@@ -61,16 +65,7 @@ export function GeneratorsScreen(props: GeneratorsScreenProps): ReactElement {
   };
   return (
     <div className="sv-sync-screen">
-      <div className="sv-sync-row sv-sync-space-between sv-sync-wrap sv-sync-align-end">
-        <div className="sv-sync-stack-small">
-          <div className="sv-sync-row">
-            <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Generators</h2>
-            <InfoToggleButton label="What is a generator?" isOpen={isExplaining} onToggle={() => { setIsExplaining(!isExplaining); }} controlsId="sv-sync-generators-explained" />
-          </div>
-          {isExplaining && <InfoPanel id="sv-sync-generators-explained">A generator listens to your music and makes the steps. You pick one each time you generate a song.</InfoPanel>}
-        </div>
-        <button className="sv-sync-button" type="button" onClick={openMakeSong}><Icon name="sparkle" strokeWidth={2.4} />Make a song</button>
-      </div>
+      <GeneratorsHeading makeSongAction={<button className="sv-sync-button" type="button" onClick={openMakeSong}><Icon name="sparkle" strokeWidth={2.4} />Make a song</button>} />
       {preselectedSong && !makeSongDialog.isOpen && <PreselectedSongNote preselectedSong={preselectedSong} hasOwnGenerator={hasOwnGenerator} onDismiss={props.onDismissPreselectedSong} />}
       <StepsVaultGeneratorCard generator={props.stepsVaultGenerator} />
       <GeneratorJobList jobs={props.jobs} onCancelJob={props.onCancelJob} onAnswerVaultChoice={props.onAnswerVaultChoice} onDismissJob={props.onDismissJob} />
@@ -81,6 +76,23 @@ export function GeneratorsScreen(props: GeneratorsScreenProps): ReactElement {
         <AddGeneratorDialog onLookUpGenerator={props.onLookUpGenerator} canUseStartCommand={props.canUseStartCommand} onAdd={(generator) => { setIsAddingGenerator(false); props.onAddGenerator(generator); }} onClose={() => { setIsAddingGenerator(false); }} />
       )}
       {makeSongDialog.isOpen && <MakeSongDialog key={makeSongDialog.preselectedSong?.preselectionKey ?? 'plain'} {...props} preselectedSong={makeSongDialog.preselectedSong} onClose={closeMakeSong} />}
+    </div>
+  );
+}
+
+/** "Generators", the "What is a generator?" button and Make a song; shared with the website's Generators screen. */
+export function GeneratorsHeading({ makeSongAction }: { makeSongAction: ReactNode }): ReactElement {
+  const [isExplaining, setIsExplaining] = useState(false);
+  return (
+    <div className="sv-sync-row sv-sync-space-between sv-sync-wrap sv-sync-align-end">
+      <div className="sv-sync-stack-small">
+        <div className="sv-sync-row">
+          <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Generators</h2>
+          <InfoToggleButton label="What is a generator?" isOpen={isExplaining} onToggle={() => { setIsExplaining(!isExplaining); }} controlsId="sv-sync-generators-explained" />
+        </div>
+        {isExplaining && <InfoPanel id="sv-sync-generators-explained">A generator listens to your music and makes the steps. You pick one each time you generate a song.</InfoPanel>}
+      </div>
+      {makeSongAction}
     </div>
   );
 }
@@ -100,16 +112,24 @@ function PreselectedSongNote({ preselectedSong, hasOwnGenerator, onDismiss }: { 
   );
 }
 
+/** The heading of "Your generators", shared with the website's Generators screen. */
+export function YourGeneratorsHeading({ action }: { action?: ReactNode }): ReactElement {
+  return (
+    <div className="sv-sync-row sv-sync-space-between sv-sync-wrap sv-sync-align-end">
+      <div className="sv-sync-stack-tiny">
+        <h2 id="sv-sync-your-generators-heading" className="sv-sync-heading-2">Your generators</h2>
+        <span className="sv-sync-text sv-sync-small">{YOUR_GENERATORS_NOTE}</span>
+      </div>
+      {action}
+    </div>
+  );
+}
+
 function CommunityGenerators(props: GeneratorsScreenProps & { onAdd: () => void }): ReactElement {
   return (
-    <section className="sv-sync-stack" aria-labelledby="sv-sync-community-generators-heading">
-      <div className="sv-sync-row sv-sync-space-between sv-sync-wrap sv-sync-align-end">
-        <div className="sv-sync-stack-tiny">
-          <h2 id="sv-sync-community-generators-heading" className="sv-sync-heading-2">Community generators</h2>
-          <span className="sv-sync-text sv-sync-small">{GENERATOR_TRUST_NOTE}</span>
-        </div>
-        <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onAdd}><Icon name="plus" strokeWidth={2.6} />Add a generator</button>
-      </div>
+    <section className="sv-sync-stack" aria-labelledby="sv-sync-your-generators-heading">
+      <YourGeneratorsHeading action={<button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onAdd}><Icon name="plus" strokeWidth={2.6} />Add a generator</button>} />
+      <AgentRow skill={GENERATOR_AGENT_SKILL} toneColor={FEATURE_TONE_COLORS.generators} />
       <div className="sv-sync-addon-list">
         {props.generators.map((generator) => <GeneratorCard key={generator.generatorId} generator={generator} onRemove={props.onRemoveGenerator} onSetOption={props.onSetGeneratorOption} />)}
         {props.generators.length === 0 && <Note>No community generators yet. Got an address from someone? Use <b>Add a generator</b>.</Note>}

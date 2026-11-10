@@ -52,7 +52,9 @@ describe('SyncHomeScreen', () => {
   it('renders the top bar, the counters and every song from fake data', () => {
     renderHomeScreen();
     expect(screen.getByText('StepMania 5 LTEK Edition')).toBeDefined();
-    expect(screen.getByRole('button', { name: /SYNC NOW/ })).toBeDefined();
+    const syncNowButton = screen.getByRole('button', { name: 'Sync now' });
+    expect(syncNowButton.className).toContain('sv-sync-green-pill');
+    expect(syncNowButton.hasAttribute('disabled')).toBe(false);
     expect(getVisibleTitles()).toHaveLength(FAKE_SONG_ROWS.length);
     expect(screen.getByRole('button', { name: /5\s*Synced/ }).getAttribute('aria-pressed')).toBe('false');
     expect(screen.getByText('Showing 12 of 12 songs')).toBeDefined();
@@ -63,7 +65,12 @@ describe('SyncHomeScreen', () => {
     const needsAudioTile = screen.getByRole('button', { name: /2\s*Needs audio/ });
     fireEvent.click(needsAudioTile);
     expect(needsAudioTile.getAttribute('aria-pressed')).toBe('true');
+    expect(within(screen.getByRole('group', { name: 'Filter by status' })).getAllByRole('button', { pressed: true })).toEqual([needsAudioTile]);
     expect(getVisibleTitles()).toEqual(['שמש של חצות', 'Pulse Garden']);
+    fireEvent.click(screen.getByRole('button', { name: /Synced/, pressed: false }));
+    expect(needsAudioTile.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(screen.getByRole('button', { name: /Synced/, pressed: true }));
+    fireEvent.click(needsAudioTile);
     fireEvent.click(needsAudioTile);
     expect(getVisibleTitles()).toHaveLength(FAKE_SONG_ROWS.length);
   });
@@ -106,7 +113,10 @@ describe('SyncHomeScreen', () => {
     expect(screen.getByText('Syncing 7 of 23').closest('[aria-live]')).not.toBeNull();
     expect(screen.getByText('Lining up the steps…')).toBeDefined();
     expect(screen.getAllByText('In line')).toHaveLength(FAKE_SONG_ROWS.length - 1);
-    expect(screen.getByRole('button', { name: /SYNCING…/ }).hasAttribute('disabled')).toBe(true);
+    const syncingButton = screen.getByRole('button', { name: 'Syncing…' });
+    expect(syncingButton.hasAttribute('disabled')).toBe(true);
+    expect(syncingButton.getAttribute('aria-busy')).toBe('true');
+    expect(syncingButton.querySelector('svg')?.getAttribute('class')).toContain('sv-sync-slow-turn');
     expect(screen.getByText(/Keep this tab open/)).toBeDefined();
   });
 

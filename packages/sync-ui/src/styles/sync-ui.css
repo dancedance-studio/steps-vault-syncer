@@ -1,5 +1,5 @@
 /*
- * DanceDance Sync screens. Every class starts with "sv-sync-" so the website's own styles and ours never clash.
+ * dancedance.studio Sync screens. Every class starts with "sv-sync-" so the website's own styles and ours never clash.
  * Colours and type come from the dancedance.studio v3 visual system: arcade type, calm text, flat panels, soft neon glows.
  * Fonts are named here but never loaded: the website and the app load Rubik, Saira, Noto Sans JP and JetBrains Mono
  * themselves.
@@ -152,8 +152,11 @@
 .sv-sync-shell--desktop.sv-sync-shell--bare .sv-sync-shell-body { display: block; }
 .sv-sync-shell--desktop .sv-sync-main { padding: 24px 28px 36px; }
 .sv-sync-website-header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; }
-.sv-sync-website-hint { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #2c3550; background: rgba(14, 17, 26, .85); font-size: 12.5px; color: var(--sv-sync-text-muted); }
-.sv-sync-website-hint svg { color: var(--sv-sync-link); }
+.sv-sync-eyebrow { display: block; margin-bottom: 10px; font: italic 800 12px/1 var(--sv-sync-font-display); font-stretch: 125%; letter-spacing: .2em; color: var(--sv-sync-light-blue); text-transform: uppercase; }
+.sv-sync-root a.sv-sync-about-link { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 14px; color: #8fd3ff; text-decoration: none; }
+.sv-sync-root a.sv-sync-about-link:hover { color: var(--sv-sync-link-hover); text-decoration: underline; text-underline-offset: 3px; }
+.sv-sync-page-header--desktop { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 18px; }
+.sv-sync-page-header--desktop .sv-sync-eyebrow { margin: 0; }
 .sv-sync-sidebar { display: flex; flex-direction: column; }
 .sv-sync-shell--desktop .sv-sync-sidebar { padding: 16px 12px; border-right: 1px solid #222839; background: #0a0c13; }
 .sv-sync-navigation { display: flex; gap: 4px; }
@@ -182,22 +185,20 @@
 /* Lock-on corners: the game's selection brackets, used for whatever is chosen right now. */
 .sv-sync-navigation a[aria-current="page"]::before, .sv-sync-navigation a[aria-current="page"]::after,
 .sv-sync-segmented button[aria-pressed="true"]::before, .sv-sync-segmented button[aria-pressed="true"]::after,
-.sv-sync-counter-tile[aria-pressed="true"]::before, .sv-sync-counter-tile[aria-pressed="true"]::after,
 .sv-sync-song-row--selected::before, .sv-sync-song-row--selected::after,
 .sv-sync-game-card[aria-checked="true"]::before, .sv-sync-game-card[aria-checked="true"]::after,
 .sv-sync-layout-option[aria-checked="true"]::before, .sv-sync-layout-option[aria-checked="true"]::after {
   content: ""; position: absolute; width: 10px; height: 10px; border: 2px solid var(--sv-sync-lock-on, var(--sv-sync-light-blue));
   pointer-events: none; animation: sv-sync-lock-on .22s cubic-bezier(.16, 1, .3, 1) both;
 }
-.sv-sync-navigation a[aria-current="page"]::before, .sv-sync-segmented button[aria-pressed="true"]::before, .sv-sync-counter-tile[aria-pressed="true"]::before,
+.sv-sync-navigation a[aria-current="page"]::before, .sv-sync-segmented button[aria-pressed="true"]::before,
 .sv-sync-song-row--selected::before, .sv-sync-game-card[aria-checked="true"]::before, .sv-sync-layout-option[aria-checked="true"]::before {
   left: -1px; top: -1px; border-right: 0; border-bottom: 0; border-radius: 5px 0 0 0; --sv-sync-lock-x: -4px; --sv-sync-lock-y: -4px;
 }
-.sv-sync-navigation a[aria-current="page"]::after, .sv-sync-segmented button[aria-pressed="true"]::after, .sv-sync-counter-tile[aria-pressed="true"]::after,
+.sv-sync-navigation a[aria-current="page"]::after, .sv-sync-segmented button[aria-pressed="true"]::after,
 .sv-sync-song-row--selected::after, .sv-sync-game-card[aria-checked="true"]::after, .sv-sync-layout-option[aria-checked="true"]::after {
   right: -1px; bottom: -1px; border-left: 0; border-top: 0; border-radius: 0 0 5px 0; --sv-sync-lock-x: 4px; --sv-sync-lock-y: 4px;
 }
-.sv-sync-counter-tile { --sv-sync-lock-on: var(--sv-sync-tone); }
 
 /* ---------- Buttons, fields and small parts ---------- */
 .sv-sync-button {
@@ -266,8 +267,6 @@
 .sv-sync-receptor--logo { color: var(--sv-sync-light-blue); }
 .sv-sync-receptor--warning { color: var(--sv-sync-gold); }
 .sv-sync-receptor--light-blue { color: var(--sv-sync-light-blue); }
-.sv-sync-spin-box { display: inline-grid; place-items: center; }
-.sv-sync-spin { animation: sv-sync-spin 1s linear infinite; }
 .sv-sync-life-bar { height: 16px; padding: 2px; border-radius: 4px; border: 2px solid #dff3ff; background: #090b12; }
 .sv-sync-life-bar > span { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, #2cff00, #a4ff00 55%, #fee600); transition: width .3s; }
 .sv-sync-cover { display: block; width: 52px; height: 52px; border-radius: 8px; object-fit: cover; border: 1px solid #33405e; }
@@ -294,15 +293,6 @@
 .sv-sync-top-bar-block b { color: #fff; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sv-sync-background-sync { grid-column: 1 / 4; flex-direction: row; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid var(--sv-sync-border); }
 .sv-sync-background-sync b { flex: 0 0 auto; font-size: 14px; overflow: visible; }
-.sv-sync-now-button {
-  display: inline-flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 26px 0 12px; border-radius: 16px; border: 2px solid var(--sv-sync-stage); cursor: pointer; white-space: nowrap;
-  font: italic 900 22px/1 var(--sv-sync-font-display); font-stretch: 125%; letter-spacing: .04em; color: #04131a;
-  background: linear-gradient(180deg, #e2faff, #1cd8ff 48%, #0a9cc4);
-  box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage);
-}
-.sv-sync-now-button:hover { filter: brightness(1.08); }
-.sv-sync-now-button:disabled { cursor: default; filter: saturate(.6) brightness(.9); }
-.sv-sync-now-receptor { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #0b0f18; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .15); color: #dff3ff; }
 
 /* ---------- Progress and judgment ---------- */
 .sv-sync-progress { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-color: rgba(52, 191, 255, .5); }
@@ -322,16 +312,20 @@
 .sv-sync-judgment--flash { animation: sv-sync-judgment-pop .6s cubic-bezier(.16, 1, .3, 1) both; }
 
 /* ---------- Counters, filters and song list ---------- */
-.sv-sync-counter-tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+/* A minimal row: the number in the status colour, a muted label, a thin divider; the chosen one is underlined. */
+.sv-sync-counter-tiles { display: flex; flex-wrap: wrap; row-gap: 6px; }
 .sv-sync-counter-tile {
-  position: relative; display: flex; flex: 1 1 auto; flex-direction: row; align-items: center; gap: 10px; min-height: 44px; padding: 6px 14px 6px 12px; border-radius: 10px; cursor: pointer; text-align: left; font: inherit; color: var(--sv-sync-text-soft);
-  border: 1.5px solid color-mix(in srgb, var(--sv-sync-tone) 38%, #283044); background: linear-gradient(180deg, color-mix(in srgb, var(--sv-sync-tone) 9%, #141824), #121521);
+  position: relative; display: flex; flex-direction: row; align-items: baseline; gap: 8px; min-height: 44px; padding: 4px 18px; border: 0; border-radius: 0; background: none;
+  cursor: pointer; text-align: left; font: inherit; color: var(--sv-sync-text-subtle);
 }
-.sv-sync-counter-tile:hover { border-color: color-mix(in srgb, var(--sv-sync-tone) 70%, #283044); }
-.sv-sync-counter-tile[aria-pressed="true"] { border-color: var(--sv-sync-tone); background: linear-gradient(180deg, color-mix(in srgb, var(--sv-sync-tone) 20%, #141824), #141826); }
-.sv-sync-counter-number { font: italic 900 22px/1 var(--sv-sync-font-display); font-stretch: 125%; color: var(--sv-sync-tone); font-variant-numeric: tabular-nums; }
-.sv-sync-counter-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--sv-sync-text); }
-.sv-sync-counter-label svg { color: var(--sv-sync-tone); }
+.sv-sync-counter-tile + .sv-sync-counter-tile { border-left: 1px solid var(--sv-sync-border-soft); }
+.sv-sync-counter-tile:first-child { padding-left: 2px; }
+.sv-sync-counter-tile:hover .sv-sync-counter-label, .sv-sync-counter-tile[aria-pressed="true"] .sv-sync-counter-label { color: #fff; }
+.sv-sync-counter-tile[aria-pressed="true"]::after { content: ""; position: absolute; left: 18px; right: 18px; bottom: -4px; height: 2px; border-radius: 2px; background: var(--sv-sync-tone); }
+.sv-sync-counter-tile:first-child[aria-pressed="true"]::after { left: 2px; }
+.sv-sync-counter-number { font: italic 900 24px/1 var(--sv-sync-font-display); font-stretch: 125%; color: var(--sv-sync-tone); font-variant-numeric: tabular-nums; }
+.sv-sync-counter-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--sv-sync-text-subtle); }
+.sv-sync-counter-label svg { color: var(--sv-sync-tone); opacity: .8; }
 .sv-sync-song-browser { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .sv-sync-filters { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
 .sv-sync-search-box { position: relative; }
@@ -501,16 +495,16 @@
 .sv-sync-dialog-buttons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
 
 /* ---------- Connect your game ---------- */
-.sv-sync-big-pick { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 36px 28px; text-align: center; background: radial-gradient(60% 80% at 50% 0, rgba(28, 216, 255, .12), transparent 70%), var(--sv-sync-panel-raised); border-color: #33405e; }
-.sv-sync-pick-button {
-  display: inline-flex; align-items: center; gap: 14px; min-height: 68px; padding: 0 30px 0 14px; border-radius: 16px; border: 2px solid var(--sv-sync-stage); cursor: pointer;
-  font: italic 900 24px/1 var(--sv-sync-font-display); font-stretch: 125%; letter-spacing: .03em; color: #0b1400; background: linear-gradient(180deg, #e4ffb0, #a4ff00 50%, #73b800);
-  box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage);
-}
-.sv-sync-pick-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: #0b0f18; color: var(--sv-sync-great); }
-.sv-sync-permission-explainer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: center; width: 100%; text-align: start; }
-.sv-sync-browser-prompt-frame { padding: 10px 0 44px; }
-.sv-sync-browser-prompt { position: relative; width: 100%; max-width: 440px; margin: 0 0 0 auto; border-radius: 12px; background: #f3f5f9; color: #202124; font: 13px/1.45 'Segoe UI', Rubik, sans-serif; box-shadow: 0 20px 50px rgba(0, 0, 0, .6); }
+.sv-sync-connect-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-radius: 18px; background: #12151f; border: 1px solid var(--sv-sync-border); overflow: hidden; }
+.sv-sync-connect-half { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 32px; }
+.sv-sync-connect-half--first { justify-content: center; align-items: flex-start; background: radial-gradient(90% 80% at 0 0, rgba(164, 255, 0, .08), transparent 70%); }
+.sv-sync-connect-half--then { border-left: 1px solid var(--sv-sync-border-soft); background: #0f121a; }
+.sv-sync-connect-step { font: italic 800 12px/1 var(--sv-sync-font-display); letter-spacing: .14em; color: var(--sv-sync-text-subtle); }
+.sv-sync-connect-title { margin: 0; font: italic 800 24px/1.1 var(--sv-sync-font-display); font-stretch: 112%; color: #fff; }
+.sv-sync-connect-pick { margin-top: 8px; font-size: 17px; }
+.sv-sync-connect-hint { font-size: 14px; color: var(--sv-sync-text-subtle); }
+.sv-sync-browser-prompt-frame { margin-top: 10px; padding: 0 6px 34px; }
+.sv-sync-browser-prompt { position: relative; width: 100%; max-width: 400px; margin: 0; border-radius: 12px; background: #f3f5f9; color: #202124; font: 13px/1.45 'Segoe UI', Rubik, sans-serif; box-shadow: 0 20px 50px rgba(0, 0, 0, .6); }
 .sv-sync-browser-prompt-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 12px 12px 0 0; background: #dfe3ea; color: #5f6368; font-size: 11.5px; }
 .sv-sync-browser-prompt-title { display: flex; align-items: center; gap: 8px; padding: 14px 16px 6px; font-weight: 600; font-size: 14px; }
 .sv-sync-browser-prompt-logo { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 5px; background: var(--sv-sync-stage); color: var(--sv-sync-light-blue); }
@@ -556,7 +550,8 @@
 .sv-sync-addon-card { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 16px 18px; border-radius: 14px; background: var(--sv-sync-panel-raised); border: 1px solid var(--sv-sync-border); }
 .sv-sync-addon-card--off .sv-sync-addon-icon, .sv-sync-addon-card--off .sv-sync-addon-name { opacity: .72; }
 .sv-sync-addon-card--not-answering { border-color: rgba(255, 198, 0, .45); }
-.sv-sync-addon-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 12px; background: linear-gradient(135deg, #2a1f4a, #13213b); border: 1px solid var(--sv-sync-border-strong); color: var(--sv-sync-addon); font: italic 900 20px/1 var(--sv-sync-font-display); }
+/* Addon and generator tiles are SquareIconTiles: yellow for addons, green for generators. */
+.sv-sync-addon-icon { width: 52px; height: 52px; font: italic 900 20px/1 var(--sv-sync-font-display); }
 .sv-sync-addon-name { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 16px; font-weight: 600; color: #fff; }
 .sv-sync-addon-provides { display: inline-flex; align-items: center; gap: 6px; min-height: 22px; padding: 0 8px; border-radius: 6px; border: 1px solid rgba(201, 160, 255, .45); color: #d9c2ff; font: italic 800 11px/1 var(--sv-sync-font-display); font-stretch: 118%; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
 .sv-sync-addon-state { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 14.5px; font-weight: 400; }
@@ -682,6 +677,9 @@
 /* ---------- Generators ---------- */
 .sv-sync-generator-main { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 20px; border-color: rgba(236, 203, 5, .5); }
 .sv-sync-badge--default { color: #14110a; background: var(--sv-sync-focus); border-color: var(--sv-sync-focus); }
+.sv-sync-price-chip { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; font: italic 800 11px/1 var(--sv-sync-font-display); letter-spacing: .06em; white-space: nowrap; }
+.sv-sync-price-chip--token { color: #1a1200; background: var(--sv-sync-gold); }
+.sv-sync-price-chip--free { color: #0b1400; background: var(--sv-sync-great); }
 .sv-sync-tokens { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12px; color: var(--sv-sync-text-muted); }
 .sv-sync-token-count { display: inline-flex; align-items: baseline; gap: 6px; }
 .sv-sync-token-count b { font: italic 900 30px/1 var(--sv-sync-font-display); font-stretch: 125%; color: var(--sv-sync-gold); text-shadow: 0 2px 0 #4a3500; }
@@ -755,12 +753,6 @@
 .sv-sync-button { box-shadow: inset 0 1px 0 #fff8, 0 0 18px rgba(236, 203, 5, .3); }
 .sv-sync-button--go { box-shadow: inset 0 1px 0 #fff8, 0 0 16px rgba(164, 255, 0, .3); }
 .sv-sync-button--ghost, .sv-sync-root a.sv-sync-button--ghost, .sv-sync-button--danger { box-shadow: none; }
-.sv-sync-now-button { box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage), 0 0 30px rgba(28, 216, 255, .45); }
-.sv-sync-pick-button { box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage), 0 0 30px rgba(164, 255, 0, .4); }
-.sv-sync-judgment { text-shadow: 0 0 22px currentColor, 0 4px 0 var(--sv-sync-stage); }
-.sv-sync-life-bar { box-shadow: 0 0 12px rgba(28, 216, 255, .25); }
-.sv-sync-life-bar > span { box-shadow: 0 0 10px rgba(164, 255, 0, .5); }
-.sv-sync-switch[aria-checked="true"]::after { box-shadow: 0 0 8px var(--sv-sync-great); }
 .sv-sync-meter-block--on { box-shadow: 0 0 5px var(--sv-sync-difficulty); }
 .sv-sync-dialog { box-shadow: 0 30px 80px rgba(0, 0, 0, .7), 0 0 40px rgba(28, 216, 255, .12); }
 .sv-sync-token-count b { text-shadow: 0 0 14px rgba(255, 198, 0, .6), 0 2px 0 #4a3500; }
@@ -789,7 +781,6 @@
 /* Every set of lock-on corners glows in its own colour. */
 .sv-sync-navigation a[aria-current="page"]::before, .sv-sync-navigation a[aria-current="page"]::after,
 .sv-sync-segmented button[aria-pressed="true"]::before, .sv-sync-segmented button[aria-pressed="true"]::after,
-.sv-sync-counter-tile[aria-pressed="true"]::before, .sv-sync-counter-tile[aria-pressed="true"]::after,
 .sv-sync-song-row--selected::before, .sv-sync-song-row--selected::after,
 .sv-sync-game-card[aria-checked="true"]::before, .sv-sync-game-card[aria-checked="true"]::after,
 .sv-sync-layout-option[aria-checked="true"]::before, .sv-sync-layout-option[aria-checked="true"]::after {
@@ -819,8 +810,14 @@
   .sv-sync-background-sync { grid-column: 1 / -1; }
   .sv-sync-home-grid--with-drawer { grid-template-columns: minmax(0, 1fr); }
 }
+@media (max-width: 860px) {
+  .sv-sync-connect-panel { grid-template-columns: minmax(0, 1fr); }
+  .sv-sync-connect-half { padding: 22px 18px; }
+  .sv-sync-connect-half--then { border-left: 0; border-top: 1px solid var(--sv-sync-border-soft); }
+  .sv-sync-connect-pick { width: 100%; font-size: 15px; padding: 0 16px; }
+}
 @media (max-width: 900px) {
-  .sv-sync-two-columns, .sv-sync-layout-options, .sv-sync-name-rule, .sv-sync-permission-explainer { grid-template-columns: minmax(0, 1fr); }
+  .sv-sync-two-columns, .sv-sync-layout-options, .sv-sync-name-rule { grid-template-columns: minmax(0, 1fr); }
   .sv-sync-shell--desktop .sv-sync-shell-body { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
@@ -884,7 +881,7 @@
   .sv-sync-shell--website .sv-sync-music-folders li > .sv-sync-close-button { grid-column: 3; grid-row: 1 / span 2; width: 44px; height: 44px; }
   .sv-sync-shell--website .sv-sync-picked-files li .sv-sync-mono { overflow-wrap: anywhere; min-width: 0; }
   .sv-sync-shell--website .sv-sync-addon-card { grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: 14px; align-items: start; }
-  .sv-sync-shell--website .sv-sync-addon-card > .sv-sync-addon-icon, .sv-sync-shell--website .sv-sync-generator-top > .sv-sync-addon-icon { width: 44px; height: 44px; font-size: 17px; }
+  .sv-sync-shell--website .sv-sync-addon-card > .sv-sync-addon-icon, .sv-sync-shell--website .sv-sync-generator-top > .sv-sync-addon-icon, .sv-sync-shell--website .sv-sync-generator-main > .sv-sync-generator-logo { width: 44px; height: 44px; font-size: 17px; }
   .sv-sync-shell--website .sv-sync-addon-controls { grid-column: 1 / -1; justify-content: space-between; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--sv-sync-border-soft); }
   .sv-sync-shell--website .sv-sync-addon-controls .sv-sync-switch { min-width: 44px; }
   .sv-sync-shell--website .sv-sync-addon-controls .sv-sync-button { min-height: 44px; }
@@ -923,11 +920,6 @@
   .sv-sync-shell--website .sv-sync-setup-steps li { white-space: nowrap; }
   .sv-sync-shell--website .sv-sync-setup-steps li:not(.sv-sync-setup-step--current) { font-size: 0; gap: 0; }
   .sv-sync-shell--website .sv-sync-setup-steps li + li::before { width: 22px; }
-  .sv-sync-shell--website .sv-sync-big-pick { padding: 24px 18px; }
-  .sv-sync-shell--website .sv-sync-pick-button { width: 100%; min-height: 64px; padding: 10px 16px 10px 10px; font-size: 19px; line-height: 1.1; text-align: left; }
-  .sv-sync-shell--website .sv-sync-pick-icon { flex: 0 0 44px; width: 44px; height: 44px; }
-  .sv-sync-shell--website .sv-sync-permission-explainer { gap: 8px; }
-  .sv-sync-shell--website .sv-sync-permission-explainer a { display: inline-flex; align-items: center; min-height: 44px; }
   .sv-sync-shell--website .sv-sync-narrow > .sv-sync-row:not(.sv-sync-wrap) { align-items: flex-start; }
   .sv-sync-shell--website .sv-sync-narrow > .sv-sync-row .sv-sync-mono { overflow-wrap: anywhere; }
   .sv-sync-shell--website .sv-sync-folder-tree li { gap: 10px; padding: 0 10px; }
@@ -943,4 +935,56 @@
   .sv-sync-dialog-backdrop { padding: 20px 12px; }
   .sv-sync-dialog { padding: 20px 16px; }
   .sv-sync-dialog-buttons .sv-sync-button { flex: 1 1 auto; }
+}
+
+/* ---------- Shared with the intro page (v3.80): pill, square tiles, agent rows, four-arrow loader ---------- */
+.sv-sync-green-pill {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 54px; padding: 0 28px; border: 0; border-radius: 999px; cursor: pointer; white-space: nowrap; text-decoration: none;
+  font: italic 800 18px/1 var(--sv-sync-font-display); font-stretch: 112%; letter-spacing: .01em; color: #0b1400;
+  background: linear-gradient(#c8ff6a, #a4ff00 55%, #73b800); box-shadow: inset 0 1px 0 #fff8, 0 0 22px rgba(164, 255, 0, .3);
+}
+.sv-sync-root a.sv-sync-green-pill, .sv-sync-root a.sv-sync-green-pill:hover, .sv-sync-green-pill:hover { color: #0b1400; }
+.sv-sync-green-pill:hover { filter: brightness(1.06); }
+.sv-sync-green-pill:disabled { filter: none; opacity: .85; cursor: default; }
+.sv-sync-green-pill:focus-visible { outline: 3px solid var(--sv-sync-focus); outline-offset: 3px; }
+.sv-sync-green-pill svg { flex: none; }
+.sv-sync-slow-turn { animation: sv-sync-spin 2s linear infinite; }
+
+.sv-sync-square-tile {
+  --sv-sync-tile-colour: var(--sv-sync-link); flex: none; display: grid; place-items: center; width: var(--sv-sync-tile-size, 42px); height: var(--sv-sync-tile-size, 42px); border-radius: 12px;
+  color: var(--sv-sync-tile-colour); background: color-mix(in srgb, var(--sv-sync-tile-colour) 14%, transparent); font: italic 900 calc(var(--sv-sync-tile-size, 42px) * .38)/1 var(--sv-sync-font-display);
+}
+.sv-sync-square-tile--sync { --sv-sync-tile-colour: #1cd8ff; }
+.sv-sync-square-tile--addons { --sv-sync-tile-colour: #ffd36b; }
+.sv-sync-square-tile--generators { --sv-sync-tile-colour: #a4ff00; }
+.sv-sync-square-tile--groups { --sv-sync-tile-colour: #ff8cf9; }
+.sv-sync-square-tile--neutral { background: #1a1f2d; box-shadow: inset 0 0 0 1px #2c3550; }
+
+.sv-sync-agent-row { --sv-sync-agent-tone: var(--sv-sync-link); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--sv-sync-panel-deep); border: 1px dashed #2c3550; }
+.sv-sync-agent-row-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sv-sync-agent-row-text b { font: italic 800 17px/1.15 var(--sv-sync-font-display); color: #fff; }
+.sv-sync-agent-row-line { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--sv-sync-text-soft); }
+.sv-sync-agent-row-line svg, .sv-sync-agent-box-title svg { flex: none; color: var(--sv-sync-agent-tone); }
+.sv-sync-agent-row-actions, .sv-sync-agent-box-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+.sv-sync-agent-copy { min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--sv-sync-border-strong); background: #1d2232; color: #fff; font: 600 13.5px/1 var(--sv-sync-font-body); cursor: pointer; }
+.sv-sync-agent-copy:hover { border-color: var(--sv-sync-link); }
+.sv-sync-agent-copy--copied, .sv-sync-agent-copy--copied:hover { border-color: var(--sv-sync-great); color: var(--sv-sync-great); }
+.sv-sync-agent-link { font-size: 14px; color: #8fd3ff; }
+.sv-sync-agent-prompt { display: block; padding: 10px 12px; border-radius: 10px; background: #08080d; border: 1px solid var(--sv-sync-border-soft); font: 500 13.5px/1.5 var(--sv-sync-font-mono); color: var(--sv-sync-text-soft); white-space: normal; overflow-wrap: anywhere; }
+.sv-sync-agent-prompt b { color: #fff; }
+.sv-sync-agent-prompt--fallback { flex: 1 1 100%; }
+.sv-sync-agent-box { --sv-sync-agent-tone: #8fd3ff; display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; background: var(--sv-sync-field-background); border: 1px dashed rgba(143, 211, 255, .45); }
+.sv-sync-agent-box-title { display: inline-flex; align-items: center; gap: 8px; font: italic 800 13px/1 var(--sv-sync-font-display); letter-spacing: .06em; color: #8fd3ff; }
+
+.sv-sync-four-arrow-loader { display: inline-flex; align-items: center; gap: 8px; }
+.sv-sync-four-arrows { display: inline-flex; gap: 3px; color: #dff3ff; }
+.sv-sync-four-arrows-arrow { opacity: .35; animation: sv-sync-four-arrows 1.2s ease-in-out infinite; }
+.sv-sync-four-arrows-arrow:nth-child(2) { animation-delay: .15s; }
+.sv-sync-four-arrows-arrow:nth-child(3) { animation-delay: .3s; }
+.sv-sync-four-arrows-arrow:nth-child(4) { animation-delay: .45s; }
+@keyframes sv-sync-four-arrows { 0%, 60%, 100% { opacity: .35; filter: none; } 20% { opacity: 1; filter: brightness(2.2) drop-shadow(0 0 4px #1cd8ff); } }
+/* The loader is also used outside .sv-sync-root (the intro page), so it stops its own animation too. */
+@media (prefers-reduced-motion: reduce) {
+  .sv-sync-four-arrows-arrow { animation: none !important; opacity: .7; }
+  .sv-sync-slow-turn { animation: none !important; }
 }

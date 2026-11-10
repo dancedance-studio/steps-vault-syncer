@@ -3,15 +3,13 @@ import { ArrowReceptor } from '../icons/arrow-receptor';
 import { Icon } from '../icons/icon';
 import { SITE_NAME } from '../shared/brand-names';
 
-/** Website only: the browser asks before letting the page edit the Songs folder, so we show that prompt first. */
-export function BrowserPermissionExplainer({ desktopAppHref }: { desktopAppHref: string }): ReactElement {
+/** Website only, the right half of Connect: the browser asks before letting the page edit the Songs folder. */
+export function BrowserPermissionExplainer(): ReactElement {
   return (
-    <section className="sv-sync-permission-explainer" aria-labelledby="sv-sync-permission-heading">
-      <div className="sv-sync-stack">
-        <h3 id="sv-sync-permission-heading" className="sv-sync-heading-2 sv-sync-heading-2--small">Then click Allow</h3>
-        <p className="sv-sync-text sv-sync-text--medium">Your browser asks again after a restart.</p>
-        <span className="sv-sync-text sv-sync-text--medium"><a className="sv-sync-link" href={desktopAppHref}>Get the desktop app</a> to sync in the background.</span>
-      </div>
+    <section className="sv-sync-connect-half sv-sync-connect-half--then" aria-labelledby="sv-sync-permission-heading">
+      <span className="sv-sync-connect-step">THEN</span>
+      <h3 id="sv-sync-permission-heading" className="sv-sync-connect-title">Click Allow</h3>
+      <span className="sv-sync-connect-hint">Your browser asks once, and again after a restart.</span>
       <div className="sv-sync-browser-prompt-frame" role="img" aria-label="Example of the browser asking for permission, with the Allow button highlighted">
         <div className="sv-sync-browser-prompt" aria-hidden="true">
           <div className="sv-sync-browser-prompt-bar"><Icon name="lock" size={11} strokeWidth={2.4} />{SITE_NAME}</div>

@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
 import { ToggleSwitch } from '../shared/small-parts';
+import { SquareIconTile } from '../shared/square-icon-tile';
 import type { AddonView } from '../sync-ui-types';
 import { AddonOptionFields } from './addon-option-fields';
 
@@ -22,7 +23,7 @@ export function AddonCard({ addon, onToggle, onRemove, onSetOption }: AddonCardP
   const isNotAnswering = addon.isEnabled && addon.health.kind === 'not-answering';
   return (
     <article className={joinClassNames('sv-sync-addon-card', !addon.isEnabled && 'sv-sync-addon-card--off', isNotAnswering && 'sv-sync-addon-card--not-answering')} aria-label={addon.name}>
-      <span className="sv-sync-addon-icon" aria-hidden="true">{getAddonInitials(addon.name)}</span>
+      <SquareIconTile tone="addons" size={52} className="sv-sync-addon-icon">{getAddonInitials(addon.name)}</SquareIconTile>
       <div className="sv-sync-min-width-0">
         <div className="sv-sync-addon-name">
           {addon.name}

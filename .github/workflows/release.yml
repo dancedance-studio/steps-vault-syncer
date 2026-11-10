@@ -1,4 +1,4 @@
-# Builds StepsVault Sync for Windows in public CI and, once SignPath is set up, signs and publishes it (docs/releasing.md).
+# Builds dancedance.studio Sync for Windows in public CI and, once SignPath is set up, signs and publishes it (docs/releasing.md).
 # Signing happens twice because Smart App Control checks both: first every program inside the app, then the installer
 # made from the signed app. Without SignPath the workflow still builds an unsigned installer as a test artifact, but it
 # never publishes anything unsigned.
@@ -135,4 +135,4 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/*.exe release/latest.yml release/SHA256SUMS.txt --title "StepsVault Sync $GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" release/*.exe release/latest.yml release/SHA256SUMS.txt --title "dancedance.studio Sync $GITHUB_REF_NAME" --generate-notes

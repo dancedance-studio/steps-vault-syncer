@@ -1,7 +1,7 @@
 import type { SiteSongRequest } from '@stepsvault/sync-core';
 
 /**
- * The app's own link scheme, for the website's "Open in Sync app". It names the app the player sees (DanceDance Sync),
+ * The app's own link scheme, for the website's "Open in Sync app". It names the app the player sees (dancedance.studio Sync),
  * so no other program is likely to want it, and it is lower case because Windows and macOS compare schemes that way.
  */
 export const SYNC_LINK_SCHEME = 'dancedance-sync';

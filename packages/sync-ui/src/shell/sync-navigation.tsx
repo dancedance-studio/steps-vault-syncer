@@ -10,7 +10,7 @@ interface NavigationItem {
 
 const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   { screen: 'songs', label: 'Songs', iconName: 'note' },
-  { screen: 'audio-sources', label: 'Audio sources', iconName: 'bars' },
+  { screen: 'audio-sources', label: 'Music & addons', iconName: 'bars' },
   { screen: 'generators', label: 'Generators', iconName: 'sparkle' },
   { screen: 'folder-layout', label: 'Folder layout', iconName: 'layout' },
   { screen: 'activity', label: 'Activity', iconName: 'clock' },
@@ -23,17 +23,17 @@ export interface SyncNavigationProps {
   onNavigate: (screen: SyncScreen) => void;
   /** Real addresses for the website's router; without them the links only call onNavigate. */
   hrefsByScreen?: Partial<Record<SyncScreen, string>>;
-  /** Website only: show Generators, once the website can send music to a generator. */
+  /** @deprecated Generators now always shows on the website; kept so older callers still compile. */
   hasWebsiteGenerators?: boolean;
 }
 
-/** The website keeps the account in its own settings, and shows Generators only when it can make songs. */
-export function getNavigationItems({ platform, hasWebsiteGenerators = false }: { platform: SyncPlatform; hasWebsiteGenerators?: boolean }): readonly NavigationItem[] {
+/** The website keeps the account in its own settings. */
+export function getNavigationItems({ platform }: { platform: SyncPlatform }): readonly NavigationItem[] {
   if (platform === 'desktop') return NAVIGATION_ITEMS;
-  return NAVIGATION_ITEMS.filter((item) => item.screen !== 'account' && (item.screen !== 'generators' || hasWebsiteGenerators));
+  return NAVIGATION_ITEMS.filter((item) => item.screen !== 'account');
 }
 
-export function SyncNavigation({ platform, currentScreen, onNavigate, hrefsByScreen, hasWebsiteGenerators }: SyncNavigationProps): ReactElement {
+export function SyncNavigation({ platform, currentScreen, onNavigate, hrefsByScreen }: SyncNavigationProps): ReactElement {
   const handleClick = ({ event, screen }: { event: MouseEvent<HTMLAnchorElement>; screen: SyncScreen }): void => {
     if (event.ctrlKey || event.metaKey || event.shiftKey) return;
     event.preventDefault();
@@ -41,7 +41,7 @@ export function SyncNavigation({ platform, currentScreen, onNavigate, hrefsByScr
   };
   return (
     <nav className="sv-sync-navigation" aria-label="Sync">
-      {getNavigationItems({ platform, hasWebsiteGenerators }).map((item) => (
+      {getNavigationItems({ platform }).map((item) => (
         <a key={item.screen} href={hrefsByScreen?.[item.screen] ?? `#${item.screen}`} aria-current={item.screen === currentScreen ? 'page' : undefined} onClick={(event) => { handleClick({ event, screen: item.screen }); }}>
           <Icon name={item.iconName} size={18} />
           {item.label}
