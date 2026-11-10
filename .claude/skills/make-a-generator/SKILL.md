@@ -1,13 +1,13 @@
 ---
 name: make-a-generator
-description: Build a StepsVault Sync generator - a small web service that turns a player's music into a StepMania song (.ssc). Use when someone wants to make, test or fix a step generator for StepsVault Sync, or asks how generators work.
+description: Build a dancedance.studio Sync generator - a small web service that turns a player's music into a StepMania song (.ssc). Use when someone wants to make, test or fix a step generator for dancedance.studio Sync, or asks how generators work.
 ---
 
-# Make a StepsVault Sync generator
+# Make a dancedance.studio Sync generator
 
 A **generator** makes the steps for a song from the player's music. Sync finds the music (music folders, a picked file,
 addons), sends it to your generator as a **job**, collects the song file you make, checks it, and puts it in the
-player's game under **My generated songs**. Your songs never go to the StepsVault vault. The full rules are in
+player's game under **My generated songs**. Your songs never go to the dancedance.studio library. The full rules are in
 `docs/generators.md`; read it before you start. This skill is the short path.
 
 ## 1. Decide where it runs
