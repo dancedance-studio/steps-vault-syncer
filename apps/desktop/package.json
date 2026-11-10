@@ -3,7 +3,7 @@
   "productName": "StepsVault Sync",
   "version": "0.1.0",
   "private": true,
-  "description": "StepsVault Sync for Windows: your vault's songs in your own StepMania, lined up with your own music.",
+  "description": "dancedance.studio Sync for Windows: your library's songs in your own StepMania, lined up with your own music.",
   "license": "Apache-2.0",
   "main": "dist/main/main.cjs",
   "scripts": {
@@ -31,6 +31,6 @@
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   },
-  "author": "StepsVault",
+  "author": "dancedance.studio",
   "homepage": "https://dancedance.studio"
 }

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { BrowserWindow, shell, type WebPreferences } from 'electron';
+import { APP_DISPLAY_NAME } from '../shared/app-name';
 
 const RENDERER_FOLDER = path.join(__dirname, '..', 'renderer');
 const PRELOAD_FOLDER = path.join(__dirname, '..', 'preload');
@@ -35,7 +36,7 @@ export function createMainWindow(): BrowserWindow {
     height: 860,
     minWidth: 960,
     minHeight: 640,
-    title: 'DanceDance Sync',
+    title: APP_DISPLAY_NAME,
     backgroundColor: '#0b0b12',
     show: false,
     webPreferences: getLockedDownPreferences('app-preload.cjs'),

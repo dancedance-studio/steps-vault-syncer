@@ -1,6 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import { app, BrowserWindow, clipboard, dialog, ipcMain, session, shell } from 'electron';
+import { APP_DISPLAY_NAME } from '../shared/app-name';
 import { BRIDGE_CHANNEL_PREFIX, BRIDGE_METHOD_NAMES, STATE_CHANNEL, type DesktopSyncState } from '../shared/bridge-types';
 import { AudioBridge } from './audio-bridge';
 import { buildBridgeHandlers } from './bridge-handlers';
@@ -108,7 +109,7 @@ function createController(tray: { show: (status: DesktopSyncState['trayStatus'])
           cancelId: 1,
           noLink: true,
           title: 'Run a program on this computer?',
-          message: `Let DanceDance Sync run this command when it needs ${address}?`,
+          message: `Let ${APP_DISPLAY_NAME} run this command when it needs ${address}?`,
           detail: `${command}
 
 It runs in ${folder}, and Sync stops it after 10 minutes without use. Only allow a command you typed yourself and trust.`,
@@ -143,7 +144,7 @@ function registerBridge(controller: SyncController): void {
   const handlers = buildBridgeHandlers(controller);
   for (const methodName of BRIDGE_METHOD_NAMES) {
     ipcMain.handle(`${BRIDGE_CHANNEL_PREFIX}${methodName}`, (event, argument: unknown) => {
-      if (!mainWindow || event.sender !== mainWindow.webContents) throw new Error('Only the DanceDance Sync window may do this.');
+      if (!mainWindow || event.sender !== mainWindow.webContents) throw new Error(`Only the ${APP_DISPLAY_NAME} window may do this.`);
       return handlers[methodName](argument);
     });
   }

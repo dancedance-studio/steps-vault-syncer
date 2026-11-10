@@ -65,6 +65,7 @@ import {
   type SongSourceSearchResult,
   type VaultChoiceAnswer,
 } from '@stepsvault/sync-ui';
+import { APP_DISPLAY_NAME } from '../shared/app-name';
 import type { DesktopSignIn, DesktopSyncBridge, DesktopSyncState } from '../shared/bridge-types';
 import type { AudioBridge } from './audio-bridge';
 import { buildDefaultSettings, parseSettings, withActivity, type DesktopSettings } from './desktop-settings';
@@ -457,7 +458,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
 
   async copyActivityDetails(): Promise<void> {
     const lines = this.settings.activity.slice(-MAX_ACTIVITY_IN_COPY).map((event) => `${event.at} ${describeActivityKind(event)} ${event.folderPath.join('/')}${event.message ? ` — ${event.message}` : ''}`);
-    await this.options.services.writeClipboard([`DanceDance Sync ${this.options.appVersion}`, ...lines].join('\n'));
+    await this.options.services.writeClipboard([`${APP_DISPLAY_NAME} ${this.options.appVersion}`, ...lines].join('\n'));
   }
 
   /** Called when a new version finished downloading. */

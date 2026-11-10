@@ -1,5 +1,6 @@
 import { Menu, nativeImage, Tray, type NativeImage } from 'electron';
 import type { TrayStatus } from '@stepsvault/sync-ui';
+import { APP_DISPLAY_NAME } from '../shared/app-name';
 
 const ICON_SIZE = 16;
 /** Lime when synced, blue while syncing, gold when songs need the player, grey when paused (as the status chips). */
@@ -10,10 +11,10 @@ const COLORS_BY_STATUS: Readonly<Record<TrayStatus, readonly [number, number, nu
   paused: [200, 200, 200],
 };
 const TOOLTIPS_BY_STATUS: Readonly<Record<TrayStatus, string>> = {
-  synced: 'DanceDance Sync · everything is in your game',
-  syncing: 'DanceDance Sync · syncing…',
-  'needs-attention': 'DanceDance Sync · some songs need you',
-  paused: 'DanceDance Sync · paused',
+  synced: `${APP_DISPLAY_NAME} · everything is in your game`,
+  syncing: `${APP_DISPLAY_NAME} · syncing…`,
+  'needs-attention': `${APP_DISPLAY_NAME} · some songs need you`,
+  paused: `${APP_DISPLAY_NAME} · paused`,
 };
 
 /** A small up-arrow, drawn in code so the app ships no icon files that could go missing. */
@@ -58,6 +59,8 @@ export class SyncTray {
     this.tray.setToolTip(TOOLTIPS_BY_STATUS[status]);
     this.tray.setContextMenu(
       Menu.buildFromTemplate([
+        { label: APP_DISPLAY_NAME, enabled: false },
+        { type: 'separator' },
         { label: 'Open', click: this.actions.onOpen },
         { label: 'Sync now', click: this.actions.onSyncNow },
         { label: status === 'paused' ? 'Resume' : 'Pause', click: this.actions.onTogglePause },

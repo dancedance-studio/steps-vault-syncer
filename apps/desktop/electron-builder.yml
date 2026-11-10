@@ -1,5 +1,8 @@
-# Windows installer for StepsVault Sync. Everything the app runs is already bundled into dist/ (esbuild and Vite);
+# Windows installer for dancedance.studio Sync. Everything the app runs is already bundled into dist/ (esbuild and Vite);
 # only electron-updater ships as a dependency.
+# appId, productName and artifactName keep the old names on purpose: the install folder, the player's data folder
+# and the update feed come from them, so changing them would split existing installs from their settings and updates.
+# Players see the name from shortcutName, uninstallDisplayName and the app's own windows.
 appId: com.stepsvault.sync
 productName: StepsVault Sync
 copyright: Copyright © StepsVault contributors. Apache-2.0.
@@ -14,7 +17,7 @@ asar: true
 # The website's "Open in Sync app" links (src/main/sync-link.ts). electron-builder writes this into the macOS app; on
 # Windows, build/installer.nsh registers it.
 protocols:
-  - name: DanceDance Sync link
+  - name: dancedance.studio Sync link
     schemes: [dancedance-sync]
 win:
   target:
@@ -28,7 +31,9 @@ nsis:
   allowToChangeInstallationDirectory: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: DanceDance Sync
+  # An update renames the old shortcuts to this name (electron-builder keeps the previous name in the registry).
+  shortcutName: dancedance.studio Sync
+  uninstallDisplayName: dancedance.studio Sync
   include: build/installer.nsh
 publish:
   provider: github

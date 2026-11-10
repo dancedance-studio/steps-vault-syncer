@@ -2,7 +2,7 @@
 ; even before it first runs (the app registers it again at every start). Keep the scheme in step with
 ; SYNC_LINK_SCHEME in src/main/sync-link.ts.
 !macro customInstall
-  WriteRegStr SHELL_CONTEXT "Software\Classes\dancedance-sync" "" "URL:DanceDance Sync"
+  WriteRegStr SHELL_CONTEXT "Software\Classes\dancedance-sync" "" "URL:dancedance.studio Sync"
   WriteRegStr SHELL_CONTEXT "Software\Classes\dancedance-sync" "URL Protocol" ""
   WriteRegStr SHELL_CONTEXT "Software\Classes\dancedance-sync\DefaultIcon" "" "$appExe,0"
   WriteRegStr SHELL_CONTEXT "Software\Classes\dancedance-sync\shell\open\command" "" '"$appExe" "%1"'
