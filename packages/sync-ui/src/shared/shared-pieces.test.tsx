@@ -23,6 +23,15 @@ describe('the agent skills', () => {
     expect(GENERATOR_AGENT_SKILL.promptText).toContain('to connect my own generator to dancedance.studio Sync, running on my computer.');
     expect(getPromptParts(ADDON_AGENT_SKILL)).toEqual({ textBefore: 'Use the ', skillName: 'make-an-addon', textAfter: ` skill from ${ADDON_AGENT_SKILL.githubUrl} to build me an addon that finds songs in my Dropbox music folder.` });
   });
+
+  it('open GitHub in a new tab that can’t reach back into Sync, and long addresses wrap inside the prompt', () => {
+    render(<><AgentRow skill={GENERATOR_AGENT_SKILL} /><AgentBox skill={ADDON_AGENT_SKILL} /></>);
+    for (const link of screen.getAllByRole('link')) {
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')?.split(' ')).toContain('noopener');
+    }
+    expect(syncUiCss).toMatch(/\.sv-sync-agent-prompt \{[^}]*overflow-wrap: anywhere;/);
+  });
 });
 
 describe('Copy for your agent', () => {
