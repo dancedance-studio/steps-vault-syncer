@@ -155,7 +155,7 @@
 .sv-sync-eyebrow { display: block; margin-bottom: 10px; font: italic 800 12px/1 var(--sv-sync-font-display); font-stretch: 125%; letter-spacing: .2em; color: var(--sv-sync-light-blue); text-transform: uppercase; }
 .sv-sync-root a.sv-sync-about-link { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 14px; color: #8fd3ff; text-decoration: none; }
 .sv-sync-root a.sv-sync-about-link:hover { color: var(--sv-sync-link-hover); text-decoration: underline; text-underline-offset: 3px; }
-.sv-sync-page-header--desktop { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 18px; }
+.sv-sync-page-header--desktop { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; padding: 0 0 4px; border-bottom: 1px solid #1a1f2d; margin-bottom: 4px; }
 .sv-sync-page-header--desktop .sv-sync-eyebrow { margin: 0; }
 .sv-sync-sidebar { display: flex; flex-direction: column; }
 .sv-sync-shell--desktop .sv-sync-sidebar { padding: 16px 12px; border-right: 1px solid #222839; background: #0a0c13; }
