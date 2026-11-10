@@ -185,22 +185,20 @@
 /* Lock-on corners: the game's selection brackets, used for whatever is chosen right now. */
 .sv-sync-navigation a[aria-current="page"]::before, .sv-sync-navigation a[aria-current="page"]::after,
 .sv-sync-segmented button[aria-pressed="true"]::before, .sv-sync-segmented button[aria-pressed="true"]::after,
-.sv-sync-counter-tile[aria-pressed="true"]::before, .sv-sync-counter-tile[aria-pressed="true"]::after,
 .sv-sync-song-row--selected::before, .sv-sync-song-row--selected::after,
 .sv-sync-game-card[aria-checked="true"]::before, .sv-sync-game-card[aria-checked="true"]::after,
 .sv-sync-layout-option[aria-checked="true"]::before, .sv-sync-layout-option[aria-checked="true"]::after {
   content: ""; position: absolute; width: 10px; height: 10px; border: 2px solid var(--sv-sync-lock-on, var(--sv-sync-light-blue));
   pointer-events: none; animation: sv-sync-lock-on .22s cubic-bezier(.16, 1, .3, 1) both;
 }
-.sv-sync-navigation a[aria-current="page"]::before, .sv-sync-segmented button[aria-pressed="true"]::before, .sv-sync-counter-tile[aria-pressed="true"]::before,
+.sv-sync-navigation a[aria-current="page"]::before, .sv-sync-segmented button[aria-pressed="true"]::before,
 .sv-sync-song-row--selected::before, .sv-sync-game-card[aria-checked="true"]::before, .sv-sync-layout-option[aria-checked="true"]::before {
   left: -1px; top: -1px; border-right: 0; border-bottom: 0; border-radius: 5px 0 0 0; --sv-sync-lock-x: -4px; --sv-sync-lock-y: -4px;
 }
-.sv-sync-navigation a[aria-current="page"]::after, .sv-sync-segmented button[aria-pressed="true"]::after, .sv-sync-counter-tile[aria-pressed="true"]::after,
+.sv-sync-navigation a[aria-current="page"]::after, .sv-sync-segmented button[aria-pressed="true"]::after,
 .sv-sync-song-row--selected::after, .sv-sync-game-card[aria-checked="true"]::after, .sv-sync-layout-option[aria-checked="true"]::after {
   right: -1px; bottom: -1px; border-left: 0; border-top: 0; border-radius: 0 0 5px 0; --sv-sync-lock-x: 4px; --sv-sync-lock-y: 4px;
 }
-.sv-sync-counter-tile { --sv-sync-lock-on: var(--sv-sync-tone); }
 
 /* ---------- Buttons, fields and small parts ---------- */
 .sv-sync-button {
@@ -297,15 +295,6 @@
 .sv-sync-top-bar-block b { color: #fff; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sv-sync-background-sync { grid-column: 1 / 4; flex-direction: row; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid var(--sv-sync-border); }
 .sv-sync-background-sync b { flex: 0 0 auto; font-size: 14px; overflow: visible; }
-.sv-sync-now-button {
-  display: inline-flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 26px 0 12px; border-radius: 16px; border: 2px solid var(--sv-sync-stage); cursor: pointer; white-space: nowrap;
-  font: italic 900 22px/1 var(--sv-sync-font-display); font-stretch: 125%; letter-spacing: .04em; color: #04131a;
-  background: linear-gradient(180deg, #e2faff, #1cd8ff 48%, #0a9cc4);
-  box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage);
-}
-.sv-sync-now-button:hover { filter: brightness(1.08); }
-.sv-sync-now-button:disabled { cursor: default; filter: saturate(.6) brightness(.9); }
-.sv-sync-now-receptor { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #0b0f18; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .15); color: #dff3ff; }
 
 /* ---------- Progress and judgment ---------- */
 .sv-sync-progress { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-color: rgba(52, 191, 255, .5); }
@@ -325,16 +314,20 @@
 .sv-sync-judgment--flash { animation: sv-sync-judgment-pop .6s cubic-bezier(.16, 1, .3, 1) both; }
 
 /* ---------- Counters, filters and song list ---------- */
-.sv-sync-counter-tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+/* A minimal row: the number in the status colour, a muted label, a thin divider; the chosen one is underlined. */
+.sv-sync-counter-tiles { display: flex; flex-wrap: wrap; row-gap: 6px; }
 .sv-sync-counter-tile {
-  position: relative; display: flex; flex: 1 1 auto; flex-direction: row; align-items: center; gap: 10px; min-height: 44px; padding: 6px 14px 6px 12px; border-radius: 10px; cursor: pointer; text-align: left; font: inherit; color: var(--sv-sync-text-soft);
-  border: 1.5px solid color-mix(in srgb, var(--sv-sync-tone) 38%, #283044); background: linear-gradient(180deg, color-mix(in srgb, var(--sv-sync-tone) 9%, #141824), #121521);
+  position: relative; display: flex; flex-direction: row; align-items: baseline; gap: 8px; min-height: 44px; padding: 4px 18px; border: 0; border-radius: 0; background: none;
+  cursor: pointer; text-align: left; font: inherit; color: var(--sv-sync-text-subtle);
 }
-.sv-sync-counter-tile:hover { border-color: color-mix(in srgb, var(--sv-sync-tone) 70%, #283044); }
-.sv-sync-counter-tile[aria-pressed="true"] { border-color: var(--sv-sync-tone); background: linear-gradient(180deg, color-mix(in srgb, var(--sv-sync-tone) 20%, #141824), #141826); }
-.sv-sync-counter-number { font: italic 900 22px/1 var(--sv-sync-font-display); font-stretch: 125%; color: var(--sv-sync-tone); font-variant-numeric: tabular-nums; }
-.sv-sync-counter-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--sv-sync-text); }
-.sv-sync-counter-label svg { color: var(--sv-sync-tone); }
+.sv-sync-counter-tile + .sv-sync-counter-tile { border-left: 1px solid var(--sv-sync-border-soft); }
+.sv-sync-counter-tile:first-child { padding-left: 2px; }
+.sv-sync-counter-tile:hover .sv-sync-counter-label, .sv-sync-counter-tile[aria-pressed="true"] .sv-sync-counter-label { color: #fff; }
+.sv-sync-counter-tile[aria-pressed="true"]::after { content: ""; position: absolute; left: 18px; right: 18px; bottom: -4px; height: 2px; border-radius: 2px; background: var(--sv-sync-tone); }
+.sv-sync-counter-tile:first-child[aria-pressed="true"]::after { left: 2px; }
+.sv-sync-counter-number { font: italic 900 24px/1 var(--sv-sync-font-display); font-stretch: 125%; color: var(--sv-sync-tone); font-variant-numeric: tabular-nums; }
+.sv-sync-counter-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--sv-sync-text-subtle); }
+.sv-sync-counter-label svg { color: var(--sv-sync-tone); opacity: .8; }
 .sv-sync-song-browser { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .sv-sync-filters { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
 .sv-sync-search-box { position: relative; }
@@ -758,7 +751,6 @@
 .sv-sync-button { box-shadow: inset 0 1px 0 #fff8, 0 0 18px rgba(236, 203, 5, .3); }
 .sv-sync-button--go { box-shadow: inset 0 1px 0 #fff8, 0 0 16px rgba(164, 255, 0, .3); }
 .sv-sync-button--ghost, .sv-sync-root a.sv-sync-button--ghost, .sv-sync-button--danger { box-shadow: none; }
-.sv-sync-now-button { box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage), 0 0 30px rgba(28, 216, 255, .45); }
 .sv-sync-pick-button { box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage), 0 0 30px rgba(164, 255, 0, .4); }
 .sv-sync-judgment { text-shadow: 0 0 22px currentColor, 0 4px 0 var(--sv-sync-stage); }
 .sv-sync-life-bar { box-shadow: 0 0 12px rgba(28, 216, 255, .25); }
@@ -792,7 +784,6 @@
 /* Every set of lock-on corners glows in its own colour. */
 .sv-sync-navigation a[aria-current="page"]::before, .sv-sync-navigation a[aria-current="page"]::after,
 .sv-sync-segmented button[aria-pressed="true"]::before, .sv-sync-segmented button[aria-pressed="true"]::after,
-.sv-sync-counter-tile[aria-pressed="true"]::before, .sv-sync-counter-tile[aria-pressed="true"]::after,
 .sv-sync-song-row--selected::before, .sv-sync-song-row--selected::after,
 .sv-sync-game-card[aria-checked="true"]::before, .sv-sync-game-card[aria-checked="true"]::after,
 .sv-sync-layout-option[aria-checked="true"]::before, .sv-sync-layout-option[aria-checked="true"]::after {

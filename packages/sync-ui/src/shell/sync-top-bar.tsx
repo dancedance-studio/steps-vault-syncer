@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react';
 import { ArrowReceptor } from '../icons/arrow-receptor';
+import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
+import { GreenPillButton } from '../shared/green-pill-button';
 import { ToggleSwitch } from '../shared/small-parts';
 import type { ConnectedGameView, SyncPlatform } from '../sync-ui-types';
 
@@ -50,7 +52,7 @@ export function SyncTopBar(props: SyncTopBarProps): ReactElement {
         <span className="sv-sync-label">Audio</span>
         <span className="sv-sync-row">
           <b>{sourceCount === 1 ? '1 source' : `${String(sourceCount)} sources`}</b>
-          <button className="sv-sync-link-button sv-sync-link-button--small" type="button" onClick={props.onManageAudioSources} aria-label="Manage audio sources">Manage</button>
+          <button className="sv-sync-link-button sv-sync-link-button--small" type="button" onClick={props.onManageAudioSources} aria-label="Manage music and addons">Manage</button>
         </span>
         <span className="sv-sync-ellipsis">{props.audioSources.sourceNames.join(' · ')}</span>
       </div>
@@ -75,16 +77,11 @@ function BackgroundSyncRow({ backgroundSync }: { backgroundSync: BackgroundSyncV
   );
 }
 
-/** The big arrow-receptor button; it stays in place while syncing so the layout never jumps. */
+/** The green Sync now pill; while syncing it says so, its icon turns slowly (not with less motion) and it waits. */
 export function SyncNowButton({ isSyncing, onSyncNow }: { isSyncing: boolean; onSyncNow: () => void }): ReactElement {
   return (
-    <button className="sv-sync-now-button" type="button" onClick={onSyncNow} disabled={isSyncing}>
-      <span className="sv-sync-now-receptor">
-        <span className={isSyncing ? 'sv-sync-spin sv-sync-spin-box' : 'sv-sync-spin-box'}>
-          <ArrowReceptor direction="up" size={34} />
-        </span>
-      </span>
-      {isSyncing ? 'SYNCING…' : 'SYNC NOW'}
-    </button>
+    <GreenPillButton className="sv-sync-now-button" onClick={onSyncNow} isBusy={isSyncing} icon={<Icon name="refresh" size={20} strokeWidth={2.4} className={isSyncing ? 'sv-sync-slow-turn' : undefined} />}>
+      {isSyncing ? 'Syncing…' : 'Sync now'}
+    </GreenPillButton>
   );
 }
