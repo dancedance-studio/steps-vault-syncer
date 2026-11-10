@@ -17,11 +17,12 @@ describe('StatusChip', () => {
     expect(labels).toEqual(['Synced', 'Syncing…', 'Needs audio', 'Different edit', 'Update available', 'You edited this', 'Removed from library']);
   });
 
-  it('spins only the Syncing… icon', () => {
+  it('shows the four-arrow loader only for Syncing…, and nothing spins', () => {
     const { container } = render(<><StatusChip status="syncing" /><StatusChip status="synced" /></>);
-    const icons = container.querySelectorAll('svg');
-    expect(icons[0]?.getAttribute('class')).toContain('sv-sync-spin');
-    expect(icons[1]?.getAttribute('class')).toBeNull();
+    const chips = container.querySelectorAll('.sv-sync-chip');
+    expect(chips[0]?.querySelectorAll('.sv-sync-four-arrows-arrow')).toHaveLength(4);
+    expect(chips[1]?.querySelector('.sv-sync-four-arrows')).toBeNull();
+    expect(container.querySelector('.sv-sync-spin')).toBeNull();
   });
 });
 

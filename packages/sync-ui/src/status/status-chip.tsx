@@ -2,6 +2,7 @@ import type { SongSyncStatus } from '@stepsvault/sync-core';
 import type { ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
+import { FourArrowLoader } from '../shared/four-arrow-loader';
 import { getStatusToneClassName, SONG_STATUS_DISPLAYS } from './song-status';
 
 export interface StatusChipProps {
@@ -14,7 +15,7 @@ export function StatusChip({ status, isSmall = false }: StatusChipProps): ReactE
   const display = SONG_STATUS_DISPLAYS[status];
   return (
     <span className={joinClassNames('sv-sync-chip', getStatusToneClassName(status), isSmall && 'sv-sync-chip--small')}>
-      <Icon name={display.iconName} size={isSmall ? 12 : 14} strokeWidth={2.4} className={status === 'syncing' ? 'sv-sync-spin' : undefined} />
+      {status === 'syncing' ? <FourArrowLoader size={isSmall ? 8 : 10} /> : <Icon name={display.iconName} size={isSmall ? 12 : 14} strokeWidth={2.4} />}
       {display.label}
     </span>
   );

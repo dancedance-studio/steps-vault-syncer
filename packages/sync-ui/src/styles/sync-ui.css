@@ -267,8 +267,6 @@
 .sv-sync-receptor--logo { color: var(--sv-sync-light-blue); }
 .sv-sync-receptor--warning { color: var(--sv-sync-gold); }
 .sv-sync-receptor--light-blue { color: var(--sv-sync-light-blue); }
-.sv-sync-spin-box { display: inline-grid; place-items: center; }
-.sv-sync-spin { animation: sv-sync-spin 1s linear infinite; }
 .sv-sync-life-bar { height: 16px; padding: 2px; border-radius: 4px; border: 2px solid #dff3ff; background: #090b12; }
 .sv-sync-life-bar > span { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, #2cff00, #a4ff00 55%, #fee600); transition: width .3s; }
 .sv-sync-cover { display: block; width: 52px; height: 52px; border-radius: 8px; object-fit: cover; border: 1px solid #33405e; }

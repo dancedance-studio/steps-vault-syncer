@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
+import { FourArrowLoader } from '../shared/four-arrow-loader';
 import { LifeBar } from '../shared/life-bar';
 import type { GeneratorJobView, VaultChoiceAnswer } from '../sync-ui-types';
 
@@ -29,7 +30,7 @@ function WorkingJob({ job, isPercentOnStageLine }: { job: GeneratorJobView; isPe
   return (
     <div className="sv-sync-stack-small" aria-live="polite">
       <div className="sv-sync-row sv-sync-space-between">
-        <span className="sv-sync-stage-line"><Icon name="spin" size={18} strokeWidth={2.4} className="sv-sync-spin" />{job.stageText}</span>
+        <span className="sv-sync-stage-line"><FourArrowLoader />{job.stageText}</span>
         {isPercentOnStageLine && <JobPercent job={job} />}
       </div>
       <LifeBar label={`Making the steps for ${job.songTitle}`} value={job.progressPercent ?? 0} maximum={100} />

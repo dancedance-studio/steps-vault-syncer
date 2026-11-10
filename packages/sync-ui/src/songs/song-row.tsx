@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
+import { FourArrowLoader } from '../shared/four-arrow-loader';
 import { CoverArt } from '../shared/cover-art';
 import { DifficultyLevelBadges } from '../shared/difficulty-levels';
 import { getSongStatusActions, SONG_ACTION_LABELS } from '../status/song-status';
@@ -85,7 +86,7 @@ function SongProgress({ progress }: { progress: SongSyncProgress }): ReactElemen
   return (
     <div className="sv-sync-song-step">
       <span className="sv-sync-row">
-        <Icon name="spin" size={14} className="sv-sync-spin" />
+        <FourArrowLoader size={12} />
         {SONG_SYNC_STEP_LABELS[progress.step]}…
       </span>
       <span className="sv-sync-step-dots" aria-hidden="true">

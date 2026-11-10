@@ -4,6 +4,7 @@ import { AgentRow } from '../shared/agent-row';
 import { ADDON_AGENT_SKILL } from '../shared/agent-skills';
 import { SITE_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
+import { FourArrowLoader } from '../shared/four-arrow-loader';
 import { LifeBar } from '../shared/life-bar';
 import { EmptyBox } from '../shared/miss-line';
 import { InfoPanel, InfoToggleButton } from '../shared/small-parts';
@@ -16,7 +17,7 @@ import { AddonCard } from './addon-card';
 const NUMBER_FORMAT = new Intl.NumberFormat('en-US');
 const SCAN_STATE_DISPLAYS: Readonly<Record<MusicFolderScanState, { label: string; iconName: IconName; className: string }>> = {
   scanned: { label: 'Scanned', iconName: 'check', className: 'sv-sync-tone--synced' },
-  scanning: { label: 'Scanning…', iconName: 'spin', className: 'sv-sync-tone--syncing' },
+  scanning: { label: 'Scanning…', iconName: 'none', className: 'sv-sync-tone--syncing' },
   waiting: { label: 'Waiting', iconName: 'none', className: 'sv-sync-tone--removed-from-vault' },
 };
 
@@ -123,7 +124,7 @@ function MusicFolderRow({ folder, onRemove }: { folder: MusicFolderView; onRemov
         <span className="sv-sync-small sv-sync-subtle sv-sync-tabular">{folder.summaryText}</span>
       </span>
       <span className={joinClassNames('sv-sync-chip', display.className)}>
-        <Icon name={display.iconName} size={14} strokeWidth={2.4} className={folder.scanState === 'scanning' ? 'sv-sync-spin' : undefined} />
+        {folder.scanState === 'scanning' ? <FourArrowLoader size={10} /> : <Icon name={display.iconName} size={14} strokeWidth={2.4} />}
         {display.label}
       </span>
       <button className="sv-sync-close-button" type="button" aria-label={`Remove ${folder.folderPath}`} onClick={() => { onRemove(folder.folderPath); }}>
