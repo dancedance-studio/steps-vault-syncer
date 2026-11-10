@@ -18,6 +18,7 @@ export * from './shared/miss-line';
 export * from './shell/sync-shell';
 export * from './shell/sync-navigation';
 export * from './shell/sync-top-bar';
+export * from './shell/sync-page-header';
 export * from './progress/sync-progress-bar';
 export * from './progress/judgment-flash';
 export * from './progress/reduced-motion';

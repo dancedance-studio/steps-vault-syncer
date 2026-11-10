@@ -1,5 +1,5 @@
 /*
- * DanceDance Sync screens. Every class starts with "sv-sync-" so the website's own styles and ours never clash.
+ * dancedance.studio Sync screens. Every class starts with "sv-sync-" so the website's own styles and ours never clash.
  * Colours and type come from the dancedance.studio v3 visual system: arcade type, calm text, flat panels, soft neon glows.
  * Fonts are named here but never loaded: the website and the app load Rubik, Saira, Noto Sans JP and JetBrains Mono
  * themselves.
@@ -152,8 +152,11 @@
 .sv-sync-shell--desktop.sv-sync-shell--bare .sv-sync-shell-body { display: block; }
 .sv-sync-shell--desktop .sv-sync-main { padding: 24px 28px 36px; }
 .sv-sync-website-header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; }
-.sv-sync-website-hint { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #2c3550; background: rgba(14, 17, 26, .85); font-size: 12.5px; color: var(--sv-sync-text-muted); }
-.sv-sync-website-hint svg { color: var(--sv-sync-link); }
+.sv-sync-eyebrow { display: block; margin-bottom: 10px; font: italic 800 12px/1 var(--sv-sync-font-display); font-stretch: 125%; letter-spacing: .2em; color: var(--sv-sync-light-blue); text-transform: uppercase; }
+.sv-sync-root a.sv-sync-about-link { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 14px; color: #8fd3ff; text-decoration: none; }
+.sv-sync-root a.sv-sync-about-link:hover { color: var(--sv-sync-link-hover); text-decoration: underline; text-underline-offset: 3px; }
+.sv-sync-page-header--desktop { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 18px; }
+.sv-sync-page-header--desktop .sv-sync-eyebrow { margin: 0; }
 .sv-sync-sidebar { display: flex; flex-direction: column; }
 .sv-sync-shell--desktop .sv-sync-sidebar { padding: 16px 12px; border-right: 1px solid #222839; background: #0a0c13; }
 .sv-sync-navigation { display: flex; gap: 4px; }

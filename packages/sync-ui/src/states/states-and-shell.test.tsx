@@ -46,11 +46,11 @@ describe('PhoneStatusView', () => {
 });
 
 describe('SyncShell', () => {
-  it('on the website, shows the Sync menu without Account', () => {
+  it('on the website, shows the Sync menu with Generators but without Account', () => {
     const onNavigate = vi.fn();
     render(<SyncShell platform="website" currentScreen="songs" onNavigate={onNavigate}><p>screen</p></SyncShell>);
     const navigation = screen.getByRole('navigation', { name: 'Sync' });
-    expect(navigation.textContent).toBe('SongsAudio sourcesFolder layoutActivity');
+    expect(navigation.textContent).toBe('SongsMusic & addonsGeneratorsFolder layoutActivity');
     expect(screen.getByRole('link', { name: 'Songs' }).getAttribute('aria-current')).toBe('page');
     fireEvent.click(screen.getByRole('link', { name: 'Activity' }));
     expect(onNavigate).toHaveBeenCalledWith('activity');
@@ -68,11 +68,29 @@ describe('SyncShell', () => {
   });
 });
 
-describe('website Generators and loading', () => {
-  it('shows Generators on the website only when the website can make songs', () => {
-    render(<SyncShell platform="website" currentScreen="generators" onNavigate={vi.fn()} hasWebsiteGenerators><p>screen</p></SyncShell>);
-    expect(screen.getByRole('navigation', { name: 'Sync' }).textContent).toBe('SongsAudio sourcesGeneratorsFolder layoutActivity');
+describe('the Sync page header', () => {
+  it('on the website, shows the eyebrow, the title and the router’s link to the intro, with no browser chip', () => {
+    const onOpen = vi.fn((event: { preventDefault: () => void }) => { event.preventDefault(); });
+    render(<SyncShell platform="website" currentScreen="generators" onNavigate={vi.fn()} aboutSyncLink={{ href: '/sync/about', onOpen }}><p>screen</p></SyncShell>);
+    expect(screen.getByText('dancedance.studio Sync')).toBeDefined();
+    expect(screen.getByRole('heading', { level: 1, name: 'Sync to my game' })).toBeDefined();
+    const aboutLink = screen.getByRole('link', { name: 'What Sync can do →' });
+    expect(aboutLink.getAttribute('href')).toBe('/sync/about');
+    fireEvent.click(aboutLink);
+    expect(onOpen).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/Chrome|Edge/)).toBeNull();
+    expect(screen.getByRole('link', { name: 'Generators' }).getAttribute('aria-current')).toBe('page');
   });
+
+  it('in the desktop app, opens the intro on dancedance.studio in the browser', () => {
+    render(<SyncShell platform="desktop" currentScreen="songs" onNavigate={vi.fn()}><p>screen</p></SyncShell>);
+    const aboutLink = screen.getByRole('link', { name: 'What Sync can do →' });
+    expect(aboutLink.getAttribute('href')).toBe('https://dancedance.studio/sync/about');
+    expect(aboutLink.getAttribute('target')).toBe('_blank');
+  });
+});
+
+describe('loading', () => {
 
   it('shows the receptor loader while Sync reads the songs', () => {
     render(<SyncLoadingPanel />);

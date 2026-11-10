@@ -80,7 +80,7 @@ describe('UpdateBanner', () => {
     const onRestart = vi.fn();
     const onLater = vi.fn();
     render(<UpdateBanner version="1.3" onRestart={onRestart} onLater={onLater} />);
-    expect(screen.getByRole('status').textContent).toContain('DanceDance Sync 1.3 is ready.');
+    expect(screen.getByRole('status').textContent).toContain('dancedance.studio Sync 1.3 is ready.');
     fireEvent.click(screen.getByRole('button', { name: 'Restart to update' }));
     fireEvent.click(screen.getByRole('button', { name: 'Later' }));
     expect(onRestart).toHaveBeenCalledOnce();
