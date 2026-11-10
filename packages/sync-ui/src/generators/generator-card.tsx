@@ -1,7 +1,9 @@
 import type { ReactElement } from 'react';
 import { Icon } from '../icons/icon';
+import { SiteLogo } from '../icons/site-logo';
 import { LIBRARY_GENERATOR_NAME, SITE_NAME } from '../shared/brand-names';
 import { SegmentedControl } from '../shared/small-parts';
+import { SquareIconTile } from '../shared/square-icon-tile';
 import { getAddonInitials } from '../sources/addon-card';
 import type { GeneratorView, ServiceLocationView, StepsVaultGeneratorView } from '../sync-ui-types';
 
@@ -9,6 +11,11 @@ export interface GeneratorCardProps {
   generator: GeneratorView;
   onRemove: (generatorId: string) => void;
   onSetOption: (request: { generatorId: string; optionId: string; value: string }) => void;
+}
+
+/** What a song costs with a generator: 1 token with the site's own, free with the player's own generators. */
+export function PriceChip({ kind }: { kind: 'token' | 'free' }): ReactElement {
+  return <span className={`sv-sync-price-chip sv-sync-price-chip--${kind}`}>{kind === 'token' ? '1 TOKEN' : 'FREE'}</span>;
 }
 
 /** "On this computer" (the music stays here) or "On the internet:" and the address the music is sent to. */
@@ -29,11 +36,12 @@ export function GeneratorCard({ generator, onRemove, onSetOption }: GeneratorCar
   return (
     <article className="sv-sync-generator-card" aria-label={generator.name}>
       <div className="sv-sync-generator-top">
-        <span className="sv-sync-addon-icon" aria-hidden="true">{getAddonInitials(generator.name)}</span>
+        <SquareIconTile tone="generators" size={52} className="sv-sync-addon-icon">{getAddonInitials(generator.name)}</SquareIconTile>
         <div className="sv-sync-min-width-0">
           <div className="sv-sync-addon-name">
             {generator.name}
             <span className="sv-sync-version">v{generator.version}</span>
+            <PriceChip kind="free" />
             {generator.isNew === true && <span className="sv-sync-badge sv-sync-badge--new">New</span>}
           </div>
           <div className="sv-sync-small sv-sync-subtle">by {generator.author}</div>
@@ -60,11 +68,12 @@ export function GeneratorCard({ generator, onRemove, onSetOption }: GeneratorCar
 export function StepsVaultGeneratorCard({ generator }: { generator: StepsVaultGeneratorView }): ReactElement {
   return (
     <section className="sv-sync-panel sv-sync-generator-main" aria-labelledby="sv-sync-stepsvault-generator-heading">
-      <span className="sv-sync-source-icon" aria-hidden="true"><Icon name="sparkle" size={24} /></span>
+      <SquareIconTile tone="neutral" size={52} className="sv-sync-generator-logo"><SiteLogo size={36} /></SquareIconTile>
       <div className="sv-sync-stack-small sv-sync-min-width-0">
         <div className="sv-sync-addon-name">
           <h2 id="sv-sync-stepsvault-generator-heading" className="sv-sync-heading-2 sv-sync-heading-2--small">{LIBRARY_GENERATOR_NAME}</h2>
           <span className="sv-sync-badge sv-sync-badge--default">Default</span>
+          <PriceChip kind="token" />
         </div>
         <p className="sv-sync-text sv-sync-text--medium">Songs go to the library for everyone. Each song uses 1 token.</p>
         <span className="sv-sync-small sv-sync-subtle">by {SITE_NAME} · used when you don&apos;t pick another one</span>

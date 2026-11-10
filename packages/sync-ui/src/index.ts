@@ -40,6 +40,7 @@ export * from './sources/addon-card';
 export * from './sources/addon-option-fields';
 export * from './sources/start-command-field';
 export * from './generators/generators-screen';
+export * from './generators/website-generators-screen';
 export * from './generators/generator-card';
 export * from './generators/add-generator-dialog';
 export * from './generators/make-song-dialog';

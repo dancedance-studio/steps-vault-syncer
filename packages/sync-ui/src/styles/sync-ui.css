@@ -679,6 +679,9 @@
 /* ---------- Generators ---------- */
 .sv-sync-generator-main { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 20px; border-color: rgba(236, 203, 5, .5); }
 .sv-sync-badge--default { color: #14110a; background: var(--sv-sync-focus); border-color: var(--sv-sync-focus); }
+.sv-sync-price-chip { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; font: italic 800 11px/1 var(--sv-sync-font-display); letter-spacing: .06em; white-space: nowrap; }
+.sv-sync-price-chip--token { color: #1a1200; background: var(--sv-sync-gold); }
+.sv-sync-price-chip--free { color: #0b1400; background: var(--sv-sync-great); }
 .sv-sync-tokens { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12px; color: var(--sv-sync-text-muted); }
 .sv-sync-token-count { display: inline-flex; align-items: baseline; gap: 6px; }
 .sv-sync-token-count b { font: italic 900 30px/1 var(--sv-sync-font-display); font-stretch: 125%; color: var(--sv-sync-gold); text-shadow: 0 2px 0 #4a3500; }
@@ -880,7 +883,7 @@
   .sv-sync-shell--website .sv-sync-music-folders li > .sv-sync-close-button { grid-column: 3; grid-row: 1 / span 2; width: 44px; height: 44px; }
   .sv-sync-shell--website .sv-sync-picked-files li .sv-sync-mono { overflow-wrap: anywhere; min-width: 0; }
   .sv-sync-shell--website .sv-sync-addon-card { grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: 14px; align-items: start; }
-  .sv-sync-shell--website .sv-sync-addon-card > .sv-sync-addon-icon, .sv-sync-shell--website .sv-sync-generator-top > .sv-sync-addon-icon { width: 44px; height: 44px; font-size: 17px; }
+  .sv-sync-shell--website .sv-sync-addon-card > .sv-sync-addon-icon, .sv-sync-shell--website .sv-sync-generator-top > .sv-sync-addon-icon, .sv-sync-shell--website .sv-sync-generator-main > .sv-sync-generator-logo { width: 44px; height: 44px; font-size: 17px; }
   .sv-sync-shell--website .sv-sync-addon-controls { grid-column: 1 / -1; justify-content: space-between; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--sv-sync-border-soft); }
   .sv-sync-shell--website .sv-sync-addon-controls .sv-sync-switch { min-width: 44px; }
   .sv-sync-shell--website .sv-sync-addon-controls .sv-sync-button { min-height: 44px; }
