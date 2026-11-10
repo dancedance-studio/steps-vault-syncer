@@ -1,5 +1,6 @@
 import type { MouseEvent, ReactElement, ReactNode } from 'react';
 import { joinClassNames } from './class-names';
+import { FourArrowLoader } from './four-arrow-loader';
 
 interface GreenPillCommonProps {
   /** Shown before the words, for example <Icon name="folder" />. */
@@ -19,7 +20,10 @@ export interface GreenPillActionProps extends GreenPillCommonProps {
   href?: undefined;
   onClick: () => void;
   isDisabled?: boolean;
-  /** True while the work it started is running: the button says so to screen readers too. */
+  /**
+   * True while the work it started is running: the dark four-arrow loader takes the icon's place, the button can't be
+   * pressed but keeps its full colour, and screen readers hear that it is busy.
+   */
   isBusy?: boolean;
   type?: 'button' | 'submit';
 }
@@ -34,7 +38,7 @@ export function GreenPillButton(props: GreenPillButtonProps): ReactElement {
   }
   return (
     <button className={className} type={props.type === 'submit' ? 'submit' : 'button'} onClick={props.onClick} disabled={props.isDisabled === true || props.isBusy === true} aria-busy={props.isBusy === true ? true : undefined}>
-      {props.icon}
+      {props.isBusy === true ? <FourArrowLoader tone="on-green" /> : props.icon}
       {props.children}
     </button>
   );

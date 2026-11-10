@@ -945,6 +945,8 @@
 .sv-sync-root a.sv-sync-green-pill, .sv-sync-root a.sv-sync-green-pill:hover, .sv-sync-green-pill:hover { color: #0b1400; }
 .sv-sync-green-pill:hover { filter: brightness(1.06); }
 .sv-sync-green-pill:disabled { filter: none; opacity: .85; cursor: default; }
+/* Busy is not "unavailable": the pill keeps its full colour while its loader runs. */
+.sv-sync-green-pill[aria-busy="true"] { opacity: 1; }
 .sv-sync-green-pill:focus-visible { outline: 3px solid var(--sv-sync-focus); outline-offset: 3px; }
 .sv-sync-green-pill svg { flex: none; }
 
@@ -999,8 +1001,6 @@
   .sv-sync-generators-app-note { grid-template-columns: auto minmax(0, 1fr); }
   .sv-sync-generators-app-note .sv-sync-button { grid-column: 1 / -1; justify-self: start; }
 }
-/* Sync now while busy: the four arrows sit in a small dark pill so they read on the green. */
-.sv-sync-now-loader .sv-sync-four-arrows { gap: 2px; padding: 3px 5px; border-radius: 999px; background: #0b1400; }
 /* Phones (v3.84, #72): the judgment word gets its own line, so FLAWLESS!! never pushes the page sideways; the panel
    clips its pop-in, which starts larger than a phone. */
 @media (max-width: 560px) {

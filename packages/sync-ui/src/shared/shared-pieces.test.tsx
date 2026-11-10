@@ -129,4 +129,15 @@ describe('GreenPillButton', () => {
     rerender(<GreenPillButton href="/sync/connect">Use it in my browser</GreenPillButton>);
     expect(screen.getByRole('link', { name: 'Use it in my browser' }).getAttribute('href')).toBe('/sync/connect');
   });
+
+  it('shows the dark four-arrow loader in place of its icon while busy, at full colour', () => {
+    const { rerender } = render(<GreenPillButton onClick={vi.fn()} icon={<svg className="test-icon" />}>Sync now</GreenPillButton>);
+    expect(document.querySelector('.test-icon')).not.toBeNull();
+    rerender(<GreenPillButton onClick={vi.fn()} icon={<svg className="test-icon" />} isBusy>Sending…</GreenPillButton>);
+    const button = screen.getByRole('button', { name: 'Sending…' });
+    expect(button.querySelector('.test-icon')).toBeNull();
+    expect(button.querySelector('.sv-sync-four-arrow-loader--on-green')).not.toBeNull();
+    const busyPillRules = syncUiCss.match(/\.sv-sync-green-pill\[aria-busy="true"\] \{[^}]*\}/g) ?? [];
+    expect(busyPillRules).toEqual(['.sv-sync-green-pill[aria-busy="true"] { opacity: 1; }']);
+  });
 });

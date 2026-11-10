@@ -2,7 +2,6 @@ import type { ReactElement } from 'react';
 import { ArrowReceptor } from '../icons/arrow-receptor';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
-import { FourArrowLoader } from '../shared/four-arrow-loader';
 import { GreenPillButton } from '../shared/green-pill-button';
 import { ToggleSwitch } from '../shared/small-parts';
 import type { ConnectedGameView, SyncPlatform } from '../sync-ui-types';
@@ -80,9 +79,8 @@ function BackgroundSyncRow({ backgroundSync }: { backgroundSync: BackgroundSyncV
 
 /** The green Sync now pill; while syncing it says so, shows the four-arrow loader in place of its icon, and waits. */
 export function SyncNowButton({ isSyncing, onSyncNow }: { isSyncing: boolean; onSyncNow: () => void }): ReactElement {
-  const icon = isSyncing ? <FourArrowLoader size={13} className="sv-sync-now-loader" /> : <Icon name="refresh" size={20} strokeWidth={2.4} />;
   return (
-    <GreenPillButton className="sv-sync-now-button" onClick={onSyncNow} isBusy={isSyncing} icon={icon}>
+    <GreenPillButton className="sv-sync-now-button" onClick={onSyncNow} isBusy={isSyncing} icon={<Icon name="refresh" size={20} strokeWidth={2.4} />}>
       {isSyncing ? 'Syncing…' : 'Sync now'}
     </GreenPillButton>
   );
