@@ -41,7 +41,8 @@ describe('empty and error states', () => {
 describe('PhoneStatusView', () => {
   it('shows status and counters but no Sync button', () => {
     render(<PhoneStatusView computerName="LIVING-ROOM-PC" gameName="StepMania 5 LTEK" overallStatus="synced" lastSyncText="2 hours ago" syncedCount={14} needsAudioCount={3} updateCount={2} songs={FAKE_SONG_ROWS.slice(0, 3)} />);
-    expect(screen.getByText('Syncing needs a computer.', { exact: false })).toBeDefined();
+    expect(screen.getByText('Syncing needs a computer.', { exact: false }).textContent).toBe('Syncing needs a computer. Open dancedance.studio Sync on LIVING-ROOM-PC, or open dancedance.studio/sync in a browser on a computer.');
+    expect(screen.queryByText(/Chrome|Edge/)).toBeNull();
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
     expect(screen.queryByRole('button')).toBeNull();
   });
