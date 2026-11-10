@@ -33,6 +33,20 @@ describe('AudioSourcesScreen', () => {
     expect(screen.getByRole('switch', { name: 'Use Home Server Music' }).getAttribute('aria-checked')).toBe('false');
   });
 
+  it('is “Music & addons”, with the agent row above the addons and square yellow addon tiles', () => {
+    renderAudioSources();
+    expect(screen.getByRole('heading', { name: 'Music & addons' })).toBeDefined();
+    expect(screen.getByText('Where Sync finds each song’s music. dancedance.studio never sends anyone music.')).toBeDefined();
+    expect(screen.getByText('Build your own addon')).toBeDefined();
+    expect(screen.getByText('One AI prompt builds yours')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Copy for your agent' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'make-an-addon on GitHub' }).getAttribute('href')).toBe('https://github.com/steps-vault/steps-vault-syncer/tree/main/.claude/skills/make-an-addon');
+    const agentRow = screen.getByText('Build your own addon').closest('.sv-sync-agent-row');
+    const addonList = document.querySelector('.sv-sync-addon-list');
+    expect(agentRow?.nextElementSibling).toBe(addonList);
+    expect(screen.getByRole('article', { name: 'Indie Tapes' }).querySelector('.sv-sync-square-tile--addons')?.textContent).toBe('IT');
+  });
+
   it('turns an addon on or off and removes it through callbacks', () => {
     const props = renderAudioSources();
     fireEvent.click(screen.getByRole('switch', { name: 'Use Home Server Music' }));
