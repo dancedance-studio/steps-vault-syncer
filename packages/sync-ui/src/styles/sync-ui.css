@@ -981,9 +981,14 @@
 .sv-sync-four-arrows-arrow:nth-child(3) { animation-delay: .3s; }
 .sv-sync-four-arrows-arrow:nth-child(4) { animation-delay: .45s; }
 @keyframes sv-sync-four-arrows { 0%, 60%, 100% { opacity: .35; filter: none; } 20% { opacity: 1; filter: brightness(2.2) drop-shadow(0 0 4px #1cd8ff); } }
+/* On a green button: dark arrows in the button's text colour, straight on the green, pulsing without the glow. */
+.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows { gap: 3px; padding: 0; background: none; color: #0b1400; }
+.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows-arrow { opacity: .22; animation-name: sv-sync-four-arrows-on-green; }
+@keyframes sv-sync-four-arrows-on-green { 0%, 60%, 100% { opacity: .22; } 20% { opacity: .95; } }
 /* The loader is also used outside .sv-sync-root (the intro page), so it stops its own animation too. */
 @media (prefers-reduced-motion: reduce) {
   .sv-sync-four-arrows-arrow { animation: none !important; opacity: .7; }
+  .sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows-arrow { opacity: .6; }
 }
 
 /* ---------- v3.84: website Generators, slim app header, sync ended on phones, Sync now while busy ---------- */

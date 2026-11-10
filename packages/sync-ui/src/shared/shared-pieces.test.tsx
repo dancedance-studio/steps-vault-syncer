@@ -94,9 +94,19 @@ describe('FourArrowLoader', () => {
     expect(document.querySelector('.sv-sync-four-arrows')?.getAttribute('aria-hidden')).toBe('true');
   });
 
+  it('on a green button, puts 15 px dark arrows straight on the green, pulsing without the glow', () => {
+    render(<FourArrowLoader tone="on-green" />);
+    expect(document.querySelector('.sv-sync-four-arrow-loader')?.className).toBe('sv-sync-four-arrow-loader sv-sync-four-arrow-loader--on-green');
+    expect([...document.querySelectorAll('.sv-sync-four-arrows-arrow')].map((arrow) => arrow.getAttribute('width'))).toEqual(['15', '15', '15', '15']);
+    expect(syncUiCss).toContain('.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows { gap: 3px; padding: 0; background: none; color: #0b1400; }');
+    expect(syncUiCss).toContain('.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows-arrow { opacity: .22; animation-name: sv-sync-four-arrows-on-green; }');
+    expect(syncUiCss).toContain('@keyframes sv-sync-four-arrows-on-green { 0%, 60%, 100% { opacity: .22; } 20% { opacity: .95; } }');
+  });
+
   it('stays still at 70% when the system asks for less motion', () => {
     const reducedMotionRules = syncUiCss.slice(syncUiCss.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
     expect(reducedMotionRules).toMatch(/\.sv-sync-four-arrows-arrow \{ animation: none !important; opacity: \.7; \}/);
+    expect(reducedMotionRules).toContain('.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows-arrow { opacity: .6; }');
     expect(syncUiCss).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.sv-sync-root \*, \.sv-sync-root \*::before, \.sv-sync-root \*::after \{ animation: none !important; transition: none !important; \}/);
   });
 
