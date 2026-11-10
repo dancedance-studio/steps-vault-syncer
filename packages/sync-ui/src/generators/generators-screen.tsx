@@ -132,7 +132,7 @@ function CommunityGenerators(props: GeneratorsScreenProps & { onAdd: () => void 
       <AgentRow skill={GENERATOR_AGENT_SKILL} toneColor={FEATURE_TONE_COLORS.generators} />
       <div className="sv-sync-addon-list">
         {props.generators.map((generator) => <GeneratorCard key={generator.generatorId} generator={generator} onRemove={props.onRemoveGenerator} onSetOption={props.onSetGeneratorOption} />)}
-        {props.generators.length === 0 && <Note>No community generators yet. Got an address from someone? Use <b>Add a generator</b>.</Note>}
+        {props.generators.length === 0 && <Note>No generators of your own yet. Connect one with the prompt above, or use <b className="sv-sync-strong">Add a generator</b> if someone gave you an address.</Note>}
       </div>
       <span className="sv-sync-text sv-sync-small">You can remove one any time. Songs it already made stay.</span>
       <Note iconName="computer">Their songs stay on this computer, never in the library. {props.mySongsHref ? <>See <a href={props.mySongsHref} target="_blank" rel="noreferrer">My songs</a>.</> : <>Find them in <b>My generated songs</b> in your game.</>}</Note>

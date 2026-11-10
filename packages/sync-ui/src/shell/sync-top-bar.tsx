@@ -77,10 +77,10 @@ function BackgroundSyncRow({ backgroundSync }: { backgroundSync: BackgroundSyncV
   );
 }
 
-/** The green Sync now pill; while syncing it says so, its icon turns slowly (not with less motion) and it waits. */
+/** The green Sync now pill; while syncing it says so, shows the four-arrow loader in place of its icon, and waits. */
 export function SyncNowButton({ isSyncing, onSyncNow }: { isSyncing: boolean; onSyncNow: () => void }): ReactElement {
   return (
-    <GreenPillButton className="sv-sync-now-button" onClick={onSyncNow} isBusy={isSyncing} icon={<Icon name="refresh" size={20} strokeWidth={2.4} className={isSyncing ? 'sv-sync-slow-turn' : undefined} />}>
+    <GreenPillButton className="sv-sync-now-button" onClick={onSyncNow} isBusy={isSyncing} icon={<Icon name="refresh" size={20} strokeWidth={2.4} />}>
       {isSyncing ? 'Syncing…' : 'Sync now'}
     </GreenPillButton>
   );

@@ -85,7 +85,7 @@ export function AgentRow({ skill, toneColor }: AgentRowProps): ReactElement {
       </div>
       <div className="sv-sync-agent-row-actions">
         <CopyForAgentButton copyState={copyState} onCopy={handleCopy} className="sv-sync-agent-copy" />
-        <a className="sv-sync-agent-link" href={skill.githubUrl} target="_blank" rel="noreferrer">{skill.githubLinkText}</a>
+        <a className="sv-sync-agent-link" href={skill.githubUrl} target="_blank" rel="noopener noreferrer">{skill.githubLinkText}</a>
       </div>
       {copyState === 'selected' && <code ref={promptRef} className="sv-sync-agent-prompt sv-sync-agent-prompt--fallback"><PromptText skill={skill} /></code>}
     </div>
@@ -108,7 +108,7 @@ export function AgentBox({ skill, githubLinkText = 'View the skill on GitHub' }:
       <code ref={promptRef} className="sv-sync-agent-prompt"><PromptText skill={skill} /></code>
       <span className="sv-sync-agent-box-actions">
         <CopyForAgentButton copyState={copyState} onCopy={handleCopy} className="sv-sync-agent-copy" />
-        <a className="sv-sync-agent-link" href={skill.githubUrl} target="_blank" rel="noreferrer">{githubLinkText}</a>
+        <a className="sv-sync-agent-link" href={skill.githubUrl} target="_blank" rel="noopener noreferrer">{githubLinkText}</a>
       </span>
     </div>
   );

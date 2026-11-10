@@ -1,9 +1,11 @@
+/// <reference types="vite/client" />
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { FAKE_GAME, FAKE_SONG_ROWS } from '../fake-data/fake-sync-data';
 import { PhoneStatusView } from '../phone/phone-status-view';
 import { SyncShell } from '../shell/sync-shell';
 import { SyncLoadingPanel } from '../songs/sync-home-screen';
+import syncUiCss from '../styles/sync-ui.css?raw';
 import { DiskFullState, EmptyVaultState, NeedsAudioBanner, PermissionLostState, SongFolderLockedState, SongsFolderMissingState } from './empty-and-error-states';
 
 describe('empty and error states', () => {
@@ -39,7 +41,8 @@ describe('empty and error states', () => {
 describe('PhoneStatusView', () => {
   it('shows status and counters but no Sync button', () => {
     render(<PhoneStatusView computerName="LIVING-ROOM-PC" gameName="StepMania 5 LTEK" overallStatus="synced" lastSyncText="2 hours ago" syncedCount={14} needsAudioCount={3} updateCount={2} songs={FAKE_SONG_ROWS.slice(0, 3)} />);
-    expect(screen.getByText('Syncing needs a computer.', { exact: false })).toBeDefined();
+    expect(screen.getByText('Syncing needs a computer.', { exact: false }).textContent).toBe('Syncing needs a computer. Open dancedance.studio Sync on LIVING-ROOM-PC, or open dancedance.studio/sync in a browser on a computer.');
+    expect(screen.queryByText(/Chrome|Edge/)).toBeNull();
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
     expect(screen.queryByRole('button')).toBeNull();
   });
@@ -87,6 +90,15 @@ describe('the Sync page header', () => {
     const aboutLink = screen.getByRole('link', { name: 'What Sync can do →' });
     expect(aboutLink.getAttribute('href')).toBe('https://dancedance.studio/sync/about');
     expect(aboutLink.getAttribute('target')).toBe('_blank');
+  });
+
+  it('in the desktop app, is one slim row with a thin line under it: the eyebrow, then the link, and no big title', () => {
+    render(<SyncShell platform="desktop" currentScreen="songs" onNavigate={vi.fn()}><p>screen</p></SyncShell>);
+    const header = document.querySelector('.sv-sync-page-header--desktop');
+    expect([...(header?.children ?? [])].map((child) => child.textContent)).toEqual(['dancedance.studio Sync', 'What Sync can do →']);
+    expect(document.querySelector('.sv-sync-display-title')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1 }).className).toBe('sv-sync-visually-hidden');
+    expect(syncUiCss).toMatch(/\.sv-sync-page-header--desktop \{[^}]*border-bottom: 1px solid #1a1f2d;/);
   });
 });
 

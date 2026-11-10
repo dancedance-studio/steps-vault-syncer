@@ -116,7 +116,8 @@ describe('SyncHomeScreen', () => {
     const syncingButton = screen.getByRole('button', { name: 'Syncing…' });
     expect(syncingButton.hasAttribute('disabled')).toBe(true);
     expect(syncingButton.getAttribute('aria-busy')).toBe('true');
-    expect(syncingButton.querySelector('svg')?.getAttribute('class')).toContain('sv-sync-slow-turn');
+    expect(syncingButton.querySelector('.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows')).not.toBeNull();
+    expect(syncingButton.querySelector('[class*="turn"], [class*="spin"]')).toBeNull();
     expect(screen.getByText(/Keep this tab open/)).toBeDefined();
   });
 

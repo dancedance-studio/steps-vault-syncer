@@ -83,7 +83,7 @@ function getSystemName(): string {
   return os.type();
 }
 
-function createController(tray: { show: (status: DesktopSyncState['trayStatus']) => void }): SyncController {
+function createController(tray: Pick<SyncTray, 'show'>): SyncController {
   return new SyncController({
     dataFolder: app.getPath('userData'),
     appDataFolder: app.getPath('appData'),
@@ -123,7 +123,7 @@ It runs in ${folder}, and Sync stops it after 10 minutes without use. Only allow
       },
     },
     onStateChange: (state) => {
-      tray.show(state.trayStatus);
+      tray.show({ status: state.trayStatus, lastSyncAt: state.lastSyncAt });
       if (process.env.STEPSVAULT_LOG_STATE) logStateSummary(state);
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(STATE_CHANNEL, state);
     },

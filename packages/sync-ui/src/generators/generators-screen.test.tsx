@@ -329,6 +329,15 @@ describe('Play on the website', () => {
   });
 });
 
+describe('GeneratorsScreen without generators of the player’s own', () => {
+  it('points to the prompt above, and to Add a generator in bold for an address from someone', () => {
+    renderGenerators({ generators: [] });
+    const emptyNote = screen.getByText(/No generators of your own yet/);
+    expect(emptyNote.textContent).toBe('No generators of your own yet. Connect one with the prompt above, or use Add a generator if someone gave you an address.');
+    expect(within(emptyNote).getByText('Add a generator').tagName).toBe('B');
+  });
+});
+
 describe('WebsiteGeneratorsScreen', () => {
   it('shows the site’s generator, and says the player’s own generators run in the desktop app', () => {
     render(<WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR} makeSongHref="/make" desktopAppHref="/sync/about#get-the-app" playPageHref="/play" />);
@@ -338,5 +347,18 @@ describe('WebsiteGeneratorsScreen', () => {
     expect(yourGenerators.textContent).toContain('Your generators run on your computer, in the dancedance.studio Sync app.');
     expect(within(yourGenerators).getByRole('link', { name: 'Get the app' }).getAttribute('href')).toBe('/sync/about#get-the-app');
     expect(within(yourGenerators).getByRole('button', { name: 'Copy for your agent' })).toBeDefined();
+  });
+
+  it('hides what only the app can do, and offers a yellow Get the app button to the download page instead', () => {
+    render(<WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR} makeSongHref="/make" desktopAppHref="/sync/download" playPageHref="/play" />);
+    expect(screen.queryByRole('button', { name: 'Add a generator' })).toBeNull();
+    expect(screen.queryByRole('article')).toBeNull();
+    expect(screen.queryByText('Songs being made')).toBeNull();
+    expect(screen.queryByText('My generated songs')).toBeNull();
+    expect(screen.queryByText(/No generators of your own yet/)).toBeNull();
+    const getTheApp = screen.getByRole('link', { name: 'Get the app' });
+    expect(getTheApp.getAttribute('href')).toBe('/sync/download');
+    expect(getTheApp.className).toBe('sv-sync-button');
+    expect(getTheApp.closest('.sv-sync-generators-app-note')?.textContent).toContain('Your generators run on your computer, in the dancedance.studio Sync app. Get the app to add one. Songs they make play on the Play page.');
   });
 });

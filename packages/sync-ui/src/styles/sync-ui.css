@@ -155,7 +155,7 @@
 .sv-sync-eyebrow { display: block; margin-bottom: 10px; font: italic 800 12px/1 var(--sv-sync-font-display); font-stretch: 125%; letter-spacing: .2em; color: var(--sv-sync-light-blue); text-transform: uppercase; }
 .sv-sync-root a.sv-sync-about-link { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 14px; color: #8fd3ff; text-decoration: none; }
 .sv-sync-root a.sv-sync-about-link:hover { color: var(--sv-sync-link-hover); text-decoration: underline; text-underline-offset: 3px; }
-.sv-sync-page-header--desktop { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 18px; }
+.sv-sync-page-header--desktop { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; padding: 0 0 4px; border-bottom: 1px solid #1a1f2d; margin-bottom: 4px; }
 .sv-sync-page-header--desktop .sv-sync-eyebrow { margin: 0; }
 .sv-sync-sidebar { display: flex; flex-direction: column; }
 .sv-sync-shell--desktop .sv-sync-sidebar { padding: 16px 12px; border-right: 1px solid #222839; background: #0a0c13; }
@@ -791,7 +791,6 @@
 }
 
 /* ---------- Motion ---------- */
-@keyframes sv-sync-spin { to { transform: rotate(360deg); } }
 @keyframes sv-sync-grid-drift { to { transform: translateY(-56px); } }
 @keyframes sv-sync-loader-beat { 0%, 22% { opacity: 1; } 26%, 100% { opacity: 0; } }
 @keyframes sv-sync-appear { from { opacity: 0; transform: translateY(6px); } }
@@ -946,9 +945,10 @@
 .sv-sync-root a.sv-sync-green-pill, .sv-sync-root a.sv-sync-green-pill:hover, .sv-sync-green-pill:hover { color: #0b1400; }
 .sv-sync-green-pill:hover { filter: brightness(1.06); }
 .sv-sync-green-pill:disabled { filter: none; opacity: .85; cursor: default; }
+/* Busy is not "unavailable": the pill keeps its full colour while its loader runs. */
+.sv-sync-green-pill[aria-busy="true"] { opacity: 1; }
 .sv-sync-green-pill:focus-visible { outline: 3px solid var(--sv-sync-focus); outline-offset: 3px; }
 .sv-sync-green-pill svg { flex: none; }
-.sv-sync-slow-turn { animation: sv-sync-spin 2s linear infinite; }
 
 .sv-sync-square-tile {
   --sv-sync-tile-colour: var(--sv-sync-link); flex: none; display: grid; place-items: center; width: var(--sv-sync-tile-size, 42px); height: var(--sv-sync-tile-size, 42px); border-radius: 12px;
@@ -983,8 +983,32 @@
 .sv-sync-four-arrows-arrow:nth-child(3) { animation-delay: .3s; }
 .sv-sync-four-arrows-arrow:nth-child(4) { animation-delay: .45s; }
 @keyframes sv-sync-four-arrows { 0%, 60%, 100% { opacity: .35; filter: none; } 20% { opacity: 1; filter: brightness(2.2) drop-shadow(0 0 4px #1cd8ff); } }
+/* On a green button: dark arrows in the button's text colour, straight on the green, pulsing without the glow. */
+.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows { gap: 3px; padding: 0; background: none; color: #0b1400; }
+.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows-arrow { color: #0b1400; opacity: .22; animation-name: sv-sync-four-arrows-on-green; }
+@keyframes sv-sync-four-arrows-on-green { 0%, 60%, 100% { opacity: .22; } 20% { opacity: .95; } }
 /* The loader is also used outside .sv-sync-root (the intro page), so it stops its own animation too. */
 @media (prefers-reduced-motion: reduce) {
   .sv-sync-four-arrows-arrow { animation: none !important; opacity: .7; }
-  .sv-sync-slow-turn { animation: none !important; }
+  .sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows-arrow { opacity: .6; }
+}
+
+/* ---------- v3.84: website Generators, slim app header, sync ended on phones, Sync now while busy ---------- */
+.sv-sync-generators-app-note { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 14px; background: #12151f; border: 1px solid var(--sv-sync-border); }
+.sv-sync-generators-app-note p { margin: 0; font-size: 15px; line-height: 1.5; color: #cdd3e3; }
+.sv-sync-root .sv-sync-generators-app-note p a { color: #8fd3ff; }
+@media (max-width: 720px) {
+  .sv-sync-generators-app-note { grid-template-columns: auto minmax(0, 1fr); }
+  .sv-sync-generators-app-note .sv-sync-button { grid-column: 1 / -1; justify-self: start; }
+}
+/* Phones (v3.84, #72): the judgment word gets its own line, so FLAWLESS!! never pushes the page sideways; the panel
+   clips its pop-in, which starts larger than a phone. */
+@media (max-width: 560px) {
+  .sv-sync-judgment-panel { gap: 12px 16px; overflow: hidden; }
+  .sv-sync-judgment-panel > .sv-sync-judgment { font-size: 34px; flex-basis: 100%; }
+  .sv-sync-judgment-panel > .sv-sync-judgment-text { min-width: 0; flex-basis: 100%; }
+  .sv-sync-counter-tiles { display: grid; grid-template-columns: 1fr 1fr; row-gap: 10px; }
+  .sv-sync-counter-tile, .sv-sync-counter-tile:first-child { padding: 4px 10px 4px 2px; }
+  .sv-sync-counter-tile + .sv-sync-counter-tile { border-left: 0; }
+  .sv-sync-counter-tile[aria-pressed="true"]::after, .sv-sync-counter-tile:first-child[aria-pressed="true"]::after { left: 2px; right: 10px; }
 }

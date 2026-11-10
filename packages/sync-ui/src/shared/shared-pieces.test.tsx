@@ -7,6 +7,8 @@ import { FourArrowLoader } from './four-arrow-loader';
 import { GreenPillButton } from './green-pill-button';
 import syncUiCss from '../styles/sync-ui.css?raw';
 
+const SYNC_UI_SOURCES_BY_FILE_NAME: Readonly<Record<string, string>> = import.meta.glob<string>('../**/*.tsx', { query: '?raw', import: 'default', eager: true });
+
 function setClipboard(clipboard: Partial<Clipboard> | undefined): void {
   Object.defineProperty(navigator, 'clipboard', { value: clipboard, configurable: true });
 }
@@ -22,6 +24,15 @@ describe('the agent skills', () => {
     expect(ADDON_AGENT_SKILL.promptText).toBe(`Use the make-an-addon skill from ${ADDON_AGENT_SKILL.githubUrl} to build me an addon that finds songs in my Dropbox music folder.`);
     expect(GENERATOR_AGENT_SKILL.promptText).toContain('to connect my own generator to dancedance.studio Sync, running on my computer.');
     expect(getPromptParts(ADDON_AGENT_SKILL)).toEqual({ textBefore: 'Use the ', skillName: 'make-an-addon', textAfter: ` skill from ${ADDON_AGENT_SKILL.githubUrl} to build me an addon that finds songs in my Dropbox music folder.` });
+  });
+
+  it('open GitHub in a new tab that can’t reach back into Sync, and long addresses wrap inside the prompt', () => {
+    render(<><AgentRow skill={GENERATOR_AGENT_SKILL} /><AgentBox skill={ADDON_AGENT_SKILL} /></>);
+    for (const link of screen.getAllByRole('link')) {
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')?.split(' ')).toContain('noopener');
+    }
+    expect(syncUiCss).toMatch(/\.sv-sync-agent-prompt \{[^}]*overflow-wrap: anywhere;/);
   });
 });
 
@@ -83,10 +94,29 @@ describe('FourArrowLoader', () => {
     expect(document.querySelector('.sv-sync-four-arrows')?.getAttribute('aria-hidden')).toBe('true');
   });
 
+  it('on a green button, puts 15 px dark arrows straight on the green, pulsing without the glow', () => {
+    render(<FourArrowLoader tone="on-green" />);
+    expect(document.querySelector('.sv-sync-four-arrow-loader')?.className).toBe('sv-sync-four-arrow-loader sv-sync-four-arrow-loader--on-green');
+    expect([...document.querySelectorAll('.sv-sync-four-arrows-arrow')].map((arrow) => arrow.getAttribute('width'))).toEqual(['15', '15', '15', '15']);
+    expect(syncUiCss).toContain('.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows { gap: 3px; padding: 0; background: none; color: #0b1400; }');
+    expect(syncUiCss).toContain('.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows-arrow { color: #0b1400; opacity: .22; animation-name: sv-sync-four-arrows-on-green; }');
+    expect(syncUiCss).toContain('@keyframes sv-sync-four-arrows-on-green { 0%, 60%, 100% { opacity: .22; } 20% { opacity: .95; } }');
+  });
+
   it('stays still at 70% when the system asks for less motion', () => {
     const reducedMotionRules = syncUiCss.slice(syncUiCss.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
     expect(reducedMotionRules).toMatch(/\.sv-sync-four-arrows-arrow \{ animation: none !important; opacity: \.7; \}/);
-    expect(reducedMotionRules).toMatch(/\.sv-sync-slow-turn \{ animation: none !important; \}/);
+    expect(reducedMotionRules).toContain('.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows-arrow { opacity: .6; }');
+    expect(syncUiCss).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.sv-sync-root \*, \.sv-sync-root \*::before, \.sv-sync-root \*::after \{ animation: none !important; transition: none !important; \}/);
+  });
+
+  it('is the only waiting sign left: nothing in Sync spins or turns', () => {
+    expect(syncUiCss).not.toMatch(/rotate\(360deg\)|sv-sync-spin|slow-turn/);
+    expect(Object.keys(SYNC_UI_SOURCES_BY_FILE_NAME).length).toBeGreaterThan(40);
+    for (const [fileName, sourceText] of Object.entries(SYNC_UI_SOURCES_BY_FILE_NAME)) {
+      if (fileName.endsWith('.test.tsx')) continue;
+      expect({ fileName, hasSpinningClass: /sv-sync-spin|slow-turn|className="[^"]*\bspin\b/.test(sourceText) }).toEqual({ fileName, hasSpinningClass: false });
+    }
   });
 });
 
@@ -98,5 +128,16 @@ describe('GreenPillButton', () => {
     expect(button.getAttribute('aria-busy')).toBe('true');
     rerender(<GreenPillButton href="/sync/connect">Use it in my browser</GreenPillButton>);
     expect(screen.getByRole('link', { name: 'Use it in my browser' }).getAttribute('href')).toBe('/sync/connect');
+  });
+
+  it('shows the dark four-arrow loader in place of its icon while busy, at full colour', () => {
+    const { rerender } = render(<GreenPillButton onClick={vi.fn()} icon={<svg className="test-icon" />}>Sync now</GreenPillButton>);
+    expect(document.querySelector('.test-icon')).not.toBeNull();
+    rerender(<GreenPillButton onClick={vi.fn()} icon={<svg className="test-icon" />} isBusy>Sending…</GreenPillButton>);
+    const button = screen.getByRole('button', { name: 'Sending…' });
+    expect(button.querySelector('.test-icon')).toBeNull();
+    expect(button.querySelector('.sv-sync-four-arrow-loader--on-green')).not.toBeNull();
+    const busyPillRules = syncUiCss.match(/\.sv-sync-green-pill\[aria-busy="true"\] \{[^}]*\}/g) ?? [];
+    expect(busyPillRules).toEqual(['.sv-sync-green-pill[aria-busy="true"] { opacity: 1; }']);
   });
 });

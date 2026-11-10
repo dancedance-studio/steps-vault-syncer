@@ -8,7 +8,7 @@ import {
 import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PARTY_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
 
 type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone' | 'intro-pieces';
-type SyncPhase = 'idle' | 'syncing' | 'finished';
+type SyncPhase = 'idle' | 'syncing' | 'finished' | 'finished-all';
 
 const PREVIEW_SCREENS: readonly { value: PreviewScreen; label: string }[] = [
   { value: 'connect', label: '1 · Connect your game' },
@@ -39,14 +39,14 @@ function noop(): void {
 export function PreviewApp(): ReactElement {
   const [screen, setScreen] = useState<PreviewScreen>(() => getQueryValue({ name: 'screen', allowedValues: PREVIEW_SCREENS.map((option) => option.value), fallback: 'songs' }));
   const [platform, setPlatform] = useState<SyncPlatform>(() => getQueryValue({ name: 'platform', allowedValues: ['website', 'desktop'], fallback: 'website' }));
-  const [syncPhase, setSyncPhase] = useState<SyncPhase>(() => getQueryValue({ name: 'phase', allowedValues: ['idle', 'syncing', 'finished'], fallback: 'idle' }));
+  const [syncPhase, setSyncPhase] = useState<SyncPhase>(() => getQueryValue({ name: 'phase', allowedValues: ['idle', 'syncing', 'finished', 'finished-all'], fallback: 'idle' }));
   return (
     <>
       <div className="preview-controls">
         <b>dancedance.studio Sync preview</b>
         <label>Screen <select value={screen} onChange={(event) => { setScreen(event.target.value as PreviewScreen); }}>{PREVIEW_SCREENS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         <label>Frame <select value={platform} onChange={(event) => { setPlatform(event.target.value as SyncPlatform); }}><option value="website">Website</option><option value="desktop">Desktop app</option></select></label>
-        <label>Sync <select value={syncPhase} onChange={(event) => { setSyncPhase(event.target.value as SyncPhase); }}><option value="idle">Idle</option><option value="syncing">Syncing</option><option value="finished">Finished</option></select></label>
+        <label>Sync <select value={syncPhase} onChange={(event) => { setSyncPhase(event.target.value as SyncPhase); }}><option value="idle">Idle</option><option value="syncing">Syncing</option><option value="finished">Finished · some need you</option><option value="finished-all">Finished · all synced</option></select></label>
       </div>
       <PreviewFrame platform={platform} screen={screen}>
         <PreviewScreenContent screen={screen} platform={platform} syncPhase={syncPhase} onNavigate={(syncScreen) => { setScreen(SCREENS_BY_NAVIGATION[syncScreen]); }} />
@@ -111,7 +111,7 @@ function SongsPreview({ platform, syncPhase, onNavigate }: { platform: SyncPlatf
       platform={platform}
       topBar={{ game: FAKE_GAME, audioSources: { sourceNames: ['My music folder', 'Open Audio Links'] }, lastSync: { timeText: 'Today, 18:42', noteText: '2 hours ago' }, onSyncNow: noop, onChangeGame: noop, onManageAudioSources: () => { onNavigate('audio-sources'); }, backgroundSync: platform === 'desktop' ? { isOn: isBackgroundSyncOn, onToggle: setIsBackgroundSyncOn } : undefined }}
       syncRun={isSyncing ? { currentSongNumber: 7, totalSongCount: 12, currentStepText: 'Lining up the steps · Sugar You' } : null}
-      finishedSync={syncPhase === 'finished' && isFinishedShown ? { syncedCount: 8, needsYouCount: 4 } : null}
+      finishedSync={syncPhase.startsWith('finished') && isFinishedShown ? { syncedCount: syncPhase === 'finished-all' ? 23 : 8, needsYouCount: syncPhase === 'finished-all' ? 0 : 4 } : null}
       onSeeActivity={() => { onNavigate('activity'); }}
       onDismissFinishedSync={() => { setIsFinishedShown(false); }}
       songs={rows}
