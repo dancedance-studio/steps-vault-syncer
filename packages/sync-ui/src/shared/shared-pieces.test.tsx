@@ -99,7 +99,7 @@ describe('FourArrowLoader', () => {
     expect(document.querySelector('.sv-sync-four-arrow-loader')?.className).toBe('sv-sync-four-arrow-loader sv-sync-four-arrow-loader--on-green');
     expect([...document.querySelectorAll('.sv-sync-four-arrows-arrow')].map((arrow) => arrow.getAttribute('width'))).toEqual(['15', '15', '15', '15']);
     expect(syncUiCss).toContain('.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows { gap: 3px; padding: 0; background: none; color: #0b1400; }');
-    expect(syncUiCss).toContain('.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows-arrow { opacity: .22; animation-name: sv-sync-four-arrows-on-green; }');
+    expect(syncUiCss).toContain('.sv-sync-four-arrow-loader--on-green .sv-sync-four-arrows-arrow { color: #0b1400; opacity: .22; animation-name: sv-sync-four-arrows-on-green; }');
     expect(syncUiCss).toContain('@keyframes sv-sync-four-arrows-on-green { 0%, 60%, 100% { opacity: .22; } 20% { opacity: .95; } }');
   });
 
