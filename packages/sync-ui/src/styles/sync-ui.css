@@ -997,3 +997,13 @@
   .sv-sync-generators-app-note { grid-template-columns: auto minmax(0, 1fr); }
   .sv-sync-generators-app-note .sv-sync-button { grid-column: 1 / -1; justify-self: start; }
 }
+/* Phones (v3.84, #72): the judgment word gets its own line, so FLAWLESS!! never pushes the page sideways. */
+@media (max-width: 560px) {
+  .sv-sync-judgment-panel { gap: 12px 16px; }
+  .sv-sync-judgment-panel > .sv-sync-judgment { font-size: 34px; flex-basis: 100%; }
+  .sv-sync-judgment-panel > .sv-sync-judgment-text { min-width: 0; flex-basis: 100%; }
+  .sv-sync-counter-tiles { display: grid; grid-template-columns: 1fr 1fr; row-gap: 10px; }
+  .sv-sync-counter-tile, .sv-sync-counter-tile:first-child { padding: 4px 10px 4px 2px; }
+  .sv-sync-counter-tile + .sv-sync-counter-tile { border-left: 0; }
+  .sv-sync-counter-tile[aria-pressed="true"]::after, .sv-sync-counter-tile:first-child[aria-pressed="true"]::after { left: 2px; right: 10px; }
+}
