@@ -1,8 +1,11 @@
 import { Menu, nativeImage, Tray, type NativeImage } from 'electron';
 import type { TrayStatus } from '@stepsvault/sync-ui';
 import { APP_DISPLAY_NAME } from '../shared/app-name';
+import { buildTrayMenuTemplate, getTrayStatusLine, type TrayActions, type TrayView } from './tray-menu';
 
 const ICON_SIZE = 16;
+/** "2 min ago" moves on by itself, so the menu is checked once a minute. */
+const MENU_REFRESH_MILLISECONDS = 60_000;
 /** Lime when synced, blue while syncing, gold when songs need the player, grey when paused (as the status chips). */
 const COLORS_BY_STATUS: Readonly<Record<TrayStatus, readonly [number, number, number]>> = {
   synced: [164, 255, 0],
@@ -17,7 +20,7 @@ const TOOLTIPS_BY_STATUS: Readonly<Record<TrayStatus, string>> = {
   paused: `${APP_DISPLAY_NAME} · paused`,
 };
 
-/** A small up-arrow, drawn in code so the app ships no icon files that could go missing. */
+/** A small, still up-arrow in the status colour, drawn in code so the app ships no icon files that could go missing. */
 function buildArrowIcon(status: TrayStatus): NativeImage {
   const [red, green, blue] = COLORS_BY_STATUS[status];
   const pixels = Buffer.alloc(ICON_SIZE * ICON_SIZE * 4);
@@ -33,40 +36,32 @@ function buildArrowIcon(status: TrayStatus): NativeImage {
   return nativeImage.createFromBitmap(pixels, { width: ICON_SIZE, height: ICON_SIZE });
 }
 
-export interface TrayActions {
-  onOpen: () => void;
-  onSyncNow: () => void;
-  onTogglePause: () => void;
-  onQuit: () => void;
-}
-
 export class SyncTray {
   private readonly tray: Tray;
   private readonly actions: TrayActions;
-  private status: TrayStatus | null = null;
+  private view: TrayView = { status: 'synced', lastSyncAt: null };
+  private shownStatus: TrayStatus | null = null;
+  private shownStatusLine: string | null = null;
 
   constructor(actions: TrayActions) {
     this.actions = actions;
     this.tray = new Tray(buildArrowIcon('synced'));
     this.tray.on('click', actions.onOpen);
-    this.show('synced');
+    this.show(this.view);
+    setInterval(() => { this.show(this.view); }, MENU_REFRESH_MILLISECONDS).unref();
   }
 
-  show(status: TrayStatus): void {
-    if (status === this.status) return;
-    this.status = status;
-    this.tray.setImage(buildArrowIcon(status));
-    this.tray.setToolTip(TOOLTIPS_BY_STATUS[status]);
-    this.tray.setContextMenu(
-      Menu.buildFromTemplate([
-        { label: APP_DISPLAY_NAME, enabled: false },
-        { type: 'separator' },
-        { label: 'Open', click: this.actions.onOpen },
-        { label: 'Sync now', click: this.actions.onSyncNow },
-        { label: status === 'paused' ? 'Resume' : 'Pause', click: this.actions.onTogglePause },
-        { type: 'separator' },
-        { label: 'Quit', click: this.actions.onQuit },
-      ]),
-    );
+  show(view: TrayView): void {
+    this.view = view;
+    const now = new Date();
+    const statusLine = getTrayStatusLine({ view, now });
+    if (view.status === this.shownStatus && statusLine === this.shownStatusLine) return;
+    if (view.status !== this.shownStatus) {
+      this.tray.setImage(buildArrowIcon(view.status));
+      this.tray.setToolTip(TOOLTIPS_BY_STATUS[view.status]);
+    }
+    this.shownStatus = view.status;
+    this.shownStatusLine = statusLine;
+    this.tray.setContextMenu(Menu.buildFromTemplate(buildTrayMenuTemplate({ view, now, actions: this.actions, statusIcon: buildArrowIcon(view.status) })));
   }
 }
