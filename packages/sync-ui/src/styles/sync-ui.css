@@ -944,3 +944,55 @@
   .sv-sync-dialog { padding: 20px 16px; }
   .sv-sync-dialog-buttons .sv-sync-button { flex: 1 1 auto; }
 }
+
+/* ---------- Shared with the intro page (v3.80): pill, square tiles, agent rows, four-arrow loader ---------- */
+.sv-sync-green-pill {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 54px; padding: 0 28px; border: 0; border-radius: 999px; cursor: pointer; white-space: nowrap; text-decoration: none;
+  font: italic 800 18px/1 var(--sv-sync-font-display); font-stretch: 112%; letter-spacing: .01em; color: #0b1400;
+  background: linear-gradient(#c8ff6a, #a4ff00 55%, #73b800); box-shadow: inset 0 1px 0 #fff8, 0 0 22px rgba(164, 255, 0, .3);
+}
+.sv-sync-root a.sv-sync-green-pill, .sv-sync-root a.sv-sync-green-pill:hover, .sv-sync-green-pill:hover { color: #0b1400; }
+.sv-sync-green-pill:hover { filter: brightness(1.06); }
+.sv-sync-green-pill:disabled { filter: none; opacity: .85; cursor: default; }
+.sv-sync-green-pill:focus-visible { outline: 3px solid var(--sv-sync-focus); outline-offset: 3px; }
+.sv-sync-green-pill svg { flex: none; }
+.sv-sync-slow-turn { animation: sv-sync-spin 2s linear infinite; }
+
+.sv-sync-square-tile {
+  --sv-sync-tile-colour: var(--sv-sync-link); flex: none; display: grid; place-items: center; width: var(--sv-sync-tile-size, 42px); height: var(--sv-sync-tile-size, 42px); border-radius: 12px;
+  color: var(--sv-sync-tile-colour); background: color-mix(in srgb, var(--sv-sync-tile-colour) 14%, transparent); font: italic 900 calc(var(--sv-sync-tile-size, 42px) * .38)/1 var(--sv-sync-font-display);
+}
+.sv-sync-square-tile--sync { --sv-sync-tile-colour: #1cd8ff; }
+.sv-sync-square-tile--addons { --sv-sync-tile-colour: #ffd36b; }
+.sv-sync-square-tile--generators { --sv-sync-tile-colour: #a4ff00; }
+.sv-sync-square-tile--groups { --sv-sync-tile-colour: #ff8cf9; }
+.sv-sync-square-tile--neutral { background: #1a1f2d; box-shadow: inset 0 0 0 1px #2c3550; }
+
+.sv-sync-agent-row { --sv-sync-agent-tone: var(--sv-sync-link); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--sv-sync-panel-deep); border: 1px dashed #2c3550; }
+.sv-sync-agent-row-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sv-sync-agent-row-text b { font: italic 800 17px/1.15 var(--sv-sync-font-display); color: #fff; }
+.sv-sync-agent-row-line { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--sv-sync-text-soft); }
+.sv-sync-agent-row-line svg, .sv-sync-agent-box-title svg { flex: none; color: var(--sv-sync-agent-tone); }
+.sv-sync-agent-row-actions, .sv-sync-agent-box-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+.sv-sync-agent-copy { min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--sv-sync-border-strong); background: #1d2232; color: #fff; font: 600 13.5px/1 var(--sv-sync-font-body); cursor: pointer; }
+.sv-sync-agent-copy:hover { border-color: var(--sv-sync-link); }
+.sv-sync-agent-copy--copied, .sv-sync-agent-copy--copied:hover { border-color: var(--sv-sync-great); color: var(--sv-sync-great); }
+.sv-sync-agent-link { font-size: 14px; color: #8fd3ff; }
+.sv-sync-agent-prompt { display: block; padding: 10px 12px; border-radius: 10px; background: #08080d; border: 1px solid var(--sv-sync-border-soft); font: 500 13.5px/1.5 var(--sv-sync-font-mono); color: var(--sv-sync-text-soft); white-space: normal; overflow-wrap: anywhere; }
+.sv-sync-agent-prompt b { color: #fff; }
+.sv-sync-agent-prompt--fallback { flex: 1 1 100%; }
+.sv-sync-agent-box { --sv-sync-agent-tone: #8fd3ff; display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; background: var(--sv-sync-field-background); border: 1px dashed rgba(143, 211, 255, .45); }
+.sv-sync-agent-box-title { display: inline-flex; align-items: center; gap: 8px; font: italic 800 13px/1 var(--sv-sync-font-display); letter-spacing: .06em; color: #8fd3ff; }
+
+.sv-sync-four-arrow-loader { display: inline-flex; align-items: center; gap: 8px; }
+.sv-sync-four-arrows { display: inline-flex; gap: 3px; color: #dff3ff; }
+.sv-sync-four-arrows-arrow { opacity: .35; animation: sv-sync-four-arrows 1.2s ease-in-out infinite; }
+.sv-sync-four-arrows-arrow:nth-child(2) { animation-delay: .15s; }
+.sv-sync-four-arrows-arrow:nth-child(3) { animation-delay: .3s; }
+.sv-sync-four-arrows-arrow:nth-child(4) { animation-delay: .45s; }
+@keyframes sv-sync-four-arrows { 0%, 60%, 100% { opacity: .35; filter: none; } 20% { opacity: 1; filter: brightness(2.2) drop-shadow(0 0 4px #1cd8ff); } }
+/* The loader is also used outside .sv-sync-root (the intro page), so it stops its own animation too. */
+@media (prefers-reduced-motion: reduce) {
+  .sv-sync-four-arrows-arrow { animation: none !important; opacity: .7; }
+  .sv-sync-slow-turn { animation: none !important; }
+}
