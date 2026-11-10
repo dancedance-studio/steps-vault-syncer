@@ -996,9 +996,10 @@
 }
 /* Sync now while busy: the four arrows sit in a small dark pill so they read on the green. */
 .sv-sync-now-loader .sv-sync-four-arrows { gap: 2px; padding: 3px 5px; border-radius: 999px; background: #0b1400; }
-/* Phones (v3.84, #72): the judgment word gets its own line, so FLAWLESS!! never pushes the page sideways. */
+/* Phones (v3.84, #72): the judgment word gets its own line, so FLAWLESS!! never pushes the page sideways; the panel
+   clips its pop-in, which starts larger than a phone. */
 @media (max-width: 560px) {
-  .sv-sync-judgment-panel { gap: 12px 16px; }
+  .sv-sync-judgment-panel { gap: 12px 16px; overflow: hidden; }
   .sv-sync-judgment-panel > .sv-sync-judgment { font-size: 34px; flex-basis: 100%; }
   .sv-sync-judgment-panel > .sv-sync-judgment-text { min-width: 0; flex-basis: 100%; }
   .sv-sync-counter-tiles { display: grid; grid-template-columns: 1fr 1fr; row-gap: 10px; }
