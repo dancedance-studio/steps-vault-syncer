@@ -1,6 +1,7 @@
 import type { KeyboardEvent, ReactElement } from 'react';
 import { ArrowReceptor, type ArrowDirection } from '../icons/arrow-receptor';
 import { Icon } from '../icons/icon';
+import { GreenPillButton } from '../shared/green-pill-button';
 import { handleRadioKeyDown } from '../shared/radio-group';
 import { Note, SetupSteps } from '../shared/small-parts';
 import type { FoundGameView } from '../sync-ui-types';
@@ -14,6 +15,7 @@ export interface WebsiteConnectGameProps {
   /** False in Firefox and Safari, which can't open folders on the computer. */
   isBrowserSupported: boolean;
   onChooseSongsFolder: () => void;
+  /** Offered only when this browser can't open folders; a player who chose the browser stays with the browser. */
   desktopAppHref: string;
   onCopySyncAddress: () => void;
 }
@@ -48,18 +50,18 @@ export function ConnectGameScreen(props: ConnectGameScreenProps): ReactElement {
   );
 }
 
-function WebsiteFolderPicker({ onChooseSongsFolder, desktopAppHref }: WebsiteConnectGameProps): ReactElement {
+/** One split panel: choose the folder on the left, then the browser's Allow on the right. Nothing points away to the app. */
+function WebsiteFolderPicker({ onChooseSongsFolder }: WebsiteConnectGameProps): ReactElement {
   return (
-    <>
-      <section className="sv-sync-panel sv-sync-big-pick" aria-label="Choose your Songs folder">
-        <button className="sv-sync-pick-button" type="button" onClick={onChooseSongsFolder}>
-          <span className="sv-sync-pick-icon"><Icon name="folder" size={24} strokeWidth={2.4} /></span>
-          CHOOSE MY SONGS FOLDER
-        </button>
-        <span className="sv-sync-small sv-sync-muted">Usually <span className="sv-sync-mono sv-sync-soft">C:\Games\StepMania 5\Songs</span></span>
+    <div className="sv-sync-connect-panel">
+      <section className="sv-sync-connect-half sv-sync-connect-half--first" aria-labelledby="sv-sync-choose-folder-heading">
+        <span className="sv-sync-connect-step">FIRST</span>
+        <h3 id="sv-sync-choose-folder-heading" className="sv-sync-connect-title">Choose your Songs folder</h3>
+        <GreenPillButton className="sv-sync-connect-pick" onClick={onChooseSongsFolder} icon={<Icon name="folder" size={20} strokeWidth={2.4} />}>Choose my Songs folder</GreenPillButton>
+        <span className="sv-sync-connect-hint">Usually <span className="sv-sync-mono sv-sync-soft">C:\Games\StepMania 5\Songs</span></span>
       </section>
-      <BrowserPermissionExplainer desktopAppHref={desktopAppHref} />
-    </>
+      <BrowserPermissionExplainer />
+    </div>
   );
 }
 

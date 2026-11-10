@@ -497,16 +497,16 @@
 .sv-sync-dialog-buttons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
 
 /* ---------- Connect your game ---------- */
-.sv-sync-big-pick { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 36px 28px; text-align: center; background: radial-gradient(60% 80% at 50% 0, rgba(28, 216, 255, .12), transparent 70%), var(--sv-sync-panel-raised); border-color: #33405e; }
-.sv-sync-pick-button {
-  display: inline-flex; align-items: center; gap: 14px; min-height: 68px; padding: 0 30px 0 14px; border-radius: 16px; border: 2px solid var(--sv-sync-stage); cursor: pointer;
-  font: italic 900 24px/1 var(--sv-sync-font-display); font-stretch: 125%; letter-spacing: .03em; color: #0b1400; background: linear-gradient(180deg, #e4ffb0, #a4ff00 50%, #73b800);
-  box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage);
-}
-.sv-sync-pick-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: #0b0f18; color: var(--sv-sync-great); }
-.sv-sync-permission-explainer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: center; width: 100%; text-align: start; }
-.sv-sync-browser-prompt-frame { padding: 10px 0 44px; }
-.sv-sync-browser-prompt { position: relative; width: 100%; max-width: 440px; margin: 0 0 0 auto; border-radius: 12px; background: #f3f5f9; color: #202124; font: 13px/1.45 'Segoe UI', Rubik, sans-serif; box-shadow: 0 20px 50px rgba(0, 0, 0, .6); }
+.sv-sync-connect-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-radius: 18px; background: #12151f; border: 1px solid var(--sv-sync-border); overflow: hidden; }
+.sv-sync-connect-half { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 32px; }
+.sv-sync-connect-half--first { justify-content: center; align-items: flex-start; background: radial-gradient(90% 80% at 0 0, rgba(164, 255, 0, .08), transparent 70%); }
+.sv-sync-connect-half--then { border-left: 1px solid var(--sv-sync-border-soft); background: #0f121a; }
+.sv-sync-connect-step { font: italic 800 12px/1 var(--sv-sync-font-display); letter-spacing: .14em; color: var(--sv-sync-text-subtle); }
+.sv-sync-connect-title { margin: 0; font: italic 800 24px/1.1 var(--sv-sync-font-display); font-stretch: 112%; color: #fff; }
+.sv-sync-connect-pick { margin-top: 8px; font-size: 17px; }
+.sv-sync-connect-hint { font-size: 14px; color: var(--sv-sync-text-subtle); }
+.sv-sync-browser-prompt-frame { margin-top: 10px; padding: 0 6px 34px; }
+.sv-sync-browser-prompt { position: relative; width: 100%; max-width: 400px; margin: 0; border-radius: 12px; background: #f3f5f9; color: #202124; font: 13px/1.45 'Segoe UI', Rubik, sans-serif; box-shadow: 0 20px 50px rgba(0, 0, 0, .6); }
 .sv-sync-browser-prompt-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 12px 12px 0 0; background: #dfe3ea; color: #5f6368; font-size: 11.5px; }
 .sv-sync-browser-prompt-title { display: flex; align-items: center; gap: 8px; padding: 14px 16px 6px; font-weight: 600; font-size: 14px; }
 .sv-sync-browser-prompt-logo { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 5px; background: var(--sv-sync-stage); color: var(--sv-sync-light-blue); }
@@ -751,11 +751,6 @@
 .sv-sync-button { box-shadow: inset 0 1px 0 #fff8, 0 0 18px rgba(236, 203, 5, .3); }
 .sv-sync-button--go { box-shadow: inset 0 1px 0 #fff8, 0 0 16px rgba(164, 255, 0, .3); }
 .sv-sync-button--ghost, .sv-sync-root a.sv-sync-button--ghost, .sv-sync-button--danger { box-shadow: none; }
-.sv-sync-pick-button { box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage), 0 0 30px rgba(164, 255, 0, .4); }
-.sv-sync-judgment { text-shadow: 0 0 22px currentColor, 0 4px 0 var(--sv-sync-stage); }
-.sv-sync-life-bar { box-shadow: 0 0 12px rgba(28, 216, 255, .25); }
-.sv-sync-life-bar > span { box-shadow: 0 0 10px rgba(164, 255, 0, .5); }
-.sv-sync-switch[aria-checked="true"]::after { box-shadow: 0 0 8px var(--sv-sync-great); }
 .sv-sync-meter-block--on { box-shadow: 0 0 5px var(--sv-sync-difficulty); }
 .sv-sync-dialog { box-shadow: 0 30px 80px rgba(0, 0, 0, .7), 0 0 40px rgba(28, 216, 255, .12); }
 .sv-sync-token-count b { text-shadow: 0 0 14px rgba(255, 198, 0, .6), 0 2px 0 #4a3500; }
@@ -813,8 +808,14 @@
   .sv-sync-background-sync { grid-column: 1 / -1; }
   .sv-sync-home-grid--with-drawer { grid-template-columns: minmax(0, 1fr); }
 }
+@media (max-width: 860px) {
+  .sv-sync-connect-panel { grid-template-columns: minmax(0, 1fr); }
+  .sv-sync-connect-half { padding: 22px 18px; }
+  .sv-sync-connect-half--then { border-left: 0; border-top: 1px solid var(--sv-sync-border-soft); }
+  .sv-sync-connect-pick { width: 100%; font-size: 15px; padding: 0 16px; }
+}
 @media (max-width: 900px) {
-  .sv-sync-two-columns, .sv-sync-layout-options, .sv-sync-name-rule, .sv-sync-permission-explainer { grid-template-columns: minmax(0, 1fr); }
+  .sv-sync-two-columns, .sv-sync-layout-options, .sv-sync-name-rule { grid-template-columns: minmax(0, 1fr); }
   .sv-sync-shell--desktop .sv-sync-shell-body { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
@@ -917,11 +918,6 @@
   .sv-sync-shell--website .sv-sync-setup-steps li { white-space: nowrap; }
   .sv-sync-shell--website .sv-sync-setup-steps li:not(.sv-sync-setup-step--current) { font-size: 0; gap: 0; }
   .sv-sync-shell--website .sv-sync-setup-steps li + li::before { width: 22px; }
-  .sv-sync-shell--website .sv-sync-big-pick { padding: 24px 18px; }
-  .sv-sync-shell--website .sv-sync-pick-button { width: 100%; min-height: 64px; padding: 10px 16px 10px 10px; font-size: 19px; line-height: 1.1; text-align: left; }
-  .sv-sync-shell--website .sv-sync-pick-icon { flex: 0 0 44px; width: 44px; height: 44px; }
-  .sv-sync-shell--website .sv-sync-permission-explainer { gap: 8px; }
-  .sv-sync-shell--website .sv-sync-permission-explainer a { display: inline-flex; align-items: center; min-height: 44px; }
   .sv-sync-shell--website .sv-sync-narrow > .sv-sync-row:not(.sv-sync-wrap) { align-items: flex-start; }
   .sv-sync-shell--website .sv-sync-narrow > .sv-sync-row .sv-sync-mono { overflow-wrap: anywhere; }
   .sv-sync-shell--website .sv-sync-folder-tree li { gap: 10px; padding: 0 10px; }
