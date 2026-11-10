@@ -7,6 +7,8 @@ import { FourArrowLoader } from './four-arrow-loader';
 import { GreenPillButton } from './green-pill-button';
 import syncUiCss from '../styles/sync-ui.css?raw';
 
+const SYNC_UI_SOURCES_BY_FILE_NAME: Readonly<Record<string, string>> = import.meta.glob<string>('../**/*.tsx', { query: '?raw', import: 'default', eager: true });
+
 function setClipboard(clipboard: Partial<Clipboard> | undefined): void {
   Object.defineProperty(navigator, 'clipboard', { value: clipboard, configurable: true });
 }
@@ -95,7 +97,16 @@ describe('FourArrowLoader', () => {
   it('stays still at 70% when the system asks for less motion', () => {
     const reducedMotionRules = syncUiCss.slice(syncUiCss.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
     expect(reducedMotionRules).toMatch(/\.sv-sync-four-arrows-arrow \{ animation: none !important; opacity: \.7; \}/);
-    expect(reducedMotionRules).toMatch(/\.sv-sync-slow-turn \{ animation: none !important; \}/);
+    expect(syncUiCss).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.sv-sync-root \*, \.sv-sync-root \*::before, \.sv-sync-root \*::after \{ animation: none !important; transition: none !important; \}/);
+  });
+
+  it('is the only waiting sign left: nothing in Sync spins or turns', () => {
+    expect(syncUiCss).not.toMatch(/rotate\(360deg\)|sv-sync-spin|slow-turn/);
+    expect(Object.keys(SYNC_UI_SOURCES_BY_FILE_NAME).length).toBeGreaterThan(40);
+    for (const [fileName, sourceText] of Object.entries(SYNC_UI_SOURCES_BY_FILE_NAME)) {
+      if (fileName.endsWith('.test.tsx')) continue;
+      expect({ fileName, hasSpinningClass: /sv-sync-spin|slow-turn|className="[^"]*\bspin\b/.test(sourceText) }).toEqual({ fileName, hasSpinningClass: false });
+    }
   });
 });
 
