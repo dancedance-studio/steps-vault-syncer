@@ -113,7 +113,7 @@ async function fetchFiles({ dependencies, vaultSongId, chartVersion }: { depende
   try {
     return await dependencies.vaultFiles.fetchSongFiles({ vaultSongId, chartVersion });
   } catch (error) {
-    throw new SongWriteError({ failure: 'download-failed', message: 'The steps couldn’t be downloaded from StepsVault. Check your internet connection and sync again.', cause: error });
+    throw new SongWriteError({ failure: 'download-failed', message: 'The steps couldn’t be downloaded from dancedance.studio. Check your internet connection and sync again.', cause: error });
   }
 }
 

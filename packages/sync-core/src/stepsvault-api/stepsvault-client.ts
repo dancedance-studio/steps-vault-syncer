@@ -38,7 +38,7 @@ export class StepsVaultClient implements VaultFiles {
   async fetchVault(): Promise<VaultSongDetails[]> {
     const response = await this.httpClient.requestJson(this.buildRequest({ path: '/vault', maxResponseBytes: MAX_JSON_BYTES }));
     assertOk(response);
-    if (!Array.isArray(response.body)) throw new StepsVaultApiError({ status: response.status, message: 'StepsVault sent a song list Sync can’t read. Update Sync to the latest version.' });
+    if (!Array.isArray(response.body)) throw new StepsVaultApiError({ status: response.status, message: 'dancedance.studio sent a song list Sync can’t read. Update Sync to the latest version.' });
     const songs = response.body.map((song) => parseVaultSong(song));
     for (const song of songs) this.imageKindsBySongId.set(song.vaultSongId, song.imageKinds);
     return songs;
@@ -55,7 +55,7 @@ export class StepsVaultClient implements VaultFiles {
     const body = parseJsonOrNull(response.body);
     if (body === null) return null;
     const partyLists = asRecord(body).partyLists;
-    if (!Array.isArray(partyLists)) throw new StepsVaultApiError({ status: response.status, message: 'StepsVault sent party lists Sync can’t read. Update Sync to the latest version.' });
+    if (!Array.isArray(partyLists)) throw new StepsVaultApiError({ status: response.status, message: 'dancedance.studio sent party lists Sync can’t read. Update Sync to the latest version.' });
     const parsedLists = partyLists.map((partyList) => parsePartyList(partyList));
     for (const song of parsedLists.flatMap((partyList) => partyList.songs)) this.imageKindsBySongId.set(song.vaultSongId, song.imageKinds);
     return parsedLists;
@@ -76,7 +76,7 @@ export class StepsVaultClient implements VaultFiles {
     assertOk(response);
     const body = asRecord(response.body);
     const player = asRecord(body.player);
-    if (typeof body.tokenBalance !== 'number' || !Number.isInteger(body.tokenBalance) || body.tokenBalance < 0) throw new StepsVaultApiError({ status: response.status, message: 'StepsVault sent a token balance Sync can’t read. Update Sync to the latest version.' });
+    if (typeof body.tokenBalance !== 'number' || !Number.isInteger(body.tokenBalance) || body.tokenBalance < 0) throw new StepsVaultApiError({ status: response.status, message: 'dancedance.studio sent a token balance Sync can’t read. Update Sync to the latest version.' });
     return { tokenBalance: body.tokenBalance, player: { handle: getString(player.handle), initial: getString(player.initial), avatarColor: getString(player.avatarColor) } };
   }
 
@@ -156,7 +156,7 @@ function assertOk(response: HttpResponse<unknown>): void {
   if (response.status === 401) throw new SignedOutError();
   if (response.status >= 200 && response.status < 300) return;
   const message = getErrorSentenceOrNull(response.body);
-  throw new StepsVaultApiError({ status: response.status, message: message ?? `StepsVault answered with an error (${String(response.status)}). Try again in a minute.` });
+  throw new StepsVaultApiError({ status: response.status, message: message ?? `dancedance.studio answered with an error (${String(response.status)}). Try again in a minute.` });
 }
 
 /** The site's own sentence, sent as `error` (newer routes) or `message`. */
@@ -218,11 +218,11 @@ function readLittleEndianFloats(bytes: Uint8Array): Float32Array {
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new StepsVaultApiError({ status: 200, message: 'StepsVault sent an answer Sync can’t read. Update Sync to the latest version.' });
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new StepsVaultApiError({ status: 200, message: 'dancedance.studio sent an answer Sync can’t read. Update Sync to the latest version.' });
   return value as Record<string, unknown>;
 }
 
 function getString(value: unknown): string {
-  if (typeof value !== 'string') throw new StepsVaultApiError({ status: 200, message: 'StepsVault sent an answer Sync can’t read. Update Sync to the latest version.' });
+  if (typeof value !== 'string') throw new StepsVaultApiError({ status: 200, message: 'dancedance.studio sent an answer Sync can’t read. Update Sync to the latest version.' });
   return value;
 }

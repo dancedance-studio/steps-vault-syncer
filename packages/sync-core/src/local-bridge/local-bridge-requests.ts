@@ -58,9 +58,9 @@ export interface LocalBridgeRequestDependencies {
 }
 
 const ERROR_TEXTS_BY_REASON: Record<LocalBridgeErrorReason, string> = {
-  'origin-refused': 'DanceDance Sync answers only the StepsVault website.',
-  'host-refused': 'DanceDance Sync answers only at its own address on this computer.',
-  'not-paired': 'This browser isn’t paired with DanceDance Sync. In Sync, open Generators › Play on the website, choose "Pair a browser", then type the code here.',
+  'origin-refused': 'dancedance.studio Sync answers only the dancedance.studio website.',
+  'host-refused': 'dancedance.studio Sync answers only at its own address on this computer.',
+  'not-paired': 'This browser isn’t paired with dancedance.studio Sync. In Sync, open Generators › Play on the website, choose "Pair a browser", then type the code here.',
   'no-pairing-code': 'Sync isn’t waiting for a code. In Sync, open Generators › Play on the website and choose "Pair a browser" first.',
   'wrong-code': 'That isn’t the code Sync shows. Check it and type it again.',
   'code-expired': 'That code expired. In Sync, choose "Pair a browser" again for a new one.',
@@ -68,7 +68,7 @@ const ERROR_TEXTS_BY_REASON: Record<LocalBridgeErrorReason, string> = {
   'bad-request': 'Sync couldn’t read this request. Reload the page and try again.',
   'not-found': 'Sync has no such song or file. Reload the page to see your songs again.',
   'method-not-allowed': 'Sync only lets the website read your songs here.',
-  'no-game': 'Connect your game in DanceDance Sync first, then reload this page.',
+  'no-game': 'Connect your game in dancedance.studio Sync first, then reload this page.',
 };
 
 const STATUSES_BY_REASON: Record<LocalBridgeErrorReason, number> = {
