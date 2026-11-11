@@ -1012,3 +1012,39 @@
   .sv-sync-counter-tile + .sv-sync-counter-tile { border-left: 0; }
   .sv-sync-counter-tile[aria-pressed="true"]::after, .sv-sync-counter-tile:first-child[aria-pressed="true"]::after { left: 2px; right: 10px; }
 }
+
+/* ---------- v3.103: Connect is "page two" of the intro (centred, calm, open columns, the intro's type) ---------- */
+.sv-sync-connect { --sv-sync-font-apple: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif; max-width: 980px; gap: 34px; padding: 48px 0 24px; }
+.sv-sync-connect .sv-sync-setup-steps { justify-content: center; }
+.sv-sync-connect-head { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.sv-sync-connect-heading { margin: 0; font: italic 800 52px/1.02 var(--sv-sync-font-display); font-stretch: 115%; color: #f5f5f7; text-wrap: balance; }
+.sv-sync-connect-heading em { display: inline-block; margin-top: 4px; font: italic 400 66px/.95 'Instrument Serif', Georgia, serif; color: #a4ff00; }
+.sv-sync-connect-lede { margin: 0; max-width: 520px; font: 400 18px/1.45 var(--sv-sync-font-apple); letter-spacing: -.01em; color: #a1a1a6; text-wrap: balance; }
+.sv-sync-connect .sv-sync-connect-panel { border: 0; border-top: 1px solid #1d2232; border-radius: 0; background: none; overflow: visible; }
+.sv-sync-connect .sv-sync-connect-half { align-items: center; justify-content: flex-start; gap: 12px; padding: 36px 40px 8px; text-align: center; background: none; }
+.sv-sync-connect .sv-sync-connect-half--then { border-left: 1px solid #1d2232; }
+.sv-sync-connect-number { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid #1cd8ff; background: rgba(28, 216, 255, .1); color: #1cd8ff; font: italic 800 15px/1 var(--sv-sync-font-display); }
+.sv-sync-connect .sv-sync-connect-title { font: 600 22px/1.2 var(--sv-sync-font-apple); font-stretch: normal; letter-spacing: -.02em; color: #f5f5f7; }
+.sv-sync-connect .sv-sync-connect-hint { font: 400 14.5px/1.45 var(--sv-sync-font-apple); letter-spacing: -.01em; color: #a1a1a6; }
+/* The dialog mock reads like a real one (left-aligned); room under it for "CLICK ALLOW", which hangs under Allow. */
+.sv-sync-connect .sv-sync-browser-prompt-frame { align-self: stretch; display: flex; justify-content: center; margin-top: 4px; padding: 0 0 58px; text-align: left; }
+.sv-sync-connect .sv-sync-browser-prompt-allow { position: relative; }
+/* Inside Allow, so it must drop the dialog buttons' own look (they are spans too). */
+.sv-sync-connect .sv-sync-browser-prompt-buttons .sv-sync-browser-prompt-pointer { left: 50%; right: auto; top: calc(100% + 10px); bottom: auto; transform: translateX(-50%); min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--sv-sync-great); flex-direction: column; gap: 4px; white-space: nowrap; }
+.sv-sync-connect-path { justify-content: center; }
+.sv-sync-connect .sv-sync-folder-tree { gap: 0; padding: 0; border: 0; border-top: 1px solid #1d2232; border-radius: 0; background: none; }
+.sv-sync-connect .sv-sync-folder-tree li, .sv-sync-connect .sv-sync-folder-tree li:nth-child(odd) { border-radius: 0; background: none; border-bottom: 1px solid #1a1f2d; }
+.sv-sync-connect .sv-sync-folder-tree li.sv-sync-folder-tree-ours { margin-top: 14px; border-radius: 12px; border: 1.5px dashed rgba(28, 216, 255, .6); background: rgba(28, 216, 255, .06); }
+.sv-sync-connect > .sv-sync-note { justify-content: center; padding: 0; border: 0; background: none; font-family: var(--sv-sync-font-apple); color: #a1a1a6; text-align: center; }
+.sv-sync-connect-actions { justify-content: center; gap: 16px; }
+@media (max-width: 720px) {
+  .sv-sync-connect { gap: 26px; padding: 24px 0 16px; }
+  .sv-sync-connect-heading { font-size: 32px; }
+  .sv-sync-connect-heading em { font-size: 44px; }
+  .sv-sync-connect-lede { font-size: 16px; }
+}
+/* The columns stack where the old panel did; the line between them moves on top. */
+@media (max-width: 860px) {
+  .sv-sync-connect .sv-sync-connect-half { padding: 26px 4px 8px; }
+  .sv-sync-connect .sv-sync-connect-half--then { border-left: 0; border-top: 1px solid #1d2232; }
+}
