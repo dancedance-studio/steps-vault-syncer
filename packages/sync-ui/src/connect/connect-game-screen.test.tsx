@@ -5,16 +5,18 @@ import { ConnectGameScreen } from './connect-game-screen';
 import { SongsFolderPreview } from './songs-folder-preview';
 
 describe('ConnectGameScreen', () => {
-  it('on the website, is one split panel: choose the folder first, then click Allow', () => {
+  it('on the website, is two numbered columns: choose the folder (1), then click Allow (2)', () => {
     const onChooseSongsFolder = vi.fn();
     render(<ConnectGameScreen platform="website" isBrowserSupported onChooseSongsFolder={onChooseSongsFolder} desktopAppHref="#app" onCopySyncAddress={vi.fn()} />);
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Connect your game.Just once.');
     const first = screen.getByRole('region', { name: 'Choose your Songs folder' });
-    expect(first.textContent).toContain('FIRST');
+    expect(within(first).getByRole('img', { name: 'Step 1' }).textContent).toBe('1');
     expect(first.textContent).toContain('Usually C:\\Games\\StepMania 5\\Songs');
     fireEvent.click(within(first).getByRole('button', { name: 'Choose my Songs folder' }));
     expect(onChooseSongsFolder).toHaveBeenCalledOnce();
     const then = screen.getByRole('region', { name: 'Click Allow' });
-    expect(then.textContent).toContain('THEN');
+    expect(within(then).getByRole('img', { name: 'Step 2' }).textContent).toBe('2');
+    expect(then.querySelector('.sv-sync-browser-prompt-allow .sv-sync-browser-prompt-pointer')?.textContent).toBe('CLICK ALLOW');
     expect(within(then).getByRole('img', { name: /browser asking for permission/ })).toBeDefined();
     expect(screen.getByText('Your browser asks once, and again after a restart.')).toBeDefined();
   });
