@@ -1018,7 +1018,8 @@
 .sv-sync-connect .sv-sync-setup-steps { justify-content: center; }
 .sv-sync-connect-head { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
 .sv-sync-connect-heading { margin: 0; font: italic 800 52px/1.02 var(--sv-sync-font-display); font-stretch: 115%; color: #f5f5f7; text-wrap: balance; }
-.sv-sync-connect-heading em { display: inline-block; margin-top: 4px; font: italic 400 66px/.95 'Instrument Serif', Georgia, serif; color: #a4ff00; }
+/* The second line is the title's own arcade italic, in lime with a soft glow (design v3.120). */
+.sv-sync-connect-heading em { font: inherit; color: #a4ff00; text-shadow: 0 0 18px rgba(164, 255, 0, .25); }
 .sv-sync-connect-lede { margin: 0; max-width: 520px; font: 400 18px/1.45 var(--sv-sync-font-apple); letter-spacing: -.01em; color: #a1a1a6; text-wrap: balance; }
 .sv-sync-connect .sv-sync-connect-panel { border: 0; border-top: 1px solid #1d2232; border-radius: 0; background: none; overflow: visible; }
 .sv-sync-connect .sv-sync-connect-half { align-items: center; justify-content: flex-start; gap: 12px; padding: 36px 40px 8px; text-align: center; background: none; }
@@ -1040,7 +1041,6 @@
 @media (max-width: 720px) {
   .sv-sync-connect { gap: 26px; padding: 24px 0 16px; }
   .sv-sync-connect-heading { font-size: 32px; }
-  .sv-sync-connect-heading em { font-size: 44px; }
   .sv-sync-connect-lede { font-size: 16px; }
 }
 /* The columns stack where the old panel did; the line between them moves on top. */
