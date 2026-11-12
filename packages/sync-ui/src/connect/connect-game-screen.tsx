@@ -4,6 +4,7 @@ import { Icon } from '../icons/icon';
 import { GreenPillButton } from '../shared/green-pill-button';
 import { handleRadioKeyDown } from '../shared/radio-group';
 import { Note, SetupSteps } from '../shared/small-parts';
+import { ConnectHeading, ConnectStepNumber } from './connect-heading';
 import type { FoundGameView } from '../sync-ui-types';
 import { BrowserPermissionExplainer } from './browser-permission-explainer';
 import { UnsupportedBrowserCard } from './unsupported-browser-card';
@@ -39,23 +40,20 @@ export function ConnectGameScreen(props: ConnectGameScreenProps): ReactElement {
     return <div className="sv-sync-narrow"><UnsupportedBrowserCard desktopAppHref={props.desktopAppHref} onCopySyncAddress={props.onCopySyncAddress} /></div>;
   }
   return (
-    <div className="sv-sync-narrow">
+    <div className="sv-sync-narrow sv-sync-connect">
       <SetupSteps currentStepIndex={0} />
-      <div className="sv-sync-stack-small">
-        <h2 className="sv-sync-heading-1">Connect your game</h2>
-        <p className="sv-sync-text sv-sync-text--large">Pick your StepMania Songs folder. We only touch the songs we add.</p>
-      </div>
+      <ConnectHeading title="Connect your game." secondLine="Just once." lede="Pick your StepMania Songs folder. We only touch the songs we add." />
       {props.platform === 'website' ? <WebsiteFolderPicker {...props} /> : <FoundGamesPicker {...props} />}
     </div>
   );
 }
 
-/** One split panel: choose the folder on the left, then the browser's Allow on the right. Nothing points away to the app. */
+/** Two open columns: choose the folder (1), then the browser's Allow (2). Nothing points away to the app. */
 function WebsiteFolderPicker({ onChooseSongsFolder }: WebsiteConnectGameProps): ReactElement {
   return (
     <div className="sv-sync-connect-panel">
       <section className="sv-sync-connect-half sv-sync-connect-half--first" aria-labelledby="sv-sync-choose-folder-heading">
-        <span className="sv-sync-connect-step">FIRST</span>
+        <ConnectStepNumber stepNumber={1} />
         <h3 id="sv-sync-choose-folder-heading" className="sv-sync-connect-title">Choose your Songs folder</h3>
         <GreenPillButton className="sv-sync-connect-pick" onClick={onChooseSongsFolder} icon={<Icon name="folder" size={20} strokeWidth={2.4} />}>Choose my Songs folder</GreenPillButton>
         <span className="sv-sync-connect-hint">Usually <span className="sv-sync-mono sv-sync-soft">C:\Games\StepMania 5\Songs</span></span>

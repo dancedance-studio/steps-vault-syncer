@@ -3,6 +3,7 @@ import type { ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { SITE_NAME } from '../shared/brand-names';
 import { LockedBadge, Note, SetupSteps } from '../shared/small-parts';
+import { ConnectHeading } from './connect-heading';
 import type { PlayerGroupView } from '../sync-ui-types';
 
 export interface SongsFolderPreviewProps {
@@ -21,13 +22,10 @@ const NUMBER_FORMAT = new Intl.NumberFormat('en-US');
 export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement {
   const totalSongCount = props.playerGroups.reduce((total, group) => total + group.songCount, 0);
   return (
-    <div className="sv-sync-narrow">
+    <div className="sv-sync-narrow sv-sync-connect">
       <SetupSteps currentStepIndex={1} />
-      <div className="sv-sync-stack-small">
-        <h2 className="sv-sync-heading-1">Here&apos;s your Songs folder</h2>
-        <p className="sv-sync-text sv-sync-text--large">{getFolderSummary({ songCount: totalSongCount, groupCount: props.playerGroups.length })}</p>
-      </div>
-      <div className="sv-sync-row">
+      <ConnectHeading title="Here’s your Songs folder." lede={getFolderSummary({ songCount: totalSongCount, groupCount: props.playerGroups.length })} />
+      <div className="sv-sync-row sv-sync-connect-path">
         <Icon name="folder" size={18} />
         <span className="sv-sync-mono sv-sync-strong">{props.songsFolderPath}</span>
       </div>
@@ -49,7 +47,7 @@ export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement
         </li>
       </ul>
       {props.playerGroups.length > 0 && <Note iconName="lock">Already have a group like <b className="sv-sync-strong">Pop</b>? Ours is named <b className="sv-sync-strong">{CLASH_PREFIX}Pop</b>, so the two never mix.</Note>}
-      <div className="sv-sync-row sv-sync-space-between sv-sync-wrap">
+      <div className="sv-sync-row sv-sync-wrap sv-sync-connect-actions">
         <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--large" type="button" onClick={props.onChooseAnotherFolder}>Choose another folder</button>
         <button className="sv-sync-button sv-sync-button--go sv-sync-button--large" type="button" onClick={props.onContinue}>Continue<Icon name="chevron" strokeWidth={2.6} /></button>
       </div>
