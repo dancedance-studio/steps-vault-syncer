@@ -27,7 +27,7 @@ describe('addon views', () => {
 });
 
 describe('song source tabs', () => {
-  const LINK_INPUT = { id: 'link', kind: 'link', label: 'Video link', placeholder: null, sites: ['clips.example.com', 'clip.example'] } as const;
+  const LINK_INPUT = { id: 'link', kind: 'link', label: 'Clip link', placeholder: null, sites: ['clips.example', 'media.example.org'] } as const;
   const SEARCH_INPUT = { id: 'search', kind: 'search', label: 'Title', placeholder: null } as const;
   const SONG_SCOUT: AddonManifest = { ...MANIFEST, id: 'song.scout', name: 'Song Scout', provides: ['song-source'], options: [], inputs: [SEARCH_INPUT] };
   const OPEN_AUDIO_LINKS: AddonManifest = { ...MANIFEST, id: 'open.audio-links', name: 'Open Audio Links', provides: ['audio-links', 'video-links', 'song-source'], options: [], inputs: [LINK_INPUT] };

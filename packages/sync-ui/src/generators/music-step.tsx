@@ -175,8 +175,8 @@ type SearchState =
   | { kind: 'not-answering' };
 
 /**
- * An addon's tab: its fields, checked here before anything is sent; then the songs it found, one to check ("Is this
- * the song?") and use. A link field names the sites it takes, and a link from any other site never reaches the addon.
+ * An addon's tab: its fields, checked here before anything is sent; then the songs it found (one goes straight to
+ * "Is this the song?", several are a list to pick from) to check and use. A link field names the sites it takes, and a link from any other site never reaches the addon.
  */
 function SongSourceTab({ tab, onPickMusic, onUseMusic, onFindSong, onStopFindingSong }: MusicStepProps & { tab: SongSourceTabView }): ReactElement {
   const [valuesByInputId, setValuesByInputId] = useState<Record<string, string>>({});
@@ -216,6 +216,16 @@ function SongSourceTab({ tab, onPickMusic, onUseMusic, onFindSong, onStopFinding
     if (onUseMusic) onUseMusic(music);
     else onPickMusic(music);
   };
+  // With one song found there is nothing else to pick, so the player goes back to change what they typed.
+  const pickAnother = (foundSearch: Extract<SearchState, { kind: 'found' }>): void => {
+    if (foundSearch.musics.length > 1) {
+      setSearch({ ...foundSearch, checkedMusic: null });
+      return;
+    }
+    setSearch({ kind: 'idle' });
+    const firstInput = tab.inputs[0];
+    if (firstInput) fieldsByInputId.current.get(firstInput.id)?.focus();
+  };
   const tryAgainButton = <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => void findSong()}>Try again</button>;
   return (
     <form className="sv-sync-stack-small" onSubmit={handleSubmit} noValidate>
@@ -233,14 +243,14 @@ function SongSourceTab({ tab, onPickMusic, onUseMusic, onFindSong, onStopFinding
       {search.kind === 'asking'
         ? <div className="sv-sync-row sv-sync-wrap" aria-live="polite"><ReceptorLoader label={`Asking ${tab.name}…`} isSmall /><button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onStopFindingSong}>Stop</button></div>
         : <button className="sv-sync-button sv-sync-align-start" type="submit"><Icon name="search" />Find the song</button>}
-      {search.kind === 'not-found' && <MissLine action={tryAgainButton}>{tab.name} didn’t find this song.{search.addonMessage !== '' && <> <span className="sv-sync-muted">{search.addonMessage}</span></>}</MissLine>}
+      {search.kind === 'not-found' && <MissLine action={tryAgainButton}>{tab.name} didn’t find this song.{search.addonMessage === '' ? '' : ` ${search.addonMessage}`}</MissLine>}
       {search.kind === 'not-answering' && <MissLine action={tryAgainButton}>{tab.name} isn’t answering.</MissLine>}
       {search.kind === 'found' && search.checkedMusic === null && (
         <div className="sv-sync-pick-list" role="radiogroup" aria-label="Music found">
           {search.musics.map((music) => <MusicChoiceRow key={music.musicId} music={music} isPicked={false} onPick={(picked) => { setSearch({ ...search, checkedMusic: picked }); }} />)}
         </div>
       )}
-      {search.kind === 'found' && search.checkedMusic && <SongCheck music={search.checkedMusic} onUse={confirmMusic} onPickAnother={() => { setSearch({ ...search, checkedMusic: null }); }} />}
+      {search.kind === 'found' && search.checkedMusic && <SongCheck music={search.checkedMusic} onUse={confirmMusic} onPickAnother={() => { pickAnother(search); }} />}
     </form>
   );
 }
@@ -296,7 +306,7 @@ function getFirstInputProblemOrNull({ inputs, valuesByInputId }: { inputs: reado
 }
 
 function getSearchState(result: SongSourceSearchResult): SearchState {
-  if (result.kind === 'found') return { kind: 'found', musics: result.musics, checkedMusic: null };
+  if (result.kind === 'found') return { kind: 'found', musics: result.musics, checkedMusic: result.musics.length === 1 ? (result.musics[0] ?? null) : null };
   if (result.kind === 'not-found') return { kind: 'not-found', addonMessage: result.message };
   if (result.kind === 'not-answering') return { kind: 'not-answering' };
   return { kind: 'idle' };
