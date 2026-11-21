@@ -2,8 +2,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildInstalledAddon, scanMusicLibrary, type AddonManifest, type GeneratorManifest, type HttpClient, type HttpResponse } from '@stepsvault/sync-core';
-import { MakeSongMusic, type MakeSongMusicPorts } from './make-song-music';
+import { buildInstalledAddon, MAX_LINK_AUDIO_BYTES, scanMusicLibrary, type AddonManifest, type GeneratorManifest, type HttpClient, type HttpResponse } from '@stepsvault/sync-core';
+import { MakeSongMusic, SiteMusicLimitError, type MakeSongMusicPorts } from './make-song-music';
 import { MusicSourceRegistry } from './music-source-registry';
 import { NodeMusicLibrary } from './node-music-library';
 
@@ -11,6 +11,19 @@ const MANIFEST: GeneratorManifest = { protocol: 1, kind: 'generator', id: 'stepc
 const SONG_SOURCE: AddonManifest = { protocol: 1, kind: 'addon', id: 'clip.songs', name: 'Clip Songs', version: '0.2.0', author: '@noa', description: '', provides: ['song-source'], options: [], inputs: [{ id: 'link', kind: 'link', label: 'Clip link', placeholder: null, sites: ['clips.example', 'media.example.org'] }] };
 
 const OPEN_AUDIO_LINKS: AddonManifest = { protocol: 1, kind: 'addon', id: 'open.audio-links', name: 'Open Audio Links', version: '1.0.0', author: '@noa', description: '', provides: ['audio-links', 'video-links', 'song-source'], options: [], inputs: [{ id: 'link', kind: 'link', label: 'Clip link', placeholder: null, sites: ['clips.example', 'media.example.org'] }] };
+const NIGHT_DRIVE_ANSWER = { status: 200, body: { song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 221, youtubeId: 'Vid3o1d-x_Z' }, links: [{ kind: 'file-url', url: 'https://files.example.org/night-drive.ogg', label: 'Music', fileName: 'night-drive.ogg' }, { kind: 'file-url', media: 'video', url: 'https://files.example.org/night-drive.mp4', label: 'Video', fileName: null }] } };
+
+function answerWith(answer: HttpResponse<unknown>): HttpClient {
+  return { requestJson: () => Promise.resolve(answer), requestText: () => Promise.reject(new Error('Not used.')), requestBytes: () => Promise.reject(new Error('Not used.')) };
+}
+
+/** Finds the one song the addon answers with, through the link tab's own call, and gives its musicId. */
+async function findOneSong(makeSongMusic: MakeSongMusic): Promise<string> {
+  const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7802', manifest: OPEN_AUDIO_LINKS, consentedAt: '' });
+  const result = await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://clips.example/v/night-drive' } });
+  if (result.kind !== 'found') throw new Error(`Expected a song, got ${result.kind}.`);
+  return result.musics[0]?.musicId ?? '';
+}
 
 let workFolder: string;
 let jobFolder: string;
@@ -33,6 +46,7 @@ function buildMakeSongMusic(overrides: Partial<MakeSongMusicPorts> = {}): { make
     musicSources,
     measureLength: () => Promise.resolve(200.6),
     convertToWav: () => Promise.resolve(new Uint8Array([82, 73, 70, 70])),
+    convertToMonoWav: () => Promise.resolve(new Uint8Array([82, 73, 70, 70, 49])),
     downloadFile: async ({ url, filePath }) => { downloads.push(url); await writeFile(filePath, url.endsWith('.mp4') ? 'video' : 'OggS'); },
     waitMilliseconds: () => Promise.resolve(),
     ...overrides,
@@ -155,6 +169,39 @@ describe('MakeSongMusic', () => {
     const { makeSongMusic } = buildMakeSongMusic({ httpClient, waitMilliseconds: () => { waitCount += 1; if (waitCount === 2) makeSongMusic.stopFindingSong(); return Promise.resolve(); } });
     const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7802', manifest: OPEN_AUDIO_LINKS, consentedAt: '' });
     expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://media.example.org/watch?v=abc123' } })).toEqual({ kind: 'stopped' });
+  });
+
+  it('gets only the music of a found song for the website, as it is when the site takes its type', async () => {
+    const { makeSongMusic, musicSources, downloads } = buildMakeSongMusic({ httpClient: answerWith(NIGHT_DRIVE_ANSWER) });
+    const musicId = await findOneSong(makeSongMusic);
+    const audio = await makeSongMusic.prepareMusicForSite({ musicId, folder: jobFolder });
+    expect(audio.contentType).toBe('audio/ogg');
+    expect(musicSources.getSource(audio.sourceId)?.filePath).toBe(path.join(jobFolder, 'source-music.ogg'));
+    expect(downloads).toEqual(['https://files.example.org/night-drive.ogg']);
+  });
+
+  it('sends music the site doesn’t take as WAV, in mono when stereo is over 30 MB, and refuses music that still doesn’t fit', async () => {
+    const tooBig = new Uint8Array(MAX_LINK_AUDIO_BYTES + 1);
+    const writeFlac = async ({ filePath }: { filePath: string }): Promise<void> => { await writeFile(filePath, 'fLaC'); };
+    const stereo = buildMakeSongMusic({ httpClient: answerWith(NIGHT_DRIVE_ANSWER), downloadFile: writeFlac });
+    const stereoAudio = await stereo.makeSongMusic.prepareMusicForSite({ musicId: await findOneSong(stereo.makeSongMusic), folder: jobFolder });
+    expect(stereoAudio.contentType).toBe('audio/wav');
+    expect(await readFile(stereo.musicSources.getSource(stereoAudio.sourceId)?.filePath ?? '', 'utf8')).toBe('RIFF');
+    const mono = buildMakeSongMusic({ httpClient: answerWith(NIGHT_DRIVE_ANSWER), downloadFile: writeFlac, convertToWav: () => Promise.resolve(tooBig) });
+    const monoAudio = await mono.makeSongMusic.prepareMusicForSite({ musicId: await findOneSong(mono.makeSongMusic), folder: jobFolder });
+    expect(await readFile(mono.musicSources.getSource(monoAudio.sourceId)?.filePath ?? '', 'utf8')).toBe('RIFF1');
+    const neither = buildMakeSongMusic({ httpClient: answerWith(NIGHT_DRIVE_ANSWER), downloadFile: writeFlac, convertToWav: () => Promise.resolve(tooBig), convertToMonoWav: () => Promise.resolve(tooBig) });
+    await expect(neither.makeSongMusic.prepareMusicForSite({ musicId: await findOneSong(neither.makeSongMusic), folder: jobFolder })).rejects.toThrow(new SiteMusicLimitError('The music is over 30 MB, even as a WAV file.'));
+  });
+
+  it('refuses music over 8 minutes for the website, measuring it when the addon didn’t say how long it is', async () => {
+    const longSong = buildMakeSongMusic({ httpClient: answerWith({ ...NIGHT_DRIVE_ANSWER, body: { ...NIGHT_DRIVE_ANSWER.body, song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 481 } } }) });
+    await expect(longSong.makeSongMusic.prepareMusicForSite({ musicId: await findOneSong(longSong.makeSongMusic), folder: jobFolder })).rejects.toThrow(new SiteMusicLimitError('It’s longer than 8 minutes.'));
+    const unknownLength = { ...NIGHT_DRIVE_ANSWER, body: { ...NIGHT_DRIVE_ANSWER.body, song: { title: 'Night Drive', artist: 'Lumen Park' } } };
+    const measuredLong = buildMakeSongMusic({ httpClient: answerWith(unknownLength), measureLength: () => Promise.resolve(600) });
+    await expect(measuredLong.makeSongMusic.prepareMusicForSite({ musicId: await findOneSong(measuredLong.makeSongMusic), folder: jobFolder })).rejects.toThrow(SiteMusicLimitError);
+    const measuredShort = buildMakeSongMusic({ httpClient: answerWith(unknownLength), measureLength: () => Promise.resolve(221) });
+    expect((await measuredShort.makeSongMusic.prepareMusicForSite({ musicId: await findOneSong(measuredShort.makeSongMusic), folder: jobFolder })).contentType).toBe('audio/ogg');
   });
 
   it('never asks a link addon about a link from a site it doesn’t list', async () => {

@@ -31,9 +31,16 @@ export class AudioBridge implements PictureMaker {
   }
 
   async convertToWav(bytes: Uint8Array): Promise<Uint8Array> {
-    const result = await this.runJob({ kind: 'convert-to-wav', bytes });
+    const result = await this.runJob({ kind: 'convert-to-wav', bytes, maxChannelCount: 2 });
     if (result.kind === 'convert-to-wav') return result.bytes;
     throw new Error(result.kind === 'failed' ? result.message : 'The music could not be converted for StepMania.');
+  }
+
+  /** Half the size of convertToWav's file, for music that must fit a size limit (a website link song's 30 MB). */
+  async convertToMonoWav(bytes: Uint8Array): Promise<Uint8Array> {
+    const result = await this.runJob({ kind: 'convert-to-wav', bytes, maxChannelCount: 1 });
+    if (result.kind === 'convert-to-wav') return result.bytes;
+    throw new Error(result.kind === 'failed' ? result.message : 'The music could not be converted.');
   }
 
   /** The song's length in seconds, as Chromium decodes it. */

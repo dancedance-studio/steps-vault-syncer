@@ -175,7 +175,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     this.reportsFolder = path.join(options.dataFolder, 'generated-song-reports');
     this.makeSongMusic = new MakeSongMusic({
       httpClient: this.serviceClient, musicSources: this.musicSources, waitMilliseconds: delay,
-      measureLength: (bytes) => options.audioBridge.measureLength(bytes), convertToWav: (bytes) => options.audioBridge.convertToWav(bytes), downloadFile: (download) => this.jobFiles.downloadFile(download),
+      measureLength: (bytes) => options.audioBridge.measureLength(bytes), convertToWav: (bytes) => options.audioBridge.convertToWav(bytes), convertToMonoWav: (bytes) => options.audioBridge.convertToMonoWav(bytes),
+      downloadFile: (download) => this.jobFiles.downloadFile(download),
     });
     this.generatorSettings = new GeneratorSettings({
       httpClient: this.serviceClient, starter: this.starter, siteUrl: options.siteUrl, getDeviceToken: () => this.deviceToken, getTokenBalance: () => this.tokenBalance, getSettings: () => this.settings, saveSettings: (settings) => this.saveSettings(settings),

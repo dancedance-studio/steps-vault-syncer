@@ -3,11 +3,14 @@ import { readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   getFileNameFacts,
+  getLinkAudioContentTypeOrNull,
   getMusicFileFacts,
   getSongSourceInputValues,
   InvalidSongSourceInputError,
   MAX_GENERATOR_MUSIC_BYTES,
   MAX_GENERATOR_VIDEO_BYTES,
+  MAX_LINK_AUDIO_BYTES,
+  MAX_LINK_AUDIO_SECONDS,
   searchMusicIndex,
   waitForSongSource,
   type GeneratorManifest,
@@ -15,8 +18,10 @@ import {
   type GeneratorUploadFile,
   type HttpClient,
   type InstalledAddon,
+  type LinkJobAudio,
   type MusicIndex,
   type SongMusicSource,
+  type SongSourceChoice,
   type SongSourceFileLink,
   type SongSourceSong,
 } from '@stepsvault/sync-core';
@@ -42,8 +47,34 @@ export interface MakeSongMusicPorts {
   musicSources: MusicSourceRegistry;
   measureLength(bytes: Uint8Array): Promise<number>;
   convertToWav(bytes: Uint8Array): Promise<Uint8Array>;
+  /** Half convertToWav's size, for music that must fit the website's 30 MB. */
+  convertToMonoWav(bytes: Uint8Array): Promise<Uint8Array>;
   downloadFile(options: { url: string; filePath: string; maxBytes: number }): Promise<void>;
   waitMilliseconds(milliseconds: number): Promise<void>;
+}
+
+/** A song a song source found, kept as a choice to make later by its musicId: nothing is downloaded yet. */
+export interface FoundSongChoice extends SongSourceChoice {
+  musicId: string;
+}
+
+export type FoundSongChoices = { kind: 'found'; source: SongMusicSource; choices: FoundSongChoice[] } | Exclude<SongSourceSearchResult, { kind: 'found' }>;
+
+/** How to ask a song source: the link tab and the website's link jobs each wait and stop in their own way. */
+export interface FindSongChoicesOptions {
+  addon: InstalledAddon;
+  valuesByInputId: Readonly<Record<string, string>>;
+  httpClient: HttpClient;
+  waitSeconds: (seconds: number) => Promise<void>;
+  shouldStop: () => boolean;
+}
+
+/** Music that can't fit what the website takes for a link song. The message is a short sentence for the player. */
+export class SiteMusicLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SiteMusicLimitError';
+  }
 }
 
 /** The music of a song to make, ready to send: the right type for the generator, its length measured. */
@@ -89,13 +120,28 @@ export class MakeSongMusic {
     });
   }
 
-  /** Asks a song source for the song the player described, as long as it keeps working on it or until stopped. Each song it found becomes a choice; nothing is downloaded until one is made. */
+  /** The link tab: asks a song source for the song the player described, until it answers or the player stops it. */
   async findSong({ addon, valuesByInputId }: { addon: InstalledAddon; valuesByInputId: Readonly<Record<string, string>> }): Promise<SongSourceSearchResult> {
     this.isSongSearchStopped = false;
+    const found = await this.findSongChoices({ addon, valuesByInputId, httpClient: this.ports.httpClient, waitSeconds: (seconds) => this.waitUnlessStopped(seconds), shouldStop: () => this.isSongSearchStopped });
+    if (found.kind !== 'found') return found;
+    return { kind: 'found', musics: found.choices.map((choice) => buildFoundMusicView({ choice, source: found.source })) };
+  }
+
+  stopFindingSong(): void {
+    this.isSongSearchStopped = true;
+  }
+
+  /**
+   * Asks a song source for the song the player described, as long as it keeps working on it or until stopped. Each song
+   * it found becomes a choice; nothing is downloaded until one is made. The link tab and the website's link jobs share
+   * it: every field is checked before the addon is asked, so a link from a site the addon doesn't list never reaches it.
+   */
+  async findSongChoices({ addon, valuesByInputId, httpClient, waitSeconds, shouldStop }: FindSongChoicesOptions): Promise<FoundSongChoices> {
     try {
       const source = buildSongMusicSource({ addon, valuesByInputId });
-      const result = await waitForSongSource({ httpClient: this.ports.httpClient, addon, valuesByInputId, waitSeconds: (seconds) => this.waitUnlessStopped(seconds), shouldStop: () => this.isSongSearchStopped });
-      if (result.kind === 'found') return { kind: 'found', musics: result.choices.map((choice) => this.addSongSourceChoice({ source, ...choice })) };
+      const result = await waitForSongSource({ httpClient, addon, valuesByInputId, waitSeconds, shouldStop });
+      if (result.kind === 'found') return { kind: 'found', source, choices: result.choices.map((choice) => this.addSongSourceChoice({ source, choice })) };
       if (result.kind === 'not-found') return { kind: 'not-found', message: result.addonError };
       return result;
     } catch (error) {
@@ -104,8 +150,26 @@ export class MakeSongMusic {
     }
   }
 
-  stopFindingSong(): void {
-    this.isSongSearchStopped = true;
+  /** A found song that will never be made (its find is forgotten). */
+  forgetMusic(musicId: string): void {
+    this.choicesById.delete(musicId);
+  }
+
+  /**
+   * A found song's music as the website takes it for a link song: ogg, mp3, m4a or wav as it is; any other file, or one
+   * over 30 MB, as WAV, in mono when stereo is still too big (WAV is the one format Sync can write). Only the music is
+   * downloaded, never the video. Throws SiteMusicLimitError for music that can't fit.
+   */
+  async prepareMusicForSite({ musicId, folder }: { musicId: string; folder: string }): Promise<LinkJobAudio> {
+    const choice = this.choicesById.get(musicId);
+    if (choice?.kind !== 'song-source') throw new Error('Sync no longer has the song you picked. Find it again.');
+    const musicPath = await this.downloadSongSourceMusic({ choice, folder });
+    const musicBytes = new Uint8Array(await readFile(musicPath));
+    const lengthSeconds = choice.song.lengthSeconds ?? (await this.ports.measureLength(musicBytes));
+    if (lengthSeconds > MAX_LINK_AUDIO_SECONDS) throw new SiteMusicLimitError('It’s longer than 8 minutes.');
+    const contentType = getLinkAudioContentTypeOrNull(musicBytes);
+    if (contentType !== null && musicBytes.byteLength <= MAX_LINK_AUDIO_BYTES) return { sourceId: this.ports.musicSources.register(musicPath), contentType };
+    return this.convertMusicForSite({ musicBytes, folder });
   }
 
   /** Gets the music ready for this generator, into the job's folder when it must be downloaded or converted. */
@@ -130,21 +194,37 @@ export class MakeSongMusic {
     return { musicId, title, artist, sourceText, lengthText: null, hasVideo: false };
   }
 
-  private addSongSourceChoice({ source, song, musicLink, videoLink }: { source: SongMusicSource; song: SongSourceSong; musicLink: SongSourceFileLink; videoLink: SongSourceFileLink | null }): MusicChoiceView {
+  private addSongSourceChoice({ source, choice }: { source: SongMusicSource; choice: SongSourceChoice }): FoundSongChoice {
     const musicId = `found:${randomUUID()}`;
-    this.choicesById.set(musicId, { kind: 'song-source', source, song, musicLink, videoLink });
-    return { musicId, title: song.title, artist: song.artist, sourceText: `From ${source.addonName}`, lengthText: song.lengthSeconds === null ? null : formatLength(song.lengthSeconds), hasVideo: videoLink !== null };
+    this.choicesById.set(musicId, { kind: 'song-source', source, ...choice });
+    return { ...choice, musicId };
   }
 
   /** Song-source files are trusted without a sound check (addons.md): there is nothing to compare a new song with. */
   private async downloadSongSourceFiles({ choice, jobFolder }: { choice: Extract<MusicChoice, { kind: 'song-source' }>; jobFolder: string }): Promise<{ musicPath: string; videoPath: string | null }> {
-    const musicPath = path.join(jobFolder, `source-music.${getLinkExtension({ link: choice.musicLink, knownExtensions: KNOWN_MUSIC_EXTENSIONS, fallback: 'ogg' })}`);
-    await this.ports.downloadFile({ url: choice.musicLink.url, filePath: musicPath, maxBytes: MAX_GENERATOR_MUSIC_BYTES });
+    const musicPath = await this.downloadSongSourceMusic({ choice, folder: jobFolder });
     if (!choice.videoLink) return { musicPath, videoPath: null };
     const videoPath = path.join(jobFolder, `source-video.${getLinkExtension({ link: choice.videoLink, knownExtensions: KNOWN_VIDEO_EXTENSIONS, fallback: 'mp4' })}`);
     // The video is an extra: the song is still made without it.
     const isVideoDownloaded = await this.ports.downloadFile({ url: choice.videoLink.url, filePath: videoPath, maxBytes: MAX_GENERATOR_VIDEO_BYTES }).then(() => true, () => false);
     return { musicPath, videoPath: isVideoDownloaded ? videoPath : null };
+  }
+
+  private async downloadSongSourceMusic({ choice, folder }: { choice: Extract<MusicChoice, { kind: 'song-source' }>; folder: string }): Promise<string> {
+    const musicPath = path.join(folder, `source-music.${getLinkExtension({ link: choice.musicLink, knownExtensions: KNOWN_MUSIC_EXTENSIONS, fallback: 'ogg' })}`);
+    await this.ports.downloadFile({ url: choice.musicLink.url, filePath: musicPath, maxBytes: MAX_GENERATOR_MUSIC_BYTES });
+    return musicPath;
+  }
+
+  private async convertMusicForSite({ musicBytes, folder }: { musicBytes: Uint8Array; folder: string }): Promise<LinkJobAudio> {
+    for (const convert of [(bytes: Uint8Array) => this.ports.convertToWav(bytes), (bytes: Uint8Array) => this.ports.convertToMonoWav(bytes)]) {
+      const wavBytes = await convert(musicBytes);
+      if (wavBytes.byteLength > MAX_LINK_AUDIO_BYTES) continue;
+      const wavPath = path.join(folder, 'site-music.wav');
+      await writeFile(wavPath, wavBytes);
+      return { sourceId: this.ports.musicSources.register(wavPath), contentType: 'audio/wav' };
+    }
+    throw new SiteMusicLimitError('The music is over 30 MB, even as a WAV file.');
   }
 
   /**
@@ -180,6 +260,11 @@ function buildSongMusicSource({ addon, valuesByInputId }: { addon: InstalledAddo
   const inputValues = getSongSourceInputValues({ inputs: addon.manifest.inputs, valuesByInputId });
   const linkInput = addon.manifest.inputs.find((input) => input.kind === 'link' && inputValues[input.id] !== undefined);
   return { addonId: addon.manifest.id, addonName: addon.manifest.name, link: linkInput ? (inputValues[linkInput.id] ?? null) : null };
+}
+
+function buildFoundMusicView({ choice, source }: { choice: FoundSongChoice; source: SongMusicSource }): MusicChoiceView {
+  const { song } = choice;
+  return { musicId: choice.musicId, title: song.title, artist: song.artist, sourceText: `From ${source.addonName}`, lengthText: song.lengthSeconds === null ? null : formatLength(song.lengthSeconds), hasVideo: choice.videoLink !== null };
 }
 
 function buildSongFacts({ choice, lengthSeconds }: { choice: MusicChoice; lengthSeconds: number }): GeneratorSongFacts {
