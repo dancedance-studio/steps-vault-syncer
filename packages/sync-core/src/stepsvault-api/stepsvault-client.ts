@@ -2,12 +2,17 @@ import type { AddonSongFacts } from '../addons/addon-protocol';
 import type { AudioFingerprint } from '../audio-matching/audio-match';
 import { ENVELOPE_RATE_HERTZ } from '../audio-matching/onset-envelope';
 import { PARTY_FOLDER_PREFIX } from '../layout/party-folder-names';
-import type { HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
+import { LINK_JOB_WAIT_MILLISECONDS, parseLinkJobOrNull, parseLinkJobState, type LinkJob, type LinkJobAnswer, type LinkJobAudio, type LinkJobDelivery, type LinkJobsApi, type LinkJobState, type SyncPresence } from '../link-jobs/link-job-protocol';
+import type { FileUploadHttpClient, HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
 import type { SongFiles, VaultFiles } from '../writing/song-writer';
 import type { ComputerSongReport } from './computer-songs';
 import { SignedOutError, StepsVaultApiError, type DeviceCode, type DeviceDescription, type DeviceSignInPoll, type SyncAccount, type SyncPartyList, type VaultSongDetails } from './stepsvault-api-types';
 
 const TIMEOUT_MILLISECONDS = 30_000;
+// The site answers the long poll within LINK_JOB_WAIT_MILLISECONDS; the margin covers a slow network on the way back.
+const NEXT_LINK_JOB_MARGIN_MILLISECONDS = 10_000;
+// 30 MB over a slow upload, well inside the site's 10 minutes for the audio to arrive.
+const LINK_AUDIO_UPLOAD_TIMEOUT_MILLISECONDS = 5 * 60_000;
 const MAX_JSON_BYTES = 4 * 1024 * 1024;
 const MAX_SSC_BYTES = 4 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -19,17 +24,20 @@ const DEFAULT_IMAGE_KINDS = ['banner', 'background', 'jacket'];
 
 /**
  * The StepsVault API as Sync uses it. The desktop app passes its device token; the website passes none and its
- * HttpClient sends the player's session cookie instead.
+ * HttpClient sends the player's session cookie instead. Link jobs are the app's only: it alone uploads files, through
+ * fileUploadClient.
  */
-export class StepsVaultClient implements VaultFiles {
+export class StepsVaultClient implements VaultFiles, LinkJobsApi {
   private readonly httpClient: HttpClient;
+  private readonly fileUploadClient: FileUploadHttpClient | null;
   private readonly siteApiUrl: string;
   private readonly apiUrl: string;
   private readonly deviceToken: string | null;
   private readonly imageKindsBySongId = new Map<string, string[]>();
 
-  constructor({ httpClient, siteUrl, deviceToken }: { httpClient: HttpClient; siteUrl: string; deviceToken: string | null }) {
+  constructor({ httpClient, fileUploadClient = null, siteUrl, deviceToken }: { httpClient: HttpClient; fileUploadClient?: FileUploadHttpClient | null; siteUrl: string; deviceToken: string | null }) {
     this.httpClient = httpClient;
+    this.fileUploadClient = fileUploadClient;
     this.siteApiUrl = `${siteUrl.replace(/\/+$/, '')}/api`;
     this.apiUrl = `${this.siteApiUrl}/sync`;
     this.deviceToken = deviceToken;
@@ -109,6 +117,42 @@ export class StepsVaultClient implements VaultFiles {
     assertOk(response);
   }
 
+  /** This computer is online, with the link addons that are on. Only the app reports. */
+  async reportPresence(presence: SyncPresence): Promise<void> {
+    const response = await this.httpClient.requestText(this.buildRequest({ path: '/presence', method: 'POST', jsonBody: presence, maxResponseBytes: MAX_JSON_BYTES }));
+    assertOk(readJsonAnswer(response));
+  }
+
+  /** Waits on the site for the next link job, up to LINK_JOB_WAIT_MILLISECONDS; null when none came. */
+  async fetchNextLinkJob(): Promise<LinkJob | null> {
+    const request = this.buildRequest({ path: `/link-jobs/next?waitMs=${String(LINK_JOB_WAIT_MILLISECONDS)}`, maxResponseBytes: MAX_JSON_BYTES });
+    const response = await this.httpClient.requestJson({ ...request, timeoutMilliseconds: LINK_JOB_WAIT_MILLISECONDS + NEXT_LINK_JOB_MARGIN_MILLISECONDS });
+    if (response.status === 204) return null;
+    assertOk(response);
+    return parseLinkJobOrNull(response.body);
+  }
+
+  /** Whether the job is still open. A job the site no longer knows has ended. */
+  async fetchLinkJobState(jobId: string): Promise<LinkJobState> {
+    const response = await this.httpClient.requestJson(this.buildRequest({ path: buildLinkJobPath(jobId), maxResponseBytes: MAX_JSON_BYTES }));
+    if (response.status === 404 || response.status === 410) return 'expired';
+    assertOk(response);
+    return parseLinkJobState(response.body);
+  }
+
+  async answerLinkJob({ jobId, answer }: { jobId: string; answer: LinkJobAnswer }): Promise<LinkJobDelivery> {
+    const response = await this.httpClient.requestText(this.buildRequest({ path: `${buildLinkJobPath(jobId)}/answer`, method: 'POST', jsonBody: answer, maxResponseBytes: MAX_JSON_BYTES }));
+    return getLinkJobDelivery(readJsonAnswer(response));
+  }
+
+  /** The link song's audio as the whole body: the only file Sync ever sends the site. */
+  async uploadLinkJobAudio({ jobId, audio }: { jobId: string; audio: LinkJobAudio }): Promise<LinkJobDelivery> {
+    if (!this.fileUploadClient) throw new Error('This Sync can’t send files. Use the dancedance.studio Sync app on your computer.');
+    const { url, headers } = this.buildRequest({ path: `${buildLinkJobPath(jobId)}/audio`, maxResponseBytes: MAX_JSON_BYTES });
+    const response = await this.fileUploadClient.requestTextWithFileBody({ url, method: 'PUT', headers, sourceId: audio.sourceId, contentType: audio.contentType, timeoutMilliseconds: LINK_AUDIO_UPLOAD_TIMEOUT_MILLISECONDS, maxResponseBytes: MAX_JSON_BYTES });
+    return getLinkJobDelivery(readJsonAnswer(response));
+  }
+
   private async fetchImage({ songPath, kind }: { songPath: string; kind: string }): Promise<Uint8Array> {
     const response = await this.httpClient.requestBytes(this.buildRequest({ path: `${songPath}/images/${encodeURIComponent(kind)}`, maxResponseBytes: MAX_IMAGE_BYTES }));
     assertOk(response);
@@ -157,6 +201,22 @@ function assertOk(response: HttpResponse<unknown>): void {
   if (response.status >= 200 && response.status < 300) return;
   const message = getErrorSentenceOrNull(response.body);
   throw new StepsVaultApiError({ status: response.status, message: message ?? `dancedance.studio answered with an error (${String(response.status)}). Try again in a minute.` });
+}
+
+function buildLinkJobPath(jobId: string): string {
+  return `/link-jobs/${encodeURIComponent(jobId)}`;
+}
+
+/** 410: the job ended before the answer or the audio came, and the site keeps none of it. */
+function getLinkJobDelivery(response: HttpResponse<unknown>): LinkJobDelivery {
+  if (response.status === 410) return 'late';
+  assertOk(response);
+  return 'delivered';
+}
+
+/** For routes where only the status matters: an answer that isn't JSON doesn't make them fail. */
+function readJsonAnswer(response: HttpResponse<string>): HttpResponse<unknown> {
+  return { status: response.status, body: parseJsonOrNull(response.body) };
 }
 
 /** The site's own sentence, sent as `error` (newer routes) or `message`. */

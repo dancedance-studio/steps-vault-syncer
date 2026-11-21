@@ -59,3 +59,23 @@ export interface MultipartHttpRequest {
 export interface MultipartHttpClient {
   requestJsonWithFiles(request: MultipartHttpRequest): Promise<HttpResponse<unknown>>;
 }
+
+/** A request whose whole body is one file, such as a link song's audio for the website. */
+export interface FileUploadHttpRequest {
+  url: string;
+  method: 'PUT';
+  headers?: Readonly<Record<string, string>>;
+  /** The file the platform reads by its sourceId (see MusicFile) and streams. */
+  sourceId: string;
+  contentType: string;
+  timeoutMilliseconds: number;
+  maxResponseBytes: number;
+}
+
+/**
+ * Sends one file as the whole body and reads the answer as text, with the same failure rules as
+ * HttpClient.requestText. A separate port, like MultipartHttpClient, so the website doesn't have to implement it.
+ */
+export interface FileUploadHttpClient {
+  requestTextWithFileBody(request: FileUploadHttpRequest): Promise<HttpResponse<string>>;
+}
