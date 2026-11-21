@@ -1,5 +1,5 @@
 import { getCheckedSongSourceInputValue, InvalidSongSourceInputError, type SongSourceInput } from '@stepsvault/sync-core';
-import { useEffect, useState, type SubmitEvent, type KeyboardEvent, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type SubmitEvent, type KeyboardEvent, type ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
 import { MissLine } from '../shared/miss-line';
@@ -32,20 +32,31 @@ export interface MusicStepProps extends MusicSources {
 /** "Get music from": the player's files, their music folders, and one tab per song source. */
 export function MusicTabs(props: MusicStepProps): ReactElement {
   const tabs = [{ tabId: MY_FILES_TAB_ID, label: 'My files' }, { tabId: MUSIC_FOLDERS_TAB_ID, label: 'My music folders' }, ...props.songSourceTabs.map((tab) => ({ tabId: `addon-${tab.addonId}`, label: tab.name }))];
-  const [selectedTabId, setSelectedTabId] = useState(props.preselectedSong ? MUSIC_FOLDERS_TAB_ID : MY_FILES_TAB_ID);
+  const [chosenTabId, setChosenTabId] = useState(props.preselectedSong ? MUSIC_FOLDERS_TAB_ID : MY_FILES_TAB_ID);
+  const tabListRef = useRef<HTMLDivElement>(null);
+  // An addon turned off or removed while its tab is open takes its tab away: My files shows instead, quietly.
+  const isChosenTabShown = tabs.some((tab) => tab.tabId === chosenTabId);
+  const selectedTabId = isChosenTabShown ? chosenTabId : MY_FILES_TAB_ID;
+  useEffect(() => {
+    if (isChosenTabShown) return;
+    setChosenTabId(MY_FILES_TAB_ID);
+    if (document.activeElement === null || document.activeElement === document.body) focusTab({ tabList: tabListRef.current, index: 0 });
+  }, [isChosenTabShown]);
   const songSourceTab = props.songSourceTabs.find((tab) => `addon-${tab.addonId}` === selectedTabId);
   const moveSelection = (event: KeyboardEvent<HTMLDivElement>): void => {
-    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-    if (step === 0) return;
-    const index = tabs.findIndex((tab) => tab.tabId === selectedTabId);
-    setSelectedTabId(tabs[(index + step + tabs.length) % tabs.length]?.tabId ?? MY_FILES_TAB_ID);
+    const index = getNextTabIndex({ key: event.key, index: tabs.findIndex((tab) => tab.tabId === selectedTabId), tabCount: tabs.length });
+    const nextTab = index === null ? undefined : tabs[index];
+    if (index === null || !nextTab) return;
+    event.preventDefault();
+    setChosenTabId(nextTab.tabId);
+    focusTab({ tabList: tabListRef.current, index });
   };
   return (
     <div className="sv-sync-stack-small">
       <span className="sv-sync-visually-hidden" id="sv-sync-music-tabs-label">Where the music comes from</span>
-      <div className="sv-sync-tabs sv-sync-music-tabs" role="tablist" aria-labelledby="sv-sync-music-tabs-label" onKeyDown={moveSelection}>
+      <div ref={tabListRef} className="sv-sync-tabs sv-sync-music-tabs" role="tablist" aria-labelledby="sv-sync-music-tabs-label" onKeyDown={moveSelection}>
         {tabs.map((tab) => (
-          <button key={tab.tabId} id={`sv-sync-tab-${tab.tabId}`} type="button" role="tab" aria-selected={tab.tabId === selectedTabId} aria-controls="sv-sync-music-tab-panel" tabIndex={tab.tabId === selectedTabId ? 0 : -1} onClick={() => { setSelectedTabId(tab.tabId); }}>
+          <button key={tab.tabId} id={`sv-sync-tab-${tab.tabId}`} type="button" role="tab" aria-selected={tab.tabId === selectedTabId} aria-controls="sv-sync-music-tab-panel" tabIndex={tab.tabId === selectedTabId ? 0 : -1} onClick={() => { setChosenTabId(tab.tabId); }}>
             {tab.label}
           </button>
         ))}
@@ -57,6 +68,19 @@ export function MusicTabs(props: MusicStepProps): ReactElement {
       </div>
     </div>
   );
+}
+
+/** Arrow keys go round the tabs; Home and End go to the first and the last. Null for any other key. */
+function getNextTabIndex({ key, index, tabCount }: { key: string; index: number; tabCount: number }): number | null {
+  if (key === 'ArrowRight') return (index + 1) % tabCount;
+  if (key === 'ArrowLeft') return (index - 1 + tabCount) % tabCount;
+  if (key === 'Home') return 0;
+  if (key === 'End') return tabCount - 1;
+  return null;
+}
+
+function focusTab({ tabList, index }: { tabList: HTMLDivElement | null; index: number }): void {
+  tabList?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index]?.focus();
 }
 
 /** One music the player can pick; the picked one is marked. */
@@ -152,6 +176,9 @@ function SongSourceTab({ tab, pickedMusic, onPickMusic, onUseMusic, onFindSong, 
   const [valuesByInputId, setValuesByInputId] = useState<Record<string, string>>({});
   const [problemsByInputId, setProblemsByInputId] = useState<Record<string, string>>({});
   const [search, setSearch] = useState<SearchState>({ kind: 'idle' });
+  const isAskingRef = useRef(false);
+  // Leaving the tab (another tab, Cancel, or the addon turned off) stops a question still waiting for its answer.
+  useEffect(() => () => { if (isAskingRef.current) onStopFindingSong(); }, []);
   const changeValue = ({ input, value }: { input: SongSourceInput; value: string }): void => {
     setValuesByInputId((current) => ({ ...current, [input.id]: value }));
     setProblemsByInputId((current) => ({ ...current, [input.id]: value.trim() === '' ? '' : (getInputProblemOrNull({ input, value }) ?? '') }));
@@ -163,7 +190,9 @@ function SongSourceTab({ tab, pickedMusic, onPickMusic, onUseMusic, onFindSong, 
       return;
     }
     setSearch({ kind: 'asking' });
+    isAskingRef.current = true;
     const result = await onFindSong({ addonId: tab.addonId, valuesByInputId }).catch((): SongSourceSearchResult => ({ kind: 'not-answering', message: `${tab.name} isn’t answering. Try again in a few minutes.` }));
+    isAskingRef.current = false;
     setSearch(getSearchState(result));
     if (result.kind === 'invalid-input') setProblemsByInputId({ [result.inputId]: result.message });
     const onlyMusic = result.kind === 'found' && result.musics.length === 1 ? result.musics[0] : undefined;

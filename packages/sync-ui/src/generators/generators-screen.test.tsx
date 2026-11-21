@@ -10,8 +10,8 @@ import { WebsiteGeneratorsScreen } from './website-generators-screen';
 
 const PICKED_FILE = { musicId: 'picked-file', title: 'my new song', artist: 'Unknown artist', sourceText: 'my_new_song.mp3', lengthText: '3:05', hasVideo: false };
 
-function renderGenerators(overrides: Partial<GeneratorsScreenProps> = {}): GeneratorsScreenProps {
-  const props: GeneratorsScreenProps = {
+function buildGeneratorsProps(overrides: Partial<GeneratorsScreenProps> = {}): GeneratorsScreenProps {
+  return {
     stepsVaultGenerator: FAKE_STEPSVAULT_GENERATOR, generators: FAKE_GENERATORS, jobs: [], generatedSongs: FAKE_GENERATED_SONGS, canUseStartCommand: true, songSourceTabs: FAKE_SONG_SOURCE_TABS,
     onLookUpGenerator: vi.fn(() => Promise.resolve<GeneratorLookupResult>({ kind: 'found', generator: FAKE_GENERATOR_PREVIEW })), onAddGenerator: vi.fn(), onRemoveGenerator: vi.fn(), onSetGeneratorOption: vi.fn(),
     onChooseMusicFile: vi.fn(() => Promise.resolve(PICKED_FILE)), onSearchMusic: vi.fn(() => Promise.resolve(FAKE_MUSIC_CHOICES)),
@@ -19,6 +19,10 @@ function renderGenerators(overrides: Partial<GeneratorsScreenProps> = {}): Gener
     onStopFindingSong: vi.fn(), onMakeSong: vi.fn(() => Promise.resolve<MakeSongResult>({ kind: 'started', jobKey: 'job-1' })), onCancelJob: vi.fn(), onAnswerVaultChoice: vi.fn(), onDismissJob: vi.fn(), onFetchSongReport: vi.fn(() => Promise.resolve('Made with onsets.')),
     ...overrides,
   };
+}
+
+function renderGenerators(overrides: Partial<GeneratorsScreenProps> = {}): GeneratorsScreenProps {
+  const props = buildGeneratorsProps(overrides);
   render(<GeneratorsScreen {...props} />);
   return props;
 }
@@ -240,6 +244,50 @@ describe('GeneratorsScreen', () => {
     const setupDialog = await goToSetupStep();
     await settle(() => { fireEvent.click(within(setupDialog).getByRole('button', { name: 'Make the steps · 1 token' })); });
     expect(screen.getByRole('dialog', { name: 'Your song is ready' }).textContent).toContain('Added to the library.');
+  });
+});
+
+describe('Make a song’s music tabs', () => {
+  const OPEN_AUDIO_LINKS_TAB = { addonId: 'open.audio-links', name: 'Open Audio Links', inputs: [{ id: 'link', kind: 'link', label: 'Video link', placeholder: 'https://clips.example.com/watch?v=', sites: ['clips.example.com', 'clip.example'] }] } as const;
+  const SONG_SCOUT_TAB = { addonId: 'song.scout', name: 'Song Scout', inputs: [{ id: 'title', kind: 'search', label: 'Title', placeholder: null }] } as const;
+
+  it('are real tabs: the arrow keys, Home and End move the selection and the focus', () => {
+    renderGenerators({ songSourceTabs: [OPEN_AUDIO_LINKS_TAB, SONG_SCOUT_TAB] });
+    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['My files', 'My music folders', 'Open Audio Links', 'Song Scout']);
+    const myFiles = screen.getByRole('tab', { name: 'My files' });
+    myFiles.focus();
+    fireEvent.keyDown(myFiles, { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'My music folders' }));
+    expect(screen.getByRole('tab', { name: 'My music folders' }).getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(document.activeElement as Element, { key: 'End' });
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Song Scout' }));
+    fireEvent.keyDown(document.activeElement as Element, { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(myFiles);
+    fireEvent.keyDown(myFiles, { key: 'ArrowLeft' });
+    expect(screen.getByRole('tab', { name: 'Song Scout' }).getAttribute('aria-selected')).toBe('true');
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Home' });
+    expect(myFiles.getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tabpanel').getAttribute('aria-labelledby')).toBe(myFiles.id);
+  });
+
+  it('switch to My files, quietly, when the link addon is turned off while its tab is open, and stop asking it', async () => {
+    const props = buildGeneratorsProps({ songSourceTabs: [OPEN_AUDIO_LINKS_TAB], onFindSong: vi.fn(() => new Promise<SongSourceSearchResult>(() => undefined)) });
+    const { rerender } = render(<GeneratorsScreen {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Open Audio Links' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Video link' }), { target: { value: 'https://clip.example/n1ght' } });
+    await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
+    screen.getByRole('button', { name: 'Stop' }).focus();
+    rerender(<GeneratorsScreen {...props} songSourceTabs={[]} />);
+    expect(screen.queryByRole('tab', { name: 'Open Audio Links' })).toBeNull();
+    expect(screen.getByRole('tab', { name: 'My files' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Choose a file…' })).toBeDefined();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(props.onStopFindingSong).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'My files' }));
+    rerender(<GeneratorsScreen {...props} />);
+    expect(screen.getByRole('tab', { name: 'My files' }).getAttribute('aria-selected')).toBe('true');
   });
 });
 
