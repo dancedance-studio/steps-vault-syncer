@@ -22,7 +22,7 @@ describe('bridge handlers', () => {
     await handlers.makeSong({ musicId: 'file:neon', generatorId: 'stepcat.tap-forge', difficulties: ['Easy'], hasAgreedToMusicUpload: false, preselectionKey: 'link-1' });
     await handlers.dismissPreselectedSong('link-1');
     await handlers.answerVaultChoice({ jobKey: 'job-1', choice: 'keep-vault-song' });
-    await handlers.findSongWithSource({ addonId: 'tube.songs', valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } });
+    await handlers.findSongWithSource({ addonId: 'clip.songs', valuesByInputId: { link: 'https://clips.example/watch?v=abc123' } });
     expect(calls).toEqual([
       ['runSongAction', { vaultSongId: 'song_7', action: 'choose-audio' }],
       ['setLayout', 'by-genre'],
@@ -34,7 +34,7 @@ describe('bridge handlers', () => {
       ['makeSong', { musicId: 'file:neon', generatorId: 'stepcat.tap-forge', difficulties: ['Easy'], hasAgreedToMusicUpload: false, preselectionKey: 'link-1' }],
       ['dismissPreselectedSong', 'link-1'],
       ['answerVaultChoice', { jobKey: 'job-1', choice: 'keep-vault-song' }],
-      ['findSongWithSource', { addonId: 'tube.songs', valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } }],
+      ['findSongWithSource', { addonId: 'clip.songs', valuesByInputId: { link: 'https://clips.example/watch?v=abc123' } }],
     ]);
   });
 
@@ -57,7 +57,7 @@ describe('bridge handlers', () => {
     ['makeSong', { musicId: 'file:abc', generatorId: 'x', difficulties: ['Easy'], hasAgreedToMusicUpload: false, preselectionKey: { wantedRequestId: 'wanted_7' } }],
     ['dismissPreselectedSong', 42],
     ['answerVaultChoice', { jobKey: 'job-1', choice: 'keep-both' }],
-    ['findSongWithSource', { addonId: 'tube.songs', valuesByInputId: { a: '1', b: '2', c: '3', d: '4' } }],
+    ['findSongWithSource', { addonId: 'clip.songs', valuesByInputId: { a: '1', b: '2', c: '3', d: '4' } }],
     ['installGenerator', { address: 'https://gen.example.org', name: 'G', version: '1', author: 'a', description: '', location: { kind: 'moon' }, difficulties: [], options: [], startCommand: null }],
   ] as const)('refuses %s with %j before it reaches the controller', async (methodName, argument) => {
     const { controller, calls } = buildRecordingController();

@@ -29,8 +29,8 @@ describe('song views', () => {
   });
 
   it('names the addon a song’s audio came from', () => {
-    const rows = buildSongRows(buildInput({ audioResultsBySongId: new Map([['b', { match: { kind: 'matched', sourceId: 'file:x', shiftSeconds: 0 }, addonMessages: [], pageLinks: [] }]]), addonNamesBySourceId: new Map([['file:x', 'YouTube audio (personal)']]) }));
-    expect(rows[1]?.audioSource).toEqual({ kind: 'addon', addonName: 'YouTube audio (personal)' });
+    const rows = buildSongRows(buildInput({ audioResultsBySongId: new Map([['b', { match: { kind: 'matched', sourceId: 'file:x', shiftSeconds: 0 }, addonMessages: [], pageLinks: [] }]]), addonNamesBySourceId: new Map([['file:x', 'Open Audio Links']]) }));
+    expect(rows[1]?.audioSource).toEqual({ kind: 'addon', addonName: 'Open Audio Links' });
   });
 
   it('describes the timing shift and where the song lives', () => {

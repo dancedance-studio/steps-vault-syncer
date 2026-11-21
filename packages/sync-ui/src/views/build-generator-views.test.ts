@@ -9,8 +9,8 @@ const GENERATOR_MANIFEST: GeneratorManifest = {
   options: [{ id: 'jumps', label: 'Jumps', kind: 'choice', choices: [{ value: 'few', label: 'Few' }, { value: 'many', label: 'Many' }], default: 'few' }],
 };
 const SONG_SOURCE_MANIFEST: AddonManifest = {
-  protocol: 1, kind: 'addon', id: 'tube.songs', name: 'Tube Songs', version: '0.2.0', author: '@noa', description: '', provides: ['song-source'], options: [],
-  inputs: [{ id: 'link', kind: 'link', label: 'YouTube link', placeholder: null, sites: ['youtube.com'] }],
+  protocol: 1, kind: 'addon', id: 'clip.songs', name: 'Clip Songs', version: '0.2.0', author: '@noa', description: '', provides: ['song-source'], options: [],
+  inputs: [{ id: 'link', kind: 'link', label: 'Clip link', placeholder: null, sites: ['clips.example'] }],
 };
 const JOB: SavedGeneratorJob = {
   jobKey: 'job-1', generatorBaseUrl: 'http://127.0.0.1:7700', generatorId: 'stepcat.tap-forge', generatorName: 'Tap Forge', generatorVersion: '1.2.0', isStepsVault: false, jobId: 'a1', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null },
@@ -88,6 +88,6 @@ describe('song-source addon views', () => {
 
   it('gives each song source that is on a tab, drawn from its inputs', () => {
     const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7801', manifest: SONG_SOURCE_MANIFEST, consentedAt: '' });
-    expect(buildSongSourceTabs([addon, { ...addon, isEnabled: false }])).toEqual([{ addonId: 'tube.songs', name: 'Tube Songs', inputs: SONG_SOURCE_MANIFEST.inputs }]);
+    expect(buildSongSourceTabs([addon, { ...addon, isEnabled: false }])).toEqual([{ addonId: 'clip.songs', name: 'Clip Songs', inputs: SONG_SOURCE_MANIFEST.inputs }]);
   });
 });

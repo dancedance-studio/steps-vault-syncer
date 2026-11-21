@@ -15,7 +15,7 @@ function buildGeneratorsProps(overrides: Partial<GeneratorsScreenProps> = {}): G
     stepsVaultGenerator: FAKE_STEPSVAULT_GENERATOR, generators: FAKE_GENERATORS, jobs: [], generatedSongs: FAKE_GENERATED_SONGS, canUseStartCommand: true, songSourceTabs: FAKE_SONG_SOURCE_TABS,
     onLookUpGenerator: vi.fn(() => Promise.resolve<GeneratorLookupResult>({ kind: 'found', generator: FAKE_GENERATOR_PREVIEW })), onAddGenerator: vi.fn(), onRemoveGenerator: vi.fn(), onSetGeneratorOption: vi.fn(),
     onChooseMusicFile: vi.fn(() => Promise.resolve(PICKED_FILE)), onSearchMusic: vi.fn(() => Promise.resolve(FAKE_MUSIC_CHOICES)),
-    onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'found', musics: [{ musicId: 'found', title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Tube Songs', lengthText: '4:02', hasVideo: true }] })),
+    onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'found', musics: [{ musicId: 'found', title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Clip Songs', lengthText: '4:02', hasVideo: true }] })),
     onStopFindingSong: vi.fn(), onMakeSong: vi.fn(() => Promise.resolve<MakeSongResult>({ kind: 'started', jobKey: 'job-1' })), onCancelJob: vi.fn(), onAnswerVaultChoice: vi.fn(), onDismissJob: vi.fn(), onFetchSongReport: vi.fn(() => Promise.resolve('Made with onsets.')),
     ...overrides,
   };
@@ -171,20 +171,20 @@ describe('GeneratorsScreen', () => {
   it('draws a song source’s tab from its inputs, goes straight to “Is this the song?” for one song, and Pick another goes back to the field', async () => {
     const props = renderGenerators();
     fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
-    fireEvent.click(screen.getByRole('tab', { name: 'Tube Songs' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Clip Songs' }));
     expect(screen.getByRole('searchbox', { name: 'Or search' })).toBeDefined();
-    fireEvent.change(screen.getByRole('textbox', { name: 'YouTube link' }), { target: { value: 'https://youtu.be/dQw4w9WgXcQ' } });
-    expect(screen.getByText('Tube Songs sees what you type.')).toBeDefined();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Clip link' }), { target: { value: 'https://clips.example/watch?v=abc123' } });
+    expect(screen.getByText('Clip Songs sees what you type.')).toBeDefined();
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
-    expect(props.onFindSong).toHaveBeenCalledWith({ addonId: 'tube-songs', valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } });
+    expect(props.onFindSong).toHaveBeenCalledWith({ addonId: 'clip-songs', valuesByInputId: { link: 'https://clips.example/watch?v=abc123' } });
     expect(screen.queryByRole('radiogroup', { name: 'Music found' })).toBeNull();
     expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Low Tide · Marla Quinn');
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
     fireEvent.click(screen.getByRole('button', { name: 'Pick another' }));
-    const linkField = screen.getByRole('textbox', { name: 'YouTube link' });
+    const linkField = screen.getByRole('textbox', { name: 'Clip link' });
     expect(screen.queryByRole('group', { name: 'Is this the song?' })).toBeNull();
     expect(screen.queryByRole('radiogroup', { name: 'Music found' })).toBeNull();
-    expect(linkField).toHaveProperty('value', 'https://youtu.be/dQw4w9WgXcQ');
+    expect(linkField).toHaveProperty('value', 'https://clips.example/watch?v=abc123');
     expect(document.activeElement).toBe(linkField);
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
     fireEvent.click(screen.getByRole('button', { name: 'Yes, use it' }));
@@ -194,8 +194,8 @@ describe('GeneratorsScreen', () => {
   it('lets the player pick one of the songs a song source found, check it, or pick another', async () => {
     renderGenerators({ onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'found', musics: FAKE_FOUND_MUSICS })) });
     fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
-    fireEvent.click(screen.getByRole('tab', { name: 'Tube Songs' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'YouTube link' }), { target: { value: 'https://youtu.be/dQw4w9WgXcQ' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Clip Songs' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Clip link' }), { target: { value: 'https://clips.example/watch?v=abc123' } });
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
     const found = screen.getByRole('radiogroup', { name: 'Music found' });
     expect(within(found).getAllByRole('radio')).toHaveLength(3);
@@ -209,9 +209,9 @@ describe('GeneratorsScreen', () => {
   it('shows the song source’s own sentence when it finds nothing, under the field it names when the input is refused', async () => {
     renderGenerators({ onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'invalid-input', inputId: 'search', message: 'Make it shorter: at most 200 characters.' })) });
     fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
-    fireEvent.click(screen.getByRole('tab', { name: 'Tube Songs' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Clip Songs' }));
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
-    expect(screen.getByRole('alert').textContent).toBe('Paste a link from youtube.com or youtu.be.');
+    expect(screen.getByRole('alert').textContent).toBe('Paste a link from clips.example or media.example.org.');
     fireEvent.change(screen.getByRole('searchbox', { name: 'Or search' }), { target: { value: 'low tide' } });
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
     expect(screen.getByRole('searchbox', { name: 'Or search' }).getAttribute('aria-invalid')).toBe('true');

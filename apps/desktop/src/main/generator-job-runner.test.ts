@@ -184,7 +184,7 @@ describe('GeneratorJobRunner', () => {
     expect(requestPart?.kind === 'json' ? requestPart.value : null).toMatchObject({ song: { title: 'Night Drive', youtubeId: 'Vid3o1d-x_Z' } });
     expect(sentParts.some((part) => part.kind === 'file' && part.fileName === 'source-video.mp4')).toBe(true);
     expect(app.savedJobs[0]?.source).toEqual(source);
-    expect(getGeneratedSongs(app.record)[0]).toMatchObject({ songKey: 'youtube:Vid3o1d-x_Z', source });
+    expect(getGeneratedSongs(app.record)[0]).toMatchObject({ song: { youtubeId: 'Vid3o1d-x_Z' }, source });
   });
 
   it('keeps no source for music from the player’s own files', async () => {

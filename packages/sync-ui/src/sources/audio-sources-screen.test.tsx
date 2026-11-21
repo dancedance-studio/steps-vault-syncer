@@ -148,7 +148,7 @@ describe('AudioSourcesScreen', () => {
 describe('song-source addons and programs on this computer', () => {
   it('labels an addon that only brings new songs, since it is never asked for audio', () => {
     renderAudioSources();
-    expect(screen.getByRole('article', { name: 'Tube Songs' }).textContent).toContain('Not an audio source');
+    expect(screen.getByRole('article', { name: 'Clip Songs' }).textContent).toContain('Not an audio source');
   });
 
   it('says a song source also sees what the player types', async () => {
@@ -160,15 +160,15 @@ describe('song-source addons and programs on this computer', () => {
   });
 
   it('offers a start command only in the desktop app, for an addon on this computer', async () => {
-    const onLookUpAddon = vi.fn(() => Promise.resolve<AddonLookupResult>({ kind: 'found', addon: { ...FAKE_ADDON_PREVIEW, startCommand: 'C:/addons/tube/start.cmd' } }));
+    const onLookUpAddon = vi.fn(() => Promise.resolve<AddonLookupResult>({ kind: 'found', addon: { ...FAKE_ADDON_PREVIEW, startCommand: 'C:/addons/my-addon/start.cmd' } }));
     render(<AddAddonDialog onLookUpAddon={onLookUpAddon} canUseStartCommand onInstall={vi.fn()} onClose={vi.fn()} />);
     const addressField = screen.getByRole('textbox', { name: 'Addon address' });
     expect(screen.queryByRole('textbox', { name: 'Start command' })).toBeNull();
     fireEvent.change(addressField, { target: { value: 'http://127.0.0.1:7801' } });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Start command' }), { target: { value: 'C:/addons/tube/start.cmd' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Start command' }), { target: { value: 'C:/addons/my-addon/start.cmd' } });
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Continue' })); await Promise.resolve(); });
-    expect(onLookUpAddon).toHaveBeenCalledWith({ address: 'http://127.0.0.1:7801', startCommand: 'C:/addons/tube/start.cmd' });
-    expect(screen.getByRole('dialog').textContent).toContain('Sync starts it when needed with C:/addons/tube/start.cmd');
+    expect(onLookUpAddon).toHaveBeenCalledWith({ address: 'http://127.0.0.1:7801', startCommand: 'C:/addons/my-addon/start.cmd' });
+    expect(screen.getByRole('dialog').textContent).toContain('Sync starts it when needed with C:/addons/my-addon/start.cmd');
   });
 });
 

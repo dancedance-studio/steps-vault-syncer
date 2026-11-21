@@ -278,7 +278,7 @@ export interface MusicChoiceView {
   musicId: string;
   title: string;
   artist: string;
-  /** Where it comes from, for example the file's folder, or "From YouTube Songs". */
+  /** Where it comes from, for example the file's folder, or "From Song Scout". */
   sourceText: string;
   /** For example "3:21"; null when not known. */
   lengthText: string | null;

@@ -122,15 +122,15 @@ In the manifest:
 
 ```json
 "inputs": [
-  { "id": "link", "kind": "link", "label": "YouTube link", "placeholder": "https://youtu.be/…",
-    "sites": ["youtube.com", "youtu.be"] }
+  { "id": "link", "kind": "link", "label": "Clip link", "placeholder": "https://clips.example/watch?v=…",
+    "sites": ["clips.example", "media.example.org"] }
 ]
 ```
 
 - 1 to 3 inputs. `id`: as for option ids. `label`: up to 40 characters. `placeholder` (optional): up to 80.
 - `kind`: `link` (a web address; Sync accepts only `https` links, up to 2000 characters, on the listed `sites` or
   their subdomains) or `search` (free text, up to 200 characters, such as a title or an artist).
-- `sites`: 1 to 10 domain names such as `youtube.com` (not bare `com`, not an IP address). An input with a broken site
+- `sites`: 1 to 10 domain names such as `clips.example` (not bare `com`, not an IP address). An input with a broken site
   list is left out; an addon whose inputs are all left out is refused.
 - The player fills in at least one input; empty ones are left out of the request, and every filled one is checked
   before Sync calls the addon. The addon sees what the player typed, and Sync's consent screen says so.
@@ -142,7 +142,7 @@ In the manifest:
 ### `POST <address>/song-source`
 
 ```json
-{ "protocol": 1, "inputs": { "link": "https://youtu.be/dQw4w9WgXcQ" }, "options": { "media": "audio-and-video" } }
+{ "protocol": 1, "inputs": { "link": "https://clips.example/watch?v=abc123" }, "options": { "media": "audio-and-video" } }
 ```
 
 Answers:
@@ -202,7 +202,7 @@ function sendJson(response, status, value) {
 ## A program on the player's computer
 
 An addon or generator at `http://127.0.0.1:<port>` or `http://localhost:<port>` is a program the player runs. In the
-desktop app the player can give its **start command** when adding it (for example `C:/addons/youtube/start.cmd`):
+desktop app the player can give its **start command** when adding it (for example `C:/addons/my-addon/start.cmd`):
 Sync then starts the program when it needs it, waits for its manifest, and stops it after 10 minutes without a request.
 Sync only ever runs the command the player typed, never one an addon or generator suggests, and asks the player to
 allow it in the app's own dialog before running it for the first time. It runs through the system's shell, in the

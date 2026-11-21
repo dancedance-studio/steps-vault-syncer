@@ -159,7 +159,7 @@ describe('StepsVaultClient', () => {
 describe('reportComputerSongs', () => {
   it('posts the whole list with the device token to /api/computer-songs', async () => {
     const api = new RecordedApi({ 'POST https://stepsvault.com/api/computer-songs': { status: 200, body: { recordedSongCount: 1 } } });
-    const song = { localId: 'youtube:abc', title: 'Low Tide', artistName: 'Marla Quinn', generatorName: 'Groove Lab', difficulties: ['Easy', 'Hard'], madeAt: '2026-10-24T10:00:00.000Z' };
+    const song = { localId: 'song:low tide', title: 'Low Tide', artistName: 'Marla Quinn', generatorName: 'Groove Lab', difficulties: ['Easy', 'Hard'], madeAt: '2026-10-24T10:00:00.000Z' };
     await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).reportComputerSongs([song]);
     expect(api.requests[0]).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer device-token' }, jsonBody: { songs: [song] } });
   });
@@ -184,7 +184,7 @@ describe('buildComputerSongReports', () => {
 });
 
 describe('buildAddonSongFacts', () => {
-  it('passes only the facts addons may see, with the YouTube link built from the id', () => {
+  it('passes only the facts addons may see, with the video link built from the id', () => {
     expect(buildAddonSongFacts(VAULT_SONG)).toEqual({ title: '桜ドライブ', artist: 'Rei Hoshino', album: null, genre: 'J-Pop', lengthSeconds: 212, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' });
   });
 });

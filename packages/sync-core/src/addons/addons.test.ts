@@ -206,14 +206,14 @@ describe('addon kind', () => {
   });
 });
 
-const YOUTUBE_LINK_INPUT: SongSourceInput = { id: 'link', kind: 'link', label: 'YouTube link', placeholder: 'https://youtu.be/…', sites: ['youtube.com', 'youtu.be'] };
+const CLIP_LINK_INPUT: SongSourceInput = { id: 'link', kind: 'link', label: 'Clip link', placeholder: 'https://clips.example/watch?v=…', sites: ['clips.example', 'media.example.org'] };
 const SEARCH_INPUT: SongSourceInput = { id: 'search', kind: 'search', label: 'Title or artist', placeholder: null };
-const SONG_SOURCE_MANIFEST = { protocol: 1, kind: 'addon', id: 'tube.source', name: 'Tube Source', version: '1.0.0', author: 'hyperpad', description: 'Songs from video links.', provides: ['song-source'], inputs: [YOUTUBE_LINK_INPUT] };
-const SONG_SOURCE_ADDON = buildInstalledAddon({ baseUrl: 'https://tube.example.org', manifest: parseAddonManifest(SONG_SOURCE_MANIFEST), consentedAt: '2026-10-25T10:00:00Z' });
-const FOUND_SONG = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, youtubeId: 'dQw4w9WgXcQ' };
-const MUSIC_LINK = { kind: 'file-url', media: 'audio', url: 'https://files.tube.example.org/a.ogg', label: 'Music', fileName: 'a.ogg' };
-const VIDEO_LINK = { kind: 'file-url', media: 'video', url: 'https://files.tube.example.org/v.mp4', label: 'Video', fileName: 'v.mp4' };
-const PLAYER_LINK = { link: 'https://youtu.be/dQw4w9WgXcQ' };
+const SONG_SOURCE_MANIFEST = { protocol: 1, kind: 'addon', id: 'clip.source', name: 'Clip Source', version: '1.0.0', author: 'hyperpad', description: 'Songs from video links.', provides: ['song-source'], inputs: [CLIP_LINK_INPUT] };
+const SONG_SOURCE_ADDON = buildInstalledAddon({ baseUrl: 'https://clips-addon.example.org', manifest: parseAddonManifest(SONG_SOURCE_MANIFEST), consentedAt: '2026-10-25T10:00:00Z' });
+const FOUND_SONG = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, youtubeId: 'Vid3o1d-x_Z' };
+const MUSIC_LINK = { kind: 'file-url', media: 'audio', url: 'https://files.clips-addon.example.org/a.ogg', label: 'Music', fileName: 'a.ogg' };
+const VIDEO_LINK = { kind: 'file-url', media: 'video', url: 'https://files.clips-addon.example.org/v.mp4', label: 'Video', fileName: 'v.mp4' };
+const PLAYER_LINK = { link: 'https://clips.example/watch?v=abc123' };
 
 function getInputProblem({ input, value }: { input: SongSourceInput; value: string }): string | null {
   try {
@@ -227,15 +227,15 @@ function getInputProblem({ input, value }: { input: SongSourceInput; value: stri
 
 describe('song source manifests', () => {
   it('reads a song source with its inputs, and gives other addons no inputs', () => {
-    const manifest = parseAddonManifest({ ...SONG_SOURCE_MANIFEST, provides: ['song-source', 'audio-links'], inputs: [{ ...YOUTUBE_LINK_INPUT, sites: ['YouTube.com', 'youtu.be'] }, SEARCH_INPUT] });
+    const manifest = parseAddonManifest({ ...SONG_SOURCE_MANIFEST, provides: ['song-source', 'audio-links'], inputs: [{ ...CLIP_LINK_INPUT, sites: ['Clips.Example', 'media.example.org'] }, SEARCH_INPUT] });
     expect(manifest.provides).toEqual(['audio-links', 'song-source']);
-    expect(manifest.inputs).toEqual([YOUTUBE_LINK_INPUT, SEARCH_INPUT]);
+    expect(manifest.inputs).toEqual([CLIP_LINK_INPUT, SEARCH_INPUT]);
     expect(parseAddonManifest({ ...MANIFEST, inputs: [SEARCH_INPUT] }).inputs).toEqual([]);
   });
 
   it('accepts a song source that provides nothing else, and loads it again from saved settings', () => {
     expect(parseAddonManifest(SONG_SOURCE_MANIFEST).provides).toEqual(['song-source']);
-    expect(loadSavedAddon(JSON.parse(JSON.stringify(SONG_SOURCE_ADDON)))?.manifest.inputs).toEqual([YOUTUBE_LINK_INPUT]);
+    expect(loadSavedAddon(JSON.parse(JSON.stringify(SONG_SOURCE_ADDON)))?.manifest.inputs).toEqual([CLIP_LINK_INPUT]);
   });
 
   it('drops broken inputs without refusing the addon', () => {
@@ -244,10 +244,10 @@ describe('song source manifests', () => {
       { ...SEARCH_INPUT, id: 'Bad Id' },
       { ...SEARCH_INPUT, id: 'no-label', label: '  ' },
       { ...SEARCH_INPUT, id: 'free-form', kind: 'textarea' },
-      { ...YOUTUBE_LINK_INPUT, id: 'no-sites', sites: [] },
-      { ...YOUTUBE_LINK_INPUT, id: 'too-many-sites', sites: Array.from({ length: 11 }, (_, index) => `site${String(index)}.example.org`) },
-      { ...YOUTUBE_LINK_INPUT, id: 'every-com-site', sites: ['com'] },
-      { ...YOUTUBE_LINK_INPUT, id: 'address-as-site', sites: ['127.0.0.1'] },
+      { ...CLIP_LINK_INPUT, id: 'no-sites', sites: [] },
+      { ...CLIP_LINK_INPUT, id: 'too-many-sites', sites: Array.from({ length: 11 }, (_, index) => `site${String(index)}.example.org`) },
+      { ...CLIP_LINK_INPUT, id: 'every-com-site', sites: ['com'] },
+      { ...CLIP_LINK_INPUT, id: 'address-as-site', sites: ['127.0.0.1'] },
       { ...SEARCH_INPUT, label: 'A second input with the same id' },
       { ...SEARCH_INPUT, id: 'long-texts', label: 'L'.repeat(50), placeholder: 'P'.repeat(100) },
     ];
@@ -270,29 +270,29 @@ describe('song source manifests', () => {
 
 describe('song source inputs', () => {
   it.each([
-    'https://youtu.be/dQw4w9WgXcQ',
-    'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
-    '  https://YOUTUBE.com/watch?v=dQw4w9WgXcQ  ',
+    'https://clips.example/watch?v=abc123',
+    'https://www.clips.example/watch?v=abc123',
+    'https://media.example.org/watch?v=abc123',
+    '  https://CLIPS.example/watch?v=abc123  ',
   ])('accepts %s, on a listed site or a subdomain of one', (link) => {
-    expect(getInputProblem({ input: YOUTUBE_LINK_INPUT, value: link })).toBeNull();
+    expect(getInputProblem({ input: CLIP_LINK_INPUT, value: link })).toBeNull();
   });
 
   it.each([
-    ['https://evil-youtube.com/watch?v=dQw4w9WgXcQ', 'That site isn’t allowed here. Use a youtube.com or youtu.be link.'],
-    ['https://youtube.com.evil.example/watch', 'That site isn’t allowed here. Use a youtube.com or youtu.be link.'],
-    ['https://vimeo.com/123', 'That site isn’t allowed here. Use a youtube.com or youtu.be link.'],
-    ['http://youtu.be/dQw4w9WgXcQ', 'Paste a link that starts with https://'],
-    ['https://player:secret@youtu.be/dQw4w9WgXcQ', 'without a user name or password'],
-    ['youtu.be/dQw4w9WgXcQ', 'doesn’t look like a link'],
-    [`https://youtu.be/${'a'.repeat(2001)}`, 'doesn’t look like a link'],
-    ['   ', 'Paste a link from youtube.com or youtu.be.'],
+    ['https://evil-clips.example/watch?v=abc123', 'That site isn’t allowed here. Use a clips.example or media.example.org link.'],
+    ['https://clips.example.evil.example/watch', 'That site isn’t allowed here. Use a clips.example or media.example.org link.'],
+    ['https://other.example.net/123', 'That site isn’t allowed here. Use a clips.example or media.example.org link.'],
+    ['http://clips.example/watch?v=abc123', 'Paste a link that starts with https://'],
+    ['https://player:secret@clips.example/watch?v=abc123', 'without a user name or password'],
+    ['clips.example/watch?v=abc123', 'doesn’t look like a link'],
+    [`https://clips.example/${'a'.repeat(2001)}`, 'doesn’t look like a link'],
+    ['   ', 'Paste a link from clips.example or media.example.org.'],
   ])('refuses %s with a sentence for the field', (link, message) => {
-    expect(getInputProblem({ input: YOUTUBE_LINK_INPUT, value: link })).toContain(message);
+    expect(getInputProblem({ input: CLIP_LINK_INPUT, value: link })).toContain(message);
   });
 
   it('names a link field’s sites in a sentence, for the hint and the error', () => {
-    const input: SongSourceInput = { ...YOUTUBE_LINK_INPUT, sites: ['example.com', 'clips.example', 'media.example.org'] };
+    const input: SongSourceInput = { ...CLIP_LINK_INPUT, sites: ['example.com', 'clips.example', 'media.example.org'] };
     expect(getLinkSitesText({ sites: input.sites, joinWord: 'and' })).toBe('example.com, clips.example and media.example.org');
     expect(getLinkSitesText({ sites: ['clips.example'], joinWord: 'or' })).toBe('clips.example');
     expect(getInputProblem({ input, value: 'https://other.example.net/song' })).toBe('That site isn’t allowed here. Use an example.com, clips.example or media.example.org link.');
@@ -305,19 +305,19 @@ describe('song source inputs', () => {
   });
 
   it('leaves out empty fields, needs at least one, and names the field with a problem', () => {
-    const inputs = [YOUTUBE_LINK_INPUT, SEARCH_INPUT];
+    const inputs = [CLIP_LINK_INPUT, SEARCH_INPUT];
     expect(getSongSourceInputValues({ inputs, valuesByInputId: { link: ' ', search: 'Pulse Garden', unknown: 'never sent' } })).toEqual({ search: 'Pulse Garden' });
     expect(() => getSongSourceInputValues({ inputs, valuesByInputId: {} })).toThrow(expect.objectContaining({ inputId: 'link' }) as Error);
-    expect(() => getSongSourceInputValues({ inputs, valuesByInputId: { link: 'http://youtu.be/x', search: 'Pulse Garden' } })).toThrow(expect.objectContaining({ inputId: 'link', name: 'InvalidSongSourceInputError' }) as Error);
+    expect(() => getSongSourceInputValues({ inputs, valuesByInputId: { link: 'http://clips.example/x', search: 'Pulse Garden' } })).toThrow(expect.objectContaining({ inputId: 'link', name: 'InvalidSongSourceInputError' }) as Error);
   });
 });
 
 describe('fetchSongSource', () => {
   it('sends only the checked inputs, and reads the found song and its files', async () => {
-    const links = [VIDEO_LINK, { ...MUSIC_LINK, url: 'http://files.tube.example.org/a.ogg' }, MUSIC_LINK, { kind: 'open-page', url: 'https://tube.example.org', label: 'Page' }];
+    const links = [VIDEO_LINK, { ...MUSIC_LINK, url: 'http://files.clips-addon.example.org/a.ogg' }, MUSIC_LINK, { kind: 'open-page', url: 'https://clips-addon.example.org', label: 'Page' }];
     const httpClient = new RecordedHttpClient([{ status: 200, body: { song: { ...FOUND_SONG, extra: 'ignored' }, links } }]);
-    const result = await fetchSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: { link: ' https://youtu.be/dQw4w9WgXcQ ', other: 'never sent' } });
-    expect(httpClient.requests[0]).toMatchObject({ url: 'https://tube.example.org/song-source', method: 'POST', timeoutMilliseconds: 20_000, maxResponseBytes: 65_536 });
+    const result = await fetchSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: { link: ' https://clips.example/watch?v=abc123 ', other: 'never sent' } });
+    expect(httpClient.requests[0]).toMatchObject({ url: 'https://clips-addon.example.org/song-source', method: 'POST', timeoutMilliseconds: 20_000, maxResponseBytes: 65_536 });
     expect(httpClient.requests[0]?.jsonBody).toEqual({ protocol: 1, inputs: PLAYER_LINK });
     expect(result).toEqual({ kind: 'found', choices: [{ song: FOUND_SONG, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK }] });
   });
@@ -330,7 +330,7 @@ describe('fetchSongSource', () => {
 
   it('sends the options, and drops the video when the player chose music only', async () => {
     const manifest: AddonManifest = { ...SONG_SOURCE_ADDON.manifest, provides: ['video-links', 'song-source'], options: [MEDIA_OPTION] };
-    const addon = buildInstalledAddon({ baseUrl: 'https://tube.example.org', manifest, consentedAt: '', optionValues: { media: 'audio' } });
+    const addon = buildInstalledAddon({ baseUrl: 'https://clips-addon.example.org', manifest, consentedAt: '', optionValues: { media: 'audio' } });
     const httpClient = new RecordedHttpClient([{ status: 200, body: { song: FOUND_SONG, links: [MUSIC_LINK, VIDEO_LINK] } }]);
     expect(await fetchSongSource({ httpClient, addon, valuesByInputId: PLAYER_LINK })).toMatchObject({ kind: 'found', choices: [{ videoLink: null }] });
     expect(httpClient.requests[0]?.jsonBody).toEqual({ protocol: 1, inputs: PLAYER_LINK, options: { media: 'audio' } });
@@ -368,7 +368,7 @@ describe('fetchSongSource', () => {
     [{ status: 200, body: { song: { ...FOUND_SONG, artist: null }, links: [MUSIC_LINK] } }, 'didn’t say its title and artist'],
     [{ status: 200, body: { song: { artist: 'Kairo Lights' }, links: [MUSIC_LINK] } }, 'didn’t say its title and artist'],
     [{ status: 200, body: { song: FOUND_SONG, links: [VIDEO_LINK] } }, 'sent no music file'],
-    [{ status: 200, body: { song: FOUND_SONG, links: [{ ...MUSIC_LINK, url: 'http://files.tube.example.org/a.ogg' }] } }, 'sent no music file'],
+    [{ status: 200, body: { song: FOUND_SONG, links: [{ ...MUSIC_LINK, url: 'http://files.clips-addon.example.org/a.ogg' }] } }, 'sent no music file'],
     [{ status: 200, body: { song: FOUND_SONG } }, 'sent no music file'],
     [{ status: 200, body: {} }, 'neither a song nor a reason'],
     [{ status: 404, body: {} }, 'answered with an error (404)'],
@@ -380,12 +380,12 @@ describe('fetchSongSource', () => {
     const result = await fetchSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: PLAYER_LINK });
     expect(result.kind).toBe('not-answering');
     expect(result.kind === 'not-answering' && result.message).toContain(message);
-    expect(result.kind === 'not-answering' && result.message).toContain('Tube Source');
+    expect(result.kind === 'not-answering' && result.message).toContain('Clip Source');
   });
 
   it('checks the player’s input before sending anything', async () => {
     const httpClient = new RecordedHttpClient([]);
-    await expect(fetchSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: { link: 'https://evil-youtube.com/watch?v=x' } })).rejects.toThrow(InvalidSongSourceInputError);
+    await expect(fetchSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: { link: 'https://evil-clips.example/watch?v=x' } })).rejects.toThrow(InvalidSongSourceInputError);
     expect(httpClient.requests).toEqual([]);
   });
 
@@ -422,7 +422,7 @@ describe('waitForSongSource', () => {
   it('gives up on an addon that keeps working for too long', async () => {
     const httpClient = new RecordedHttpClient(Array.from({ length: 10 }, () => ({ status: 202, body: { retryAfterSeconds: 600 } })));
     const result = await waitForSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: PLAYER_LINK, waitSeconds: () => Promise.resolve() });
-    expect(result).toEqual({ kind: 'not-answering', message: 'Tube Source is still working after 30 minutes. Try again later.' });
+    expect(result).toEqual({ kind: 'not-answering', message: 'Clip Source is still working after 30 minutes. Try again later.' });
     expect(httpClient.requests).toHaveLength(4);
   });
 });

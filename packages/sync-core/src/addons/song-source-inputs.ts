@@ -66,7 +66,7 @@ export function getCheckedSongSourceInputValue({ input, value }: { input: SongSo
   return trimmedValue;
 }
 
-/** True for a host that is one of the sites or a subdomain of one: music.youtube.com is on youtube.com, evil-youtube.com isn't. */
+/** True for a host that is one of the sites or a subdomain of one: media.clips.example is on clips.example, evil-clips.example isn't. */
 export function isHostOnSites({ hostName, sites }: { hostName: string; sites: readonly string[] }): boolean {
   return sites.some((site) => hostName === site || hostName.endsWith(`.${site}`));
 }
@@ -86,7 +86,7 @@ function getLinkProblemOrNull({ input, url }: { input: Extract<SongSourceInput, 
   return null;
 }
 
-/** The sites of a link field as a sentence names them: "youtube.com and youtu.be", or "a.com, b.com or c.com". */
+/** The sites of a link field as a sentence names them: "clips.example and media.example.org", or "a.example, b.example or c.example". */
 export function getLinkSitesText({ sites, joinWord }: { sites: readonly string[]; joinWord: 'and' | 'or' }): string {
   if (sites.length <= 1) return sites.join('');
   return `${sites.slice(0, -1).join(', ')} ${joinWord} ${sites[sites.length - 1] ?? ''}`;

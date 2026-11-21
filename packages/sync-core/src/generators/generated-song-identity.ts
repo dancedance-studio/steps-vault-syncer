@@ -9,7 +9,7 @@ export interface VaultSongIdentity {
 }
 
 /**
- * One key per song, whoever made it: the YouTube video when known, else the title and the artist. Making the same song
+ * One key per song, whoever made it: the song's video (youtubeId) when known, else the title and the artist. Making the same song
  * again finds the earlier version by this key.
  */
 export function getGeneratedSongKey(song: Pick<GeneratorSongFacts, 'title' | 'artist' | 'youtubeId'>): string {
@@ -17,7 +17,7 @@ export function getGeneratedSongKey(song: Pick<GeneratorSongFacts, 'title' | 'ar
   return `song:${getTitleAndArtistKey(song)}`;
 }
 
-/** The vault song that is the same song as this generated one: the same YouTube video, or the same title and artist. */
+/** The vault song that is the same song as this generated one: the same video (youtubeId), or the same title and artist. */
 export function findSameVaultSong({ song, vaultSongs }: { song: Pick<GeneratorSongFacts, 'title' | 'artist' | 'youtubeId'>; vaultSongs: readonly VaultSongIdentity[] }): VaultSongIdentity | null {
   const titleAndArtistKey = getTitleAndArtistKey(song);
   const sameVideoSong = song.youtubeId ? vaultSongs.find((vaultSong) => vaultSong.youtubeId === song.youtubeId) : undefined;

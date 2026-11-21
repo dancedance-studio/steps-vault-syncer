@@ -8,7 +8,7 @@ import { MusicSourceRegistry } from './music-source-registry';
 import { NodeMusicLibrary } from './node-music-library';
 
 const MANIFEST: GeneratorManifest = { protocol: 1, kind: 'generator', id: 'stepcat.tap-forge', name: 'Tap Forge', version: '1.2.0', author: '@stepcat', description: '', difficulties: ['Easy'], musicTypes: ['audio/ogg', 'audio/mpeg'], usesVideo: true, maxMusicBytes: 1_000_000, options: [] };
-const SONG_SOURCE: AddonManifest = { protocol: 1, kind: 'addon', id: 'tube.songs', name: 'Tube Songs', version: '0.2.0', author: '@noa', description: '', provides: ['song-source'], options: [], inputs: [{ id: 'link', kind: 'link', label: 'YouTube link', placeholder: null, sites: ['youtube.com', 'youtu.be'] }] };
+const SONG_SOURCE: AddonManifest = { protocol: 1, kind: 'addon', id: 'clip.songs', name: 'Clip Songs', version: '0.2.0', author: '@noa', description: '', provides: ['song-source'], options: [], inputs: [{ id: 'link', kind: 'link', label: 'Clip link', placeholder: null, sites: ['clips.example', 'media.example.org'] }] };
 
 const OPEN_AUDIO_LINKS: AddonManifest = { protocol: 1, kind: 'addon', id: 'open.audio-links', name: 'Open Audio Links', version: '1.0.0', author: '@noa', description: '', provides: ['audio-links', 'video-links', 'song-source'], options: [], inputs: [{ id: 'link', kind: 'link', label: 'Clip link', placeholder: null, sites: ['clips.example', 'media.example.org'] }] };
 
@@ -75,18 +75,18 @@ describe('MakeSongMusic', () => {
   });
 
   it('finds a song with a song source, then downloads its music and video into the job folder when it is made', async () => {
-    const answer: HttpResponse<unknown> = { status: 200, body: { song: { title: 'Low Tide', artist: 'Marla Quinn', lengthSeconds: 242, youtubeId: 'dQw4w9WgXcQ' }, links: [{ kind: 'file-url', url: 'https://files.example.org/low-tide.ogg', label: 'Music', fileName: 'low-tide.ogg' }, { kind: 'file-url', media: 'video', url: 'https://files.example.org/low-tide.mp4', label: 'Video', fileName: null }] } };
+    const answer: HttpResponse<unknown> = { status: 200, body: { song: { title: 'Low Tide', artist: 'Marla Quinn', lengthSeconds: 242, youtubeId: 'Vid3o1d-x_Z' }, links: [{ kind: 'file-url', url: 'https://files.example.org/low-tide.ogg', label: 'Music', fileName: 'low-tide.ogg' }, { kind: 'file-url', media: 'video', url: 'https://files.example.org/low-tide.mp4', label: 'Video', fileName: null }] } };
     const httpClient: HttpClient = { requestJson: () => Promise.resolve(answer), requestText: () => Promise.reject(new Error('Not used.')), requestBytes: () => Promise.reject(new Error('Not used.')) };
     const { makeSongMusic, downloads } = buildMakeSongMusic({ httpClient });
     const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7801', manifest: SONG_SOURCE, consentedAt: '' });
-    const result = await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } });
+    const result = await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://clips.example/watch?v=abc123' } });
     if (result.kind !== 'found') throw new Error(`Expected a song, got ${result.kind}.`);
-    expect(result.musics).toMatchObject([{ title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Tube Songs', lengthText: '4:02', hasVideo: true }]);
+    expect(result.musics).toMatchObject([{ title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Clip Songs', lengthText: '4:02', hasVideo: true }]);
     expect(downloads).toEqual([]);
     const musicId = result.musics[0]?.musicId ?? '';
     const prepared = await makeSongMusic.prepareMusic({ musicId, manifest: MANIFEST, jobFolder });
     expect(downloads).toEqual(['https://files.example.org/low-tide.ogg', 'https://files.example.org/low-tide.mp4']);
-    expect(prepared).toMatchObject({ song: { title: 'Low Tide', lengthSeconds: 242, youtubeId: 'dQw4w9WgXcQ' }, music: { contentType: 'audio/ogg' }, video: { contentType: 'video/mp4' }, playerMusicLocation: path.join(jobFolder, 'source-music.ogg'), playerVideoLocation: path.join(jobFolder, 'source-video.mp4') });
+    expect(prepared).toMatchObject({ song: { title: 'Low Tide', lengthSeconds: 242, youtubeId: 'Vid3o1d-x_Z' }, music: { contentType: 'audio/ogg' }, video: { contentType: 'video/mp4' }, playerMusicLocation: path.join(jobFolder, 'source-music.ogg'), playerVideoLocation: path.join(jobFolder, 'source-video.mp4') });
   });
 
   it('offers every song a song source found, and downloads only the one the player makes', async () => {
@@ -95,7 +95,7 @@ describe('MakeSongMusic', () => {
     const httpClient: HttpClient = { requestJson: () => Promise.resolve(answer), requestText: () => Promise.reject(new Error('Not used.')), requestBytes: () => Promise.reject(new Error('Not used.')) };
     const { makeSongMusic, downloads } = buildMakeSongMusic({ httpClient });
     const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7801', manifest: SONG_SOURCE, consentedAt: '' });
-    const result = await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } });
+    const result = await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://clips.example/watch?v=abc123' } });
     if (result.kind !== 'found') throw new Error(`Expected songs, got ${result.kind}.`);
     expect(result.musics.map((music) => music.title)).toEqual(['Night Drive', 'Night Drive (Live)']);
     await makeSongMusic.prepareMusic({ musicId: result.musics[1]?.musicId ?? '', manifest: MANIFEST, jobFolder });
@@ -105,8 +105,8 @@ describe('MakeSongMusic', () => {
   it('shows a refused input under its field, without calling the addon', async () => {
     const { makeSongMusic } = buildMakeSongMusic();
     const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7801', manifest: SONG_SOURCE, consentedAt: '' });
-    expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://example.org/song' } })).toEqual({ kind: 'invalid-input', inputId: 'link', message: 'That site isn’t allowed here. Use a youtube.com or youtu.be link.' });
-    expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } })).toMatchObject({ kind: 'not-answering' });
+    expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://example.org/song' } })).toEqual({ kind: 'invalid-input', inputId: 'link', message: 'That site isn’t allowed here. Use a clips.example or media.example.org link.' });
+    expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://clips.example/watch?v=abc123' } })).toMatchObject({ kind: 'not-answering' });
   });
 
   it('passes on a link addon’s not-found with its sentence, and a silent addon as not answering', async () => {
