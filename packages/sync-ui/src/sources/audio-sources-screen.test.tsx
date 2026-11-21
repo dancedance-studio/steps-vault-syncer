@@ -20,7 +20,7 @@ async function goToConsentStep(): Promise<HTMLElement> {
   const dialog = screen.getByRole('dialog', { name: 'Add an addon' });
   fireEvent.change(within(dialog).getByRole('textbox', { name: 'Addon address' }), { target: { value: FAKE_ADDON_PREVIEW.address } });
   await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Continue' })); await Promise.resolve(); });
-  return screen.getByRole('dialog', { name: 'Install “Bandcamp Bridge”?' });
+  return screen.getByRole('dialog', { name: 'Install “Tune Bridge”?' });
 }
 
 describe('AudioSourcesScreen', () => {

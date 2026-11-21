@@ -104,7 +104,7 @@ export const FAKE_ADDONS: readonly AddonView[] = [
   { addonId: 'clip-songs', name: 'Clip Songs', version: '0.2.0', author: '@noa', providesText: 'New songs to make', isEnabled: true, isAudioSource: false, health: { kind: 'working', note: 'http://127.0.0.1:7801' }, options: [] },
 ];
 
-export const FAKE_ADDON_PREVIEW: AddonInstallPreview = { address: 'https://bridge.hyperpad.example/stepsvault', name: 'Bandcamp Bridge', version: '0.9.0', author: 'hyperpad',
+export const FAKE_ADDON_PREVIEW: AddonInstallPreview = { address: 'https://bridge.hyperpad.example/stepsvault', name: 'Tune Bridge', version: '0.9.0', author: 'hyperpad',
   options: [{ optionId: 'media', label: 'What to get', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], value: 'audio-and-video' }],
 };
 

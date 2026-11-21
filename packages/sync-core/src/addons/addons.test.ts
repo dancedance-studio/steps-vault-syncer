@@ -38,7 +38,7 @@ const ADDON = buildInstalledAddon({ baseUrl: 'https://addons.example.org/indie',
 describe('addon addresses', () => {
   it('accepts https, and http only for an addon on this computer', () => {
     expect(getAddonBaseUrl(' https://addons.example.org/indie/ ')).toBe('https://addons.example.org/indie');
-    expect(getAddonBaseUrl('http://127.0.0.1:47863')).toBe('http://127.0.0.1:47863');
+    expect(getAddonBaseUrl('http://127.0.0.1:47100')).toBe('http://127.0.0.1:47100');
   });
 
   it.each(['addons.example.org', 'http://addons.example.org', 'ftp://example.org', 'https://user:pass@example.org', 'https://example.org/?token=1', 'javascript:alert(1)'])('refuses %s', (address) => {
@@ -96,9 +96,9 @@ describe('fetchAudioLinks', () => {
   });
 
   it('accepts a local file link from an addon on this computer', async () => {
-    const localAddon = { ...ADDON, baseUrl: 'http://127.0.0.1:47863' };
-    const httpClient = new RecordedHttpClient([{ status: 200, body: { links: [{ kind: 'file-url', url: 'http://127.0.0.1:47863/files/abcdefghijk.ogg', label: 'Local' }] } }]);
-    expect(await fetchAudioLinks({ httpClient, addon: localAddon, song: SONG })).toMatchObject({ kind: 'links', links: [{ url: 'http://127.0.0.1:47863/files/abcdefghijk.ogg' }] });
+    const localAddon = { ...ADDON, baseUrl: 'http://127.0.0.1:47100' };
+    const httpClient = new RecordedHttpClient([{ status: 200, body: { links: [{ kind: 'file-url', url: 'http://127.0.0.1:47100/files/abcdefghijk.ogg', label: 'Local' }] } }]);
+    expect(await fetchAudioLinks({ httpClient, addon: localAddon, song: SONG })).toMatchObject({ kind: 'links', links: [{ url: 'http://127.0.0.1:47100/files/abcdefghijk.ogg' }] });
   });
 
   it('waits when the addon is still working, within sane limits', async () => {
