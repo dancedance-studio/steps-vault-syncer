@@ -13,6 +13,7 @@ import {
   LOCAL_BRIDGE_HOST,
   LOCAL_BRIDGE_PORTS,
   LocalBridgePairing,
+  loadLinkSongSources,
   loadSavedGeneratorJobs,
   pollDeviceSignIn,
   runSync,
@@ -28,6 +29,7 @@ import {
   type GeneratedSongRequest,
   type GeneratedSongWriteResult,
   type InstalledSongsRecord,
+  type LinkSongSource,
   type MusicIndex,
   type PairedBrowserStore,
   type SavedGeneratorJob,
@@ -80,10 +82,12 @@ import { isServiceAnswering, startProgramWithShell, StartingHttpClient } from '.
 import { LocalProgramStarter } from './local-program-starter';
 import { MakeSongMusic } from './make-song-music';
 import { MusicSourceRegistry } from './music-source-registry';
+import { NodeFileUploadHttpClient } from './node-file-upload-http-client';
 import { NodeHttpClient } from './node-http-client';
 import { NodeMultipartHttpClient } from './node-multipart-http-client';
 import { NodeMusicLibrary } from './node-music-library';
 import { NodeSongsFolder } from './node-songs-folder';
+import { SiteLinkJobs } from './site-link-jobs';
 import type { MakeSongLink } from './sync-link';
 
 const MAX_ADDON_FILE_BYTES = 200 * 1024 * 1024;
@@ -119,6 +123,8 @@ export interface SyncControllerOptions {
   audioBridge: AudioBridge;
   services: DesktopServices;
   onStateChange: (state: DesktopSyncState) => void;
+  /** A line for support (link jobs from the website: their ids and statuses, never a link). */
+  logSupportLine: (line: string) => void;
 }
 
 /** The app's brain: it owns the settings, the record and the token, runs syncs, and builds what the window shows. */
@@ -139,6 +145,9 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private readonly reportSongKeys = new Set<string>();
   private readonly browserPairing: LocalBridgePairing;
   private readonly bridgeServer: LocalBridgeServer;
+  /** Uploads a website link song's audio, the only file Sync sends the site. */
+  private readonly fileUploadClient: NodeFileUploadHttpClient;
+  private readonly siteLinkJobs: SiteLinkJobs;
   private pairingExpiryTimer: ReturnType<typeof setTimeout> | null = null;
   private settings: DesktopSettings = buildDefaultSettings();
   private record: InstalledSongsRecord = buildEmptyInstalledSongsRecord();
@@ -189,6 +198,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       openSongFile: (songsPath) => this.buildSongsFolder().openFileForReading(songsPath),
       ports: LOCAL_BRIDGE_PORTS,
     });
+    this.fileUploadClient = new NodeFileUploadHttpClient({ appVersion: options.appVersion, getSourceFilePath: (sourceId) => this.musicSources.getSource(sourceId)?.filePath ?? null });
+    this.siteLinkJobs = this.createSiteLinkJobs();
   }
 
   async initialize(): Promise<void> {
@@ -202,15 +213,16 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     await this.jobRunner.initialize();
     await this.browserPairing.initialize();
     await this.bridgeServer.start();
+    if (this.deviceToken) this.siteLinkJobs.start();
     void this.generatorSettings.loadStepsVaultGenerator().then(() => { this.publish(); });
     void this.refreshTokenBalance();
     this.publish();
     await this.scanMusic();
   }
 
-  /** When Sync quits, programs it started for addons and generators stop too. */
+  /** When Sync quits, programs it started for addons and generators stop too, and the website hears it is leaving. */
   async shutdown(): Promise<void> {
-    await Promise.all([this.starter.stopAll(), this.bridgeServer.stop()]);
+    await Promise.all([this.siteLinkJobs.stop({ isLeaving: true }), this.starter.stopAll(), this.bridgeServer.stop()]);
   }
 
   get isReadyToSync(): boolean {
@@ -500,6 +512,24 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     });
   }
 
+  /** Link jobs from the website, while the app runs and this computer is linked; they share the link tab's finder. */
+  private createSiteLinkJobs(): SiteLinkJobs {
+    return new SiteLinkJobs({
+      buildApi: () => (this.deviceToken === null ? null : this.buildClient()),
+      getAddons: () => this.settings.addons,
+      songs: this.makeSongMusic,
+      addonHttpClient: this.serviceClient,
+      jobFiles: new GeneratorJobFiles({ jobsFolder: path.join(this.options.dataFolder, 'link-jobs'), musicSources: this.musicSources, appVersion: this.options.appVersion }),
+      sourceStore: new JsonFileStore<LinkSongSource[]>({ filePath: path.join(this.options.dataFolder, 'link-song-sources.json'), buildDefault: () => [], parse: loadLinkSongSources }),
+      computerName: this.options.computerName,
+      appVersion: this.options.appVersion,
+      getNowMilliseconds: () => Date.now(),
+      waitMilliseconds: delay,
+      log: (line) => { this.options.logSupportLine(line); },
+      onSignedOut: () => { void this.handleSignedOutFromLinkJobs(); },
+    });
+  }
+
   /** Syncs and generated songs take turns with the record, so neither writes over the other's changes. */
   private takeRecordTurn<Result>(work: () => Promise<Result>): Promise<Result> {
     const turn = this.recordTurn.then(work, work);
@@ -580,12 +610,22 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   }
 
   private async handleSyncError(error: unknown): Promise<void> {
-    if (error instanceof SignedOutError) {
-      this.deviceToken = null;
-      this.signIn = { kind: 'signed-out' };
-      await this.options.tokenStore.clear();
-    }
+    if (error instanceof SignedOutError) await this.signOut();
     this.problem = error instanceof Error ? error.message : 'The sync stopped. Try again in a minute.';
+  }
+
+  /** The site refused this computer's token: Sync forgets it, and the player signs in again with a new code. */
+  private async signOut(): Promise<void> {
+    this.deviceToken = null;
+    this.signIn = { kind: 'signed-out' };
+    await Promise.all([this.siteLinkJobs.stop({ isLeaving: false }), this.options.tokenStore.clear()]);
+  }
+
+  /** Presence or a link job found this computer signed out: the same as when a sync does. */
+  private async handleSignedOutFromLinkJobs(): Promise<void> {
+    await this.signOut();
+    this.problem = new SignedOutError().message;
+    this.publish();
   }
 
   private async reportSeen(outcome: SyncOutcome): Promise<void> {
@@ -612,6 +652,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
         this.deviceToken = poll.deviceToken;
         await this.options.tokenStore.save(poll.deviceToken);
         this.signIn = { kind: 'signed-in', computerName: poll.deviceName };
+        this.siteLinkJobs.start();
         void this.generatorSettings.loadStepsVaultGenerator().then(() => { this.publish(); });
         void this.refreshTokenBalance();
       }
@@ -686,7 +727,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   }
 
   private buildClient(): StepsVaultClient {
-    return new StepsVaultClient({ httpClient: this.httpClient, siteUrl: this.options.siteUrl, deviceToken: this.deviceToken });
+    return new StepsVaultClient({ httpClient: this.httpClient, fileUploadClient: this.fileUploadClient, siteUrl: this.options.siteUrl, deviceToken: this.deviceToken });
   }
 
   /** An addon's file goes into the app's own folder (never the music folders), named by a hash of its address. */
@@ -704,6 +745,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
 
   private async saveSettings(settings: DesktopSettings): Promise<void> {
     this.settings = settings;
+    // A link addon turned on or off, added or removed changes the website's link option at once, not 30 s later.
+    this.siteLinkJobs.handleAddonsChange();
     await this.settingsStore.save(settings);
     this.publish();
   }

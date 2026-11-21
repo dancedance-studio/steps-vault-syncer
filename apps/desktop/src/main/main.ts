@@ -127,6 +127,9 @@ It runs in ${folder}, and Sync stops it after 10 minutes without use. Only allow
       if (process.env.STEPSVAULT_LOG_STATE) logStateSummary(state);
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(STATE_CHANNEL, state);
     },
+    logSupportLine: (line) => {
+      if (process.env.STEPSVAULT_LOG_STATE) console.log(line);
+    },
   });
 }
 
