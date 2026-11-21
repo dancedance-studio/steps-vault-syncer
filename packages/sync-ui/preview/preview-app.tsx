@@ -5,7 +5,7 @@ import {
   PermissionLostState, PhoneStatusView, SongFolderLockedState, SongsFolderMissingState, SongsFolderPreview, StatusChip, SyncHomeScreen, SyncShell, UpdateBanner, SONG_STATUSES, SONG_STATUS_DISPLAYS,
   type LinkCodeState, type SyncPlatform, type SyncScreen,
 } from '../src/index';
-import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PARTY_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
+import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_LINKS_TAB, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PARTY_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
 
 type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone' | 'intro-pieces';
 type SyncPhase = 'idle' | 'syncing' | 'finished' | 'finished-all';
@@ -157,6 +157,7 @@ function GeneratorsPreview(): ReactElement {
       jobs={FAKE_GENERATOR_JOBS}
       generatedSongs={FAKE_GENERATED_SONGS}
       canUseStartCommand
+      linksTab={FAKE_LINKS_TAB}
       songSourceTabs={FAKE_SONG_SOURCE_TABS}
       onLookUpGenerator={({ address }) => Promise.resolve({ kind: 'found', generator: { ...FAKE_GENERATOR_PREVIEW, address } })}
       onAddGenerator={(preview) => { setGenerators([...generators, { generatorId: preview.address, name: preview.name, version: preview.version, author: preview.author, description: preview.description, location: preview.location, startCommand: preview.startCommand, difficulties: preview.difficulties, options: preview.options, musicUploadWarning: null, isNew: true }]); }}

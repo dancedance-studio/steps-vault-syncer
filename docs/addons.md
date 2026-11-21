@@ -115,8 +115,8 @@ be `https`. Sync drops any link that breaks these rules.
 ## Song sources: `provides: ["song-source"]`
 
 A song source brings a song that isn't in the vault yet, so the player can make it with a generator. Sync's
-**Make a song** page shows one tab per song source, drawn by Sync from the addon's `inputs`: an addon never brings its
-own screens or code.
+**Make a song** page draws it from the addon's `inputs`: an addon never brings its own screens or code. A `link` input
+joins the one **Links** tab, which every link addon that is on shares; `search` inputs get a tab of the addon's own.
 
 In the manifest:
 
@@ -134,11 +134,16 @@ In the manifest:
   list is left out; an addon whose inputs are all left out is refused.
 - The player fills in at least one input; empty ones are left out of the request, and every filled one is checked
   before Sync calls the addon. The addon sees what the player typed, and Sync's consent screen says so.
-- Under a `link` input Sync names its sites ("Works with example.com and clips.example links."). A link from any
-  other site gets "That site isn't allowed here." under the field and is never sent.
-- The tabs of addons with a `link` input come first, then those with only `search` inputs. A song source's tab is
-  there only while the addon is on, and only in the desktop app. The website's Make a song keeps its own sources,
-  except for links it hands to Sync (see "Links from the website" below).
+- The tabs are My files, My music folders, Links, then one per addon with `search` inputs, in the order the player
+  added them. Links is there while at least one link addon is on; an addon's own tab, while that addon is on. All of
+  them are in the desktop app only. The website's Make a song keeps its own sources, except for links it hands to Sync
+  (see "Links from the website" below).
+- Links has one field, "Song link", whatever the addons call theirs. Under it Sync names the sites of every link
+  addon that is on, each once ("Works with clips.example, media.example.org and reels.example links."). A link from
+  any other site gets "That site isn't allowed here." under the field and is never sent.
+- A link goes to the first link addon that is on, in the player's order, whose `sites` take the link's host (or a
+  subdomain of one). That addon gets it in its own `link` input; the request is the same as from its own field.
+- An addon with both kinds of inputs is in both places: its `link` input in Links, its `search` inputs in its tab.
 
 ### `POST <address>/song-source`
 

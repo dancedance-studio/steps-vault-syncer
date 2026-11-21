@@ -1,6 +1,6 @@
 import { buildInstalledAddon, buildInstalledGenerator, withMusicUploadConsent, type AddonManifest, type GeneratedSong, type GeneratorManifest, type SavedGeneratorJob } from '@stepsvault/sync-core';
 import { describe, expect, it } from 'vitest';
-import { buildAddonInstallPreview, buildAddonView, buildSongSourceTabs } from './build-addon-views';
+import { buildAddonInstallPreview, buildAddonView, buildLinksTab, buildSongSourceTabs } from './build-addon-views';
 import { buildGeneratedSongViews, buildGeneratorInstallPreview, buildGeneratorJobView, buildGeneratorView } from './build-generator-views';
 import { buildActivityEntries } from './build-sync-views';
 
@@ -86,8 +86,9 @@ describe('song-source addon views', () => {
     expect(buildAddonInstallPreview({ address: 'http://127.0.0.1:7801', manifest: SONG_SOURCE_MANIFEST, startCommand: 'start.cmd' })).toMatchObject({ seesWhatYouType: true, startCommand: 'start.cmd' });
   });
 
-  it('gives each song source that is on a tab, drawn from its inputs', () => {
+  it('puts a song source’s link field in Links, and gives it no tab of its own without search fields', () => {
     const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7801', manifest: SONG_SOURCE_MANIFEST, consentedAt: '' });
-    expect(buildSongSourceTabs([addon, { ...addon, isEnabled: false }])).toEqual([{ addonId: 'clip.songs', name: 'Clip Songs', inputs: SONG_SOURCE_MANIFEST.inputs }]);
+    expect(buildLinksTab([addon, { ...addon, isEnabled: false }])).toEqual({ linkFields: [{ addonId: 'clip.songs', inputId: 'link', sites: ['clips.example'] }], sites: ['clips.example'] });
+    expect(buildSongSourceTabs([addon])).toEqual([]);
   });
 });

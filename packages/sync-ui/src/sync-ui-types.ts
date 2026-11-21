@@ -278,7 +278,7 @@ export interface MusicChoiceView {
   musicId: string;
   title: string;
   artist: string;
-  /** Where it comes from, for example the file's folder, or "From Song Scout". */
+  /** Where it comes from, for example the file's folder, "From Song Scout", or the site of the link it was found by. */
   sourceText: string;
   /** For example "3:21"; null when not known. */
   lengthText: string | null;
@@ -286,11 +286,26 @@ export interface MusicChoiceView {
   hasVideo: boolean;
 }
 
-/** One song-source addon's tab on the Make a song page, drawn by Sync from the addon's declared inputs. */
+/** A search addon's own tab on the Make a song page, drawn by Sync from the addon's declared search inputs. */
 export interface SongSourceTabView {
   addonId: string;
   name: string;
   inputs: readonly SongSourceInput[];
+}
+
+/** The one Links tab on the Make a song page: the link fields of every link addon that is on, as one field. */
+export interface LinksTabView {
+  /** In the order the player added the addons: a link goes to the first one whose sites take it. */
+  linkFields: readonly LinkFieldView[];
+  /** Every site of every link field, each once, in that order. */
+  sites: readonly string[];
+}
+
+/** One link addon's link field, which the Links tab hands the links on its sites to. */
+export interface LinkFieldView {
+  addonId: string;
+  inputId: string;
+  sites: readonly string[];
 }
 
 export interface SongSourceSearchRequest {

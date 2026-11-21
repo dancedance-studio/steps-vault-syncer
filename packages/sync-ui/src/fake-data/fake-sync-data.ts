@@ -1,5 +1,5 @@
 import type { FolderLayout } from '@stepsvault/sync-core';
-import type { ActivityEntryView, AddonInstallPreview, AddonView, ConnectedGameView, GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorView, MusicChoiceView, SongSourceTabView, StepsVaultGeneratorView, DifficultyLevels, FoundGameView, LayoutPreviewsByLayout, LinkedComputerView, MusicFolderView, PartyFolderView, PickedFileView, PlayerGroupView, SongDetailsView, SongRowView } from '../sync-ui-types';
+import type { ActivityEntryView, AddonInstallPreview, AddonView, ConnectedGameView, GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorView, LinksTabView, MusicChoiceView, SongSourceTabView, StepsVaultGeneratorView, DifficultyLevels, FoundGameView, LayoutPreviewsByLayout, LinkedComputerView, MusicFolderView, PartyFolderView, PickedFileView, PlayerGroupView, SongDetailsView, SongRowView } from '../sync-ui-types';
 
 // Made-up songs and artists for the preview page and the tests; the cover art is drawn here, so nothing loads from the network.
 
@@ -178,9 +178,15 @@ export const FAKE_MUSIC_CHOICES: readonly MusicChoiceView[] = [
   { musicId: 'music-paper-planes', title: 'Paper Planes Club', artist: 'Sora Vega', sourceText: 'D:\\Rips\\Albums', lengthText: '2:58', hasVideo: false },
 ];
 
+/** Clip Songs has a link field and a search field: the link field is in Links, the search field in its own tab. */
 export const FAKE_SONG_SOURCE_TABS: readonly SongSourceTabView[] = [
-  { addonId: 'clip-songs', name: 'Clip Songs', inputs: [{ id: 'link', kind: 'link', label: 'Clip link', placeholder: 'https://clips.example/watch?v=…', sites: ['clips.example', 'media.example.org'] }, { id: 'search', kind: 'search', label: 'Or search', placeholder: 'Title and artist' }] },
+  { addonId: 'clip-songs', name: 'Clip Songs', inputs: [{ id: 'search', kind: 'search', label: 'Search', placeholder: 'Title and artist' }] },
 ];
+
+export const FAKE_LINKS_TAB: LinksTabView = {
+  linkFields: [{ addonId: 'clip-songs', inputId: 'link', sites: ['clips.example', 'media.example.org'] }],
+  sites: ['clips.example', 'media.example.org'],
+};
 
 export const FAKE_PARTY_FOLDERS: readonly PartyFolderView[] = [
   { partyListId: 'party_maya', listName: 'Maya’s birthday', folderText: "Songs/Party - Maya's birthday", songCountText: '6 songs in your game', needsYouText: '1 needs audio', endsText: 'Ends in 2d', isLeaving: false },
