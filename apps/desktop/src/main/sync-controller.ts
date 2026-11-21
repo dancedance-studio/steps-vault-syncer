@@ -89,6 +89,7 @@ import { NodeMultipartHttpClient } from './node-multipart-http-client';
 import { NodeMusicLibrary } from './node-music-library';
 import { NodeSongsFolder } from './node-songs-folder';
 import { SiteLinkJobs } from './site-link-jobs';
+import { installSongForSite, type SiteSongInstallResult } from './site-song-installs';
 import type { MakeSongLink } from './sync-link';
 
 const MAX_ADDON_FILE_BYTES = 200 * 1024 * 1024;
@@ -528,7 +529,37 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       waitMilliseconds: delay,
       log: (line) => { this.options.logSupportLine(line); },
       onSignedOut: () => { void this.handleSignedOutFromLinkJobs(); },
+      installSong: ({ vaultSongId }) => this.installSongForSite(vaultSongId),
     });
+  }
+
+  /** "Into my game" from the website: the song is already in the library list, so this is a sync now, then a check. */
+  private installSongForSite(vaultSongId: string): Promise<SiteSongInstallResult> {
+    return installSongForSite({
+      vaultSongId,
+      ports: {
+        hasGame: () => this.settings.game !== null,
+        isGameRunning: () => this.options.services.isGameRunning(),
+        waitForRunningSync: async () => {
+          const wasSyncRunning = this.syncRun !== null;
+          while (this.syncRun) await delay(1000);
+          return wasSyncRunning ? this.lastOutcome : null;
+        },
+        syncNow: () => this.syncNowForOutcome(),
+        getProblem: () => this.problem,
+        getSongsFolder: () => this.buildSongsFolder(),
+        getNowMilliseconds: () => Date.now(),
+        waitMilliseconds: delay,
+      },
+    });
+  }
+
+  /** A sync now, after any sync already running: its outcome, or null when it didn't run or stopped with a problem. */
+  private async syncNowForOutcome(): Promise<SyncOutcome | null> {
+    while (this.syncRun) await delay(1000);
+    const outcomeBefore = this.lastOutcome;
+    await this.syncNow();
+    return this.lastOutcome === outcomeBefore ? null : this.lastOutcome;
   }
 
   /** Syncs and generated songs take turns with the record, so neither writes over the other's changes. */

@@ -12,6 +12,7 @@ export const MAX_LINK_AUDIO_SECONDS = 8 * 60;
 /** How long the site holds Sync's request for the next job before it answers that there is none. */
 export const LINK_JOB_WAIT_MILLISECONDS = 25_000;
 const LINK_JOBS_VERSION = 1;
+const INSTALL_JOBS_VERSION = 1;
 const MAX_FIND_RESULTS = 10;
 const MAX_REASON_LENGTH = 140;
 const MAX_JOB_ID_LENGTH = 200;
@@ -44,6 +45,8 @@ export interface SyncPresence {
   appVersion: string;
   /** This Sync takes link jobs. A Sync from before them doesn't say so, and the site offers it no link option. */
   linkJobs: typeof LINK_JOBS_VERSION;
+  /** This Sync takes install jobs too ("Into my game"); the site sends none to a Sync that doesn't say so. */
+  installJobs: typeof INSTALL_JOBS_VERSION;
   /** Empty means no link option on the website. */
   linkAddons: LinkAddonDeclaration[];
   /** Only on quit, so the site shows the computer offline at once instead of after 75 s. */
@@ -54,10 +57,16 @@ export interface SyncPresence {
 export type LinkJob =
   | { id: string; kind: 'find'; addonId: string; link: string; expiresAt: string | null }
   /** findId and ref name the found song the player picked; songId is the site's song, the key of its source record. */
-  | { id: string; kind: 'music'; addonId: string; findId: string; ref: string; songId: string; expiresAt: string | null };
+  | { id: string; kind: 'music'; addonId: string; findId: string; ref: string; songId: string; expiresAt: string | null }
+  /**
+   * "Into my game": a song already in the player's library list, to install now instead of at the next background sync.
+   * songId is its vaultSongId; addonId is the link addon whose sites take its video link.
+   */
+  | { id: string; kind: 'install'; addonId: string; songId: string; expiresAt: string | null };
 
 export type FindLinkJob = Extract<LinkJob, { kind: 'find' }>;
 export type MusicLinkJob = Extract<LinkJob, { kind: 'music' }>;
+export type InstallLinkJob = Extract<LinkJob, { kind: 'install' }>;
 
 /** GET /api/sync/link-jobs/:id. Sync uploads only while it is open. */
 export type LinkJobState = 'open' | 'cancelled' | 'expired';
@@ -95,8 +104,10 @@ export type LinkJobAnswer =
    * it every 5 s while that lasts; a 410 means the player stopped the find, and Sync stops asking the addon.
    */
   | { status: 'working' }
-  /** Sent instead of the audio, with why there is none. */
-  | { status: 'failed'; reason: string };
+  /** Sent instead of the audio, or for an install that didn't reach the game, with why. */
+  | { status: 'failed'; reason: string }
+  /** An install job's song is in the game: its steps and its music, and its video when the addon gave one. */
+  | { status: 'installed' };
 
 /** What the site did with an answer or an upload: took it, or the job had already ended (410). */
 export type LinkJobDelivery = 'delivered' | 'late';
@@ -137,7 +148,7 @@ export function getLinkAddonDeclarations(addons: readonly InstalledAddon[]): Lin
 }
 
 export function buildSyncPresence({ computerName, appVersion, addons, isLeaving }: { computerName: string; appVersion: string; addons: readonly InstalledAddon[]; isLeaving: boolean }): SyncPresence {
-  const presence: SyncPresence = { computerName, appVersion, linkJobs: LINK_JOBS_VERSION, linkAddons: getLinkAddonDeclarations(addons) };
+  const presence: SyncPresence = { computerName, appVersion, linkJobs: LINK_JOBS_VERSION, installJobs: INSTALL_JOBS_VERSION, linkAddons: getLinkAddonDeclarations(addons) };
   return isLeaving ? { ...presence, leaving: true } : presence;
 }
 
@@ -149,12 +160,18 @@ export function parseLinkJobOrNull(value: unknown): LinkJob | null {
   if (id === null || addonId === null) return null;
   const expiresAt = typeof value.expiresAt === 'string' ? value.expiresAt : null;
   if (value.kind === 'find') return typeof value.link === 'string' ? { id, kind: 'find', addonId, link: value.link, expiresAt } : null;
+  if (value.kind === 'install') return parseInstallJobOrNull({ value, id, addonId, expiresAt });
   if (value.kind !== 'music') return null;
   const findId = getJobIdOrNull(value.findId);
   const ref = getJobIdOrNull(value.ref);
   const songId = getJobIdOrNull(value.songId);
   if (findId === null || ref === null || songId === null) return null;
   return { id, kind: 'music', addonId, findId, ref, songId, expiresAt };
+}
+
+function parseInstallJobOrNull({ value, id, addonId, expiresAt }: { value: Record<string, unknown>; id: string; addonId: string; expiresAt: string | null }): InstallLinkJob | null {
+  const songId = getJobIdOrNull(value.songId);
+  return songId === null ? null : { id, kind: 'install', addonId, songId, expiresAt };
 }
 
 /** Anything but open or cancelled means the job ended, so nothing is uploaded for it. */
@@ -206,7 +223,8 @@ function buildVideoFactsOrNull({ choice, lengthSec }: { choice: Pick<SongSourceC
   return { videoId, title: choice.song.title, channel: choice.song.artist, lengthSec };
 }
 
-function getPlainReasonOrNull(text: string | null): string | null {
+/** A reason for the site to show: plain text, at most 140 characters; null when there is none. */
+export function getPlainReasonOrNull(text: string | null): string | null {
   const plainText = (text ?? '').replace(HIDDEN_CHARACTERS_PATTERN, ' ').replace(/\s+/g, ' ').trim();
   return plainText === '' ? null : Array.from(plainText).slice(0, MAX_REASON_LENGTH).join('').trim();
 }

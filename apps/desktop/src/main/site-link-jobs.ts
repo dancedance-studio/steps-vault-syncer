@@ -13,6 +13,7 @@ import {
   StepsVaultApiError,
   withLinkSongSource,
   type FindLinkJob,
+  type InstallLinkJob,
   type HttpClient,
   type HttpRequest,
   type HttpResponse,
@@ -26,6 +27,7 @@ import {
   type SongMusicSource,
 } from '@stepsvault/sync-core';
 import { SiteMusicLimitError, type FoundSongChoices, type MakeSongMusic } from './make-song-music';
+import type { SiteSongInstallResult } from './site-song-installs';
 
 const PRESENCE_EVERY_MILLISECONDS = 30_000;
 /**
@@ -41,7 +43,9 @@ const MAX_FIND_MILLISECONDS = MAX_SONG_SOURCE_WAIT_SECONDS * 1000;
 const RETRY_WAITS_MILLISECONDS: readonly number[] = [1_000, 2_000, 5_000, 30_000];
 /** A site that answers "no job" at once, instead of holding the request, is still asked at most once a second. */
 const MIN_ASK_EVERY_MILLISECONDS = 1_000;
-const MAX_RUNNING_JOBS_BY_KIND: Readonly<Record<LinkJob['kind'], number>> = { find: 1, music: 2 };
+// One install at a time: each one runs a whole sync.
+const MAX_RUNNING_JOBS_BY_KIND: Readonly<Record<LinkJob['kind'], number>> = { find: 1, music: 2, install: 1 };
+const INSTALL_FAILED_REASON = 'Sync couldn’t put the song in your game. Try again.';
 /** Taken jobs waiting their turn; past this, Sync takes no more until one ends. */
 const MAX_WAITING_JOBS = 10;
 /** A player's recent finds, so a song found a while ago can still be picked, or tried again. */
@@ -67,6 +71,8 @@ export interface SiteLinkJobsDependencies {
   log(line: string): void;
   /** The site said this computer is signed out. */
   onSignedOut(): void;
+  /** "Into my game": syncs now and says whether the library song really is in the game, or why not. */
+  installSong(options: { vaultSongId: string }): Promise<SiteSongInstallResult>;
 }
 
 interface TakenJob {
@@ -119,7 +125,8 @@ class RunningFind {
  * Link jobs from the website (design v3.124), while the app runs and the account is linked: the website relays a link
  * the player pasted, the addon finds the song on this computer, and Sync uploads only its audio. Presence keeps the
  * site's link option in step with the link addons that are on. Finding and getting the music go the link tab's way;
- * the local bridge isn't used, since a phone on another computer can't reach it.
+ * the local bridge isn't used, since a phone on another computer can't reach it. Install jobs ("Into my game", design
+ * v3.129) come the same way: a library song to put in the game now, with a sync.
  */
 export class SiteLinkJobs {
   private readonly dependencies: SiteLinkJobsDependencies;
@@ -128,7 +135,7 @@ export class SiteLinkJobs {
   private runNumber = 0;
   private lastSentDeclarationsText: string | null = null;
   private readonly waitingJobs: TakenJob[] = [];
-  private readonly runningCountsByKind: Record<LinkJob['kind'], number> = { find: 0, music: 0 };
+  private readonly runningCountsByKind: Record<LinkJob['kind'], number> = { find: 0, music: 0, install: 0 };
   private readonly findsById = new Map<string, RememberedFind>();
   private jobEndListeners: (() => void)[] = [];
   private sources: LinkSongSource[] | null = null;
@@ -276,7 +283,8 @@ export class SiteLinkJobs {
         return;
       }
       if (job.kind === 'find') await this.runFindJob({ job, takenAtMilliseconds });
-      else await this.runMusicJob(job);
+      else if (job.kind === 'music') await this.runMusicJob(job);
+      else await this.runInstallJob(job);
     } catch (error) {
       this.logJob({ job, status: `stopped (${describeFailure(error)})` });
     }
@@ -321,6 +329,12 @@ export class SiteLinkJobs {
     const delivery = await this.answerJob({ job, answer: { status: 'found', results: results.map(({ result }) => result) } });
     // No music job can come for a find the site never got.
     if (delivery !== 'delivered') this.forgetFind(job.id);
+  }
+
+  /** "Into my game": answered only once the song's music is in its folder in the game, or with why it isn't. */
+  private async runInstallJob(job: InstallLinkJob): Promise<void> {
+    const result = await this.dependencies.installSong({ vaultSongId: job.songId }).catch((): SiteSongInstallResult => ({ kind: 'failed', reason: INSTALL_FAILED_REASON }));
+    await this.answerJob({ job, answer: result.kind === 'installed' ? { status: 'installed' } : { status: 'failed', reason: result.reason } });
   }
 
   /** The found song the player picked: its music only, as the site takes it, uploaded only while the job is open. */

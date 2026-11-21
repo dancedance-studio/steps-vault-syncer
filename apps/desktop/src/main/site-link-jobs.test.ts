@@ -20,6 +20,7 @@ import { GeneratorJobFiles } from './generator-job-files';
 import { MakeSongMusic, type MakeSongMusicPorts } from './make-song-music';
 import { MusicSourceRegistry } from './music-source-registry';
 import { SiteLinkJobs } from './site-link-jobs';
+import type { SiteSongInstallResult } from './site-song-installs';
 
 const API_URL = 'https://dancedance.studio/api/sync';
 const ADDON_URL = 'http://127.0.0.1:7802';
@@ -34,6 +35,8 @@ const FOUND_NIGHT_DRIVE = {
 };
 const FIND_JOB = { id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: NIGHT_DRIVE_LINK, expiresAt: '2026-11-21T12:00:20.000Z' };
 const MUSIC_JOB = { id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' };
+/** "Into my game" for a song already in the player's library list; songId is its vaultSongId. */
+const INSTALL_JOB = { id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' };
 
 let workFolder: string;
 
@@ -181,6 +184,10 @@ class LinkJobsHarness {
   readonly savedSources: LinkSongSource[][] = [];
   addons: InstalledAddon[] = [buildInstalledAddon({ baseUrl: ADDON_URL, manifest: OPEN_AUDIO_LINKS, consentedAt: '2026-11-21T10:00:00.000Z' })];
   signOutCount = 0;
+  /** The library songs install jobs asked for, in order. */
+  readonly installedSongIds: string[] = [];
+  /** Stands for the app's sync and its check of the game folder: installed unless a test says otherwise. */
+  installSong: (vaultSongId: string) => Promise<SiteSongInstallResult> = () => Promise.resolve({ kind: 'installed' });
   readonly linkJobs: SiteLinkJobs;
   private isLinked = true;
 
@@ -209,6 +216,10 @@ class LinkJobsHarness {
       onSignedOut: () => {
         this.signOutCount += 1;
         this.isLinked = false;
+      },
+      installSong: ({ vaultSongId }) => {
+        this.installedSongIds.push(vaultSongId);
+        return this.installSong(vaultSongId);
       },
     });
   }
@@ -266,13 +277,13 @@ describe('presence', () => {
     const harness = new LinkJobsHarness();
     harness.linkJobs.start();
     await waitUntil(() => harness.site.presences.length === 1);
-    expect(harness.site.presences[0]).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, linkAddons: [{ id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }] });
+    expect(harness.site.presences[0]).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, linkAddons: [{ id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }] });
     await harness.clock.advance(30_000);
     await waitUntil(() => harness.site.presences.length === 2);
     harness.addons = harness.addons.map((addon) => ({ ...addon, isEnabled: false }));
     harness.linkJobs.handleAddonsChange();
     await waitUntil(() => harness.site.presences.length === 3);
-    expect(harness.site.presences[2]).toMatchObject({ linkJobs: 1, linkAddons: [] });
+    expect(harness.site.presences[2]).toMatchObject({ linkJobs: 1, installJobs: 1, linkAddons: [] });
     harness.linkJobs.handleAddonsChange();
     await waitBriefly();
     expect(harness.site.presences).toHaveLength(3);
@@ -480,6 +491,75 @@ describe('music jobs', () => {
     expect(harness.site.answers.slice(1).map(({ answer }) => answer)).toEqual([{ status: 'failed', reason: 'It’s longer than 8 minutes.' }, { status: 'failed', reason: 'Open Audio Links is turned off in Sync.' }]);
     expect(harness.site.uploads).toEqual([]);
     await waitForMusicJobFoldersToGo();
+  });
+});
+
+describe('install jobs', () => {
+  it('install the library song with a sync and answer installed', async () => {
+    const harness = new LinkJobsHarness();
+    harness.linkJobs.start();
+    harness.site.queueJob(INSTALL_JOB);
+    await waitUntil(() => harness.site.answers.length === 1);
+    expect(harness.installedSongIds).toEqual(['song_42']);
+    expect(harness.site.answers).toEqual([{ jobId: 'lj_9', answer: { status: 'installed' } }]);
+    expect(harness.hasLog('[link-jobs] install lj_9: installed')).toBe(true);
+  });
+
+  it('answer failed with Sync’s own reason when the song didn’t reach the game, or when the install broke', async () => {
+    const harness = new LinkJobsHarness();
+    const results: Promise<SiteSongInstallResult>[] = [Promise.resolve({ kind: 'failed', reason: 'Sync couldn’t find this song’s music in your music folders or through your addons.' }), Promise.reject(new Error('C:\\Users\\Noa\\Songs is gone.'))];
+    harness.installSong = () => results.shift() ?? Promise.resolve({ kind: 'installed' });
+    harness.linkJobs.start();
+    harness.site.queueJob(INSTALL_JOB);
+    harness.site.queueJob({ ...INSTALL_JOB, id: 'lj_10' });
+    await waitUntil(() => harness.site.answers.length === 2);
+    expect(harness.site.answers).toEqual([
+      { jobId: 'lj_9', answer: { status: 'failed', reason: 'Sync couldn’t find this song’s music in your music folders or through your addons.' } },
+      { jobId: 'lj_10', answer: { status: 'failed', reason: 'Sync couldn’t put the song in your game. Try again.' } },
+    ]);
+  });
+
+  it('drop the answer when the site says the job is over (410)', async () => {
+    const harness = new LinkJobsHarness();
+    harness.site.endedJobIds.add('lj_9');
+    harness.linkJobs.start();
+    harness.site.queueJob(INSTALL_JOB);
+    await waitUntil(() => harness.hasLog('[link-jobs] install lj_9: installed, too late'));
+    await waitBriefly();
+    expect(harness.site.answers).toEqual([{ jobId: 'lj_9', answer: { status: 'installed' } }]);
+    expect(harness.installedSongIds).toEqual(['song_42']);
+  });
+
+  it('still take and answer link jobs while an install runs', async () => {
+    const harness = new LinkJobsHarness();
+    let finishInstall: (result: SiteSongInstallResult) => void = () => undefined;
+    harness.installSong = () => new Promise((resolve) => { finishInstall = resolve; });
+    harness.linkJobs.start();
+    harness.site.queueJob(INSTALL_JOB);
+    await waitUntil(() => harness.installedSongIds.length === 1);
+    harness.site.queueJob(FIND_JOB);
+    await waitUntil(() => harness.site.answers.length === 1);
+    expect(harness.site.answers[0]).toMatchObject({ jobId: 'lj_1', answer: { status: 'found' } });
+    finishInstall({ kind: 'installed' });
+    await waitUntil(() => harness.site.answers.length === 2);
+    expect(harness.site.answers[1]).toEqual({ jobId: 'lj_9', answer: { status: 'installed' } });
+  });
+
+  it('run one install at a time, as each one is a whole sync', async () => {
+    const harness = new LinkJobsHarness();
+    const finishInstalls: (() => void)[] = [];
+    harness.installSong = () => new Promise((resolve) => { finishInstalls.push(() => { resolve({ kind: 'installed' }); }); });
+    harness.linkJobs.start();
+    harness.site.queueJob(INSTALL_JOB);
+    harness.site.queueJob({ ...INSTALL_JOB, id: 'lj_10', songId: 'song_43' });
+    await waitUntil(() => finishInstalls.length === 1);
+    await waitBriefly();
+    expect(harness.installedSongIds).toEqual(['song_42']);
+    finishInstalls[0]?.();
+    await waitUntil(() => finishInstalls.length === 2);
+    finishInstalls[1]?.();
+    await waitUntil(() => harness.site.answers.length === 2);
+    expect(harness.installedSongIds).toEqual(['song_42', 'song_43']);
   });
 });
 

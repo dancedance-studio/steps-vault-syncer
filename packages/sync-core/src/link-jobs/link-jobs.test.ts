@@ -37,6 +37,7 @@ describe('presence', () => {
       computerName: 'LIVING-ROOM',
       appVersion: '0.2.0',
       linkJobs: 1,
+      installJobs: 1,
       linkAddons: [
         { id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] },
         { id: 'media-links', name: 'Media Links', label: 'Clip link', placeholder: '', sites: ['media.example.org'] },
@@ -45,7 +46,7 @@ describe('presence', () => {
   });
 
   it('still says it takes link jobs with no link addon on, and says leaving only on quit', () => {
-    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: searchOnly })], isLeaving: false })).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, linkAddons: [] });
+    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: searchOnly })], isLeaving: false })).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, linkAddons: [] });
     expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons, isLeaving: true }).leaving).toBe(true);
   });
 
@@ -58,9 +59,10 @@ describe('presence', () => {
 });
 
 describe('reading link jobs', () => {
-  it('reads find and music jobs as the site sends them', () => {
+  it('reads find, music and install jobs as the site sends them', () => {
     expect(parseLinkJobOrNull({ id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/night-drive', expiresAt: '2026-11-21T12:00:20.000Z' })).toEqual({ id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/night-drive', expiresAt: '2026-11-21T12:00:20.000Z' });
     expect(parseLinkJobOrNull({ id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' })).toEqual({ id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' });
+    expect(parseLinkJobOrNull({ id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' })).toEqual({ id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' });
   });
 
   it.each([
@@ -68,6 +70,7 @@ describe('reading link jobs', () => {
     [{ kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/a' }],
     [{ id: 'lj_4', kind: 'find', addonId: 'open-audio-links' }],
     [{ id: 'lj_5', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1' }],
+    [{ id: 'lj_8', kind: 'install', addonId: 'open-audio-links' }],
     [{ id: 'lj\n6', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/a' }],
     [{ id: 'x'.repeat(201), kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/a' }],
     ['lj_7'],

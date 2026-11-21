@@ -194,6 +194,9 @@ for this.
 - While the addon answers `202`, Sync keeps asking it as its own tab does, for up to 3 minutes, and tells the website
   every 5 seconds that it is still working, so the find stays open. An addon that gives no answer at all for 18
   seconds, or is still working after 3 minutes, gets nothing sent back for it: the website says it isn't answering.
+- "Into my game" on the website puts a song that is already in the player's library into their game now. Sync runs a
+  sync, which asks the addons for the song's music and video with `/audio-links`, as for any library song, and syncs
+  again while an addon answers `202`. Then it tells the website whether the music reached the game, or why not.
 
 ## A minimal addon (Node)
 
