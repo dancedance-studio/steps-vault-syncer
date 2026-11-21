@@ -83,6 +83,7 @@ describe('GeneratorsScreen', () => {
     const confirmDialog = screen.getByRole('dialog', { name: 'Add “Beatsmith”?' });
     const gets = within(within(confirmDialog).getByRole('group', { name: 'What this generator gets' })).getAllByRole('listitem').map((item) => item.textContent);
     expect(gets).toEqual([...GENERATOR_GETS, GENERATOR_NEVER_GETS]);
+    expect(GENERATOR_GETS[1]).toBe('the song’s facts: title, artist, album, genre, length and the song’s video link.');
     expect(within(confirmDialog).getByRole('note').textContent).toBe('Your music file will be sent to https://gen.beatsmith.example.');
     fireEvent.click(within(confirmDialog).getByRole('button', { name: 'Add' }));
     expect(props.onLookUpGenerator).toHaveBeenCalledWith({ address: 'https://gen.beatsmith.example', startCommand: null });

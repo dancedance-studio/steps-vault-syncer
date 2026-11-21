@@ -109,7 +109,7 @@ describe('AudioSourcesScreen', () => {
     const consent = within(consentDialog).getByLabelText('What this addon will see');
     const seenItems = within(consent).getAllByRole('listitem').map((item) => item.textContent);
     expect(seenItems).toEqual([ADDON_VISIBLE_SONG_FACTS, ADDON_NEVER_SEES]);
-    expect(ADDON_VISIBLE_SONG_FACTS).toBe('title, artist, album, genre, length, and the song’s YouTube link.');
+    expect(ADDON_VISIBLE_SONG_FACTS).toBe('title, artist, album, genre, length, and the song’s video link.');
     expect(consentDialog.textContent).toContain('by hyperpad');
     expect(consentDialog.textContent).toContain('Only install addons you trust.');
     expect(props.onInstallAddon).not.toHaveBeenCalled();
