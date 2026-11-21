@@ -206,7 +206,8 @@ function buildVideoFactsOrNull({ choice, lengthSec }: { choice: Pick<SongSourceC
   return { videoId, title: choice.song.title, channel: choice.song.artist, lengthSec };
 }
 
-function getPlainReasonOrNull(text: string | null): string | null {
+/** A reason for the site to show: plain text, at most 140 characters; null when there is none. */
+export function getPlainReasonOrNull(text: string | null): string | null {
   const plainText = (text ?? '').replace(HIDDEN_CHARACTERS_PATTERN, ' ').replace(/\s+/g, ' ').trim();
   return plainText === '' ? null : Array.from(plainText).slice(0, MAX_REASON_LENGTH).join('').trim();
 }
