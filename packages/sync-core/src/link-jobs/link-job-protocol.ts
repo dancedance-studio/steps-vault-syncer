@@ -90,6 +90,11 @@ export type LinkJobAnswer =
   | { status: 'notfound'; reason?: string }
   /** The addon is no longer on. */
   | { status: 'gone' }
+  /**
+   * Not an answer yet: the addon is still getting the song (it answers 202), so the site keeps the find open. Sync sends
+   * it every 5 s while that lasts; a 410 means the player stopped the find, and Sync stops asking the addon.
+   */
+  | { status: 'working' }
   /** Sent instead of the audio, with why there is none. */
   | { status: 'failed'; reason: string };
 
