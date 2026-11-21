@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   getFileNameFacts,
   getMusicFileFacts,
+  getSongSourceInputValues,
   InvalidSongSourceInputError,
   MAX_GENERATOR_MUSIC_BYTES,
   MAX_GENERATOR_VIDEO_BYTES,
@@ -15,6 +16,7 @@ import {
   type HttpClient,
   type InstalledAddon,
   type MusicIndex,
+  type SongMusicSource,
   type SongSourceFileLink,
   type SongSourceSong,
 } from '@stepsvault/sync-core';
@@ -32,7 +34,7 @@ const KNOWN_VIDEO_EXTENSIONS = new Set(['mp4', 'm4v']);
 /** Music the player picked: a file on this computer, or a song a song source found (downloaded only when it is made). */
 type MusicChoice =
   | { kind: 'file'; filePath: string; title: string; artist: string }
-  | { kind: 'song-source'; addonName: string; song: SongSourceSong; musicLink: SongSourceFileLink; videoLink: SongSourceFileLink | null };
+  | { kind: 'song-source'; source: SongMusicSource; song: SongSourceSong; musicLink: SongSourceFileLink; videoLink: SongSourceFileLink | null };
 
 /** What the platform does for the Make a song page: decode, convert, download. */
 export interface MakeSongMusicPorts {
@@ -52,6 +54,8 @@ export interface PreparedMusic {
   /** The music and video that go into the game: the player's own file, or the song source's download. */
   playerMusicLocation: string;
   playerVideoLocation: string | null;
+  /** The addon that found the music and the link the player typed; null for the player's own files. */
+  source: SongMusicSource | null;
 }
 
 /**
@@ -89,8 +93,9 @@ export class MakeSongMusic {
   async findSong({ addon, valuesByInputId }: { addon: InstalledAddon; valuesByInputId: Readonly<Record<string, string>> }): Promise<SongSourceSearchResult> {
     this.isSongSearchStopped = false;
     try {
+      const source = buildSongMusicSource({ addon, valuesByInputId });
       const result = await waitForSongSource({ httpClient: this.ports.httpClient, addon, valuesByInputId, waitSeconds: (seconds) => this.waitUnlessStopped(seconds), shouldStop: () => this.isSongSearchStopped });
-      if (result.kind === 'found') return { kind: 'found', musics: result.choices.map((choice) => this.addSongSourceChoice({ addonName: addon.manifest.name, ...choice })) };
+      if (result.kind === 'found') return { kind: 'found', musics: result.choices.map((choice) => this.addSongSourceChoice({ source, ...choice })) };
       if (result.kind === 'not-found') return { kind: 'not-found', message: result.addonError };
       return result;
     } catch (error) {
@@ -116,6 +121,7 @@ export class MakeSongMusic {
       video: files.videoPath === null ? null : await this.buildUploadFile({ filePath: files.videoPath, contentType: 'video/mp4' }),
       playerMusicLocation: files.musicPath,
       playerVideoLocation: files.videoPath,
+      source: choice.kind === 'song-source' ? choice.source : null,
     };
   }
 
@@ -124,10 +130,10 @@ export class MakeSongMusic {
     return { musicId, title, artist, sourceText, lengthText: null, hasVideo: false };
   }
 
-  private addSongSourceChoice({ addonName, song, musicLink, videoLink }: { addonName: string; song: SongSourceSong; musicLink: SongSourceFileLink; videoLink: SongSourceFileLink | null }): MusicChoiceView {
+  private addSongSourceChoice({ source, song, musicLink, videoLink }: { source: SongMusicSource; song: SongSourceSong; musicLink: SongSourceFileLink; videoLink: SongSourceFileLink | null }): MusicChoiceView {
     const musicId = `found:${randomUUID()}`;
-    this.choicesById.set(musicId, { kind: 'song-source', addonName, song, musicLink, videoLink });
-    return { musicId, title: song.title, artist: song.artist, sourceText: `From ${addonName}`, lengthText: song.lengthSeconds === null ? null : formatLength(song.lengthSeconds), hasVideo: videoLink !== null };
+    this.choicesById.set(musicId, { kind: 'song-source', source, song, musicLink, videoLink });
+    return { musicId, title: song.title, artist: song.artist, sourceText: `From ${source.addonName}`, lengthText: song.lengthSeconds === null ? null : formatLength(song.lengthSeconds), hasVideo: videoLink !== null };
   }
 
   /** Song-source files are trusted without a sound check (addons.md): there is nothing to compare a new song with. */
@@ -163,6 +169,17 @@ export class MakeSongMusic {
       await this.ports.waitMilliseconds(STOP_CHECK_EVERY_MILLISECONDS);
     }
   }
+}
+
+/**
+ * The addon and the checked link the player typed (the first link field filled), kept with the song. Throws
+ * InvalidSongSourceInputError like the call itself. Sync reads nothing out of the link: the song's facts, a video id
+ * among them, come only from the addon's answer.
+ */
+function buildSongMusicSource({ addon, valuesByInputId }: { addon: InstalledAddon; valuesByInputId: Readonly<Record<string, string>> }): SongMusicSource {
+  const inputValues = getSongSourceInputValues({ inputs: addon.manifest.inputs, valuesByInputId });
+  const linkInput = addon.manifest.inputs.find((input) => input.kind === 'link' && inputValues[input.id] !== undefined);
+  return { addonId: addon.manifest.id, addonName: addon.manifest.name, link: linkInput ? (inputValues[linkInput.id] ?? null) : null };
 }
 
 function buildSongFacts({ choice, lengthSeconds }: { choice: MusicChoice; lengthSeconds: number }): GeneratorSongFacts {

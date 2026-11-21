@@ -4,7 +4,7 @@ import type { GeneratedSongFiles } from '../generators/generator-files';
 import type { GeneratorSongFacts } from '../generators/generator-protocol';
 import type { VaultSongIdentity } from '../generators/generated-song-identity';
 import type { PlainPictureRequest } from '../generators/song-pictures';
-import { getGeneratedSongs } from '../ownership/generated-songs';
+import { getGeneratedSongMusicSource, getGeneratedSongs, type GeneratedSong } from '../ownership/generated-songs';
 import { buildEmptyInstalledSongsRecord, type InstalledSongsRecord } from '../ownership/installed-songs';
 import { SONG_FOLDER_MARKER_FILE_NAME } from '../ownership/song-folder-marker';
 import { MemorySongsFolder } from '../songs-folder/memory-songs-folder';
@@ -267,5 +267,16 @@ describe('a generated song that is also in the vault', () => {
   it('still refuses a broken song file before asking anything', async () => {
     const game = new GeneratedSongGame();
     expect(await getRejection(game.write({ vaultSongs: VAULT_SONGS, files: { chartText: buildSongSsc({ header: { OFFSET: null } }) } }))).toMatchObject({ reason: 'missing-offset' });
+  });
+});
+
+describe('getGeneratedSongMusicSource', () => {
+  const SONG: GeneratedSong = { songKey: 'song:a', song: PULSE_GARDEN, generatorId: 'tap', generatorVersion: '1.0.0', generatorName: 'Tap Forge', difficulties: ['Easy'], installId: 'i1', folderPath: ['My generated songs', 'Pulse Garden'], inPlaceOfVaultSongId: null, generatedAt: '2026-10-21T10:00:00.000Z' };
+
+  it('gives where the music came from, and null for songs saved before Sync kept it or with a broken one', () => {
+    const source = { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' };
+    expect(getGeneratedSongMusicSource({ ...SONG, source })).toEqual(source);
+    expect(getGeneratedSongMusicSource(SONG)).toBeNull();
+    expect(getGeneratedSongMusicSource(JSON.parse(JSON.stringify({ ...SONG, source: { link: 'x' } })) as GeneratedSong)).toBeNull();
   });
 });

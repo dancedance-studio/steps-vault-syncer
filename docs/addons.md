@@ -168,6 +168,10 @@ isn't 11 characters becomes `null`. The first music link is used; `open-page` li
 There is nothing to compare a new song with, so Sync trusts the files a song source returns; the player chose the
 addon.
 
+Sync keeps which addon found the music, and the link the player typed (none for a search), with the made song, for
+"How it was made". It keeps them on the player's computer only and doesn't send them to dancedance.studio. Sync never
+reads anything out of the link itself: the song's facts, `youtubeId` among them, come only from the addon's answer.
+
 ## A minimal addon (Node)
 
 ```js

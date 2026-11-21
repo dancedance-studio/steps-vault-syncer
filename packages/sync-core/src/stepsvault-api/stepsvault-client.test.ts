@@ -171,9 +171,9 @@ describe('reportComputerSongs', () => {
 });
 
 describe('buildComputerSongReports', () => {
-  it('lists the generated songs newest first, with the facts the site shows, and at most 500', () => {
+  it('lists the generated songs newest first, with the facts the site shows (never where the music came from), and at most 500', () => {
     const older = { songKey: 'song:a', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null }, generatorId: 'tap', generatorVersion: '1.0.0', generatorName: 'Tap Forge', difficulties: ['Easy' as const], installId: 'i1', folderPath: buildSongsPath('My generated songs', 'Night Drive'), inPlaceOfVaultSongId: null, generatedAt: '2026-10-21T10:00:00.000Z' };
-    const newer = { ...older, songKey: 'song:b', song: { ...older.song, title: 'Low Tide' }, generatedAt: '2026-10-24T10:00:00.000Z' };
+    const newer = { ...older, songKey: 'song:b', song: { ...older.song, title: 'Low Tide' }, source: { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' }, generatedAt: '2026-10-24T10:00:00.000Z' };
     expect(buildComputerSongReports([older, newer])).toEqual([
       { localId: 'song:b', title: 'Low Tide', artistName: 'Lumen Park', generatorName: 'Tap Forge', difficulties: ['Easy'], madeAt: '2026-10-24T10:00:00.000Z' },
       { localId: 'song:a', title: 'Night Drive', artistName: 'Lumen Park', generatorName: 'Tap Forge', difficulties: ['Easy'], madeAt: '2026-10-21T10:00:00.000Z' },

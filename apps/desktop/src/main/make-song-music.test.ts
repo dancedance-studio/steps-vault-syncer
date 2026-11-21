@@ -48,7 +48,7 @@ describe('MakeSongMusic', () => {
     const music = makeSongMusic.addPickedFile(filePath);
     expect(music).toMatchObject({ title: 'Night Drive', artist: 'Lumen Park', sourceText: 'Lumen Park - Night Drive.mp3' });
     const prepared = await makeSongMusic.prepareMusic({ musicId: music.musicId, manifest: MANIFEST, jobFolder });
-    expect(prepared).toMatchObject({ song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 201, youtubeId: null }, music: { fileName: 'Lumen Park - Night Drive.mp3', contentType: 'audio/mpeg', bytes: 9 }, video: null, playerMusicLocation: filePath });
+    expect(prepared).toMatchObject({ song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 201, youtubeId: null }, music: { fileName: 'Lumen Park - Night Drive.mp3', contentType: 'audio/mpeg', bytes: 9 }, video: null, playerMusicLocation: filePath, source: null });
   });
 
   it('converts a file to WAV for a generator that takes WAV but not its type, and refuses when it takes neither', async () => {
@@ -118,6 +118,35 @@ describe('MakeSongMusic', () => {
     expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://clips.example/watch?v=abc123' } })).toEqual({ kind: 'not-found', message: 'That clip is private.' });
     expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://clips.example/watch?v=abc123' } })).toMatchObject({ kind: 'not-answering' });
     expect(requestedUrls).toEqual(['http://127.0.0.1:7802/song-source', 'http://127.0.0.1:7802/song-source']);
+  });
+
+  it('keeps the link addon and the checked link with the music, and takes the video id only from the addon’s answer', async () => {
+    const answers: HttpResponse<unknown>[] = [
+      { status: 200, body: { song: { title: 'Night Drive', artist: 'Lumen Park', youtubeId: 'Vid3o1d-x_Z' }, links: [{ kind: 'file-url', url: 'https://files.example.org/a.ogg', label: 'Music', fileName: null }] } },
+      { status: 200, body: { song: { title: 'Night Drive', artist: 'Lumen Park' }, links: [{ kind: 'file-url', url: 'https://files.example.org/b.ogg', label: 'Music', fileName: null }] } },
+    ];
+    const httpClient: HttpClient = { requestJson: () => Promise.resolve(answers.shift() ?? { status: 500, body: {} }), requestText: () => Promise.reject(new Error('Not used.')), requestBytes: () => Promise.reject(new Error('Not used.')) };
+    const { makeSongMusic } = buildMakeSongMusic({ httpClient });
+    const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7802', manifest: OPEN_AUDIO_LINKS, consentedAt: '' });
+    const source = { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' };
+    for (const youtubeId of ['Vid3o1d-x_Z', null]) {
+      const result = await makeSongMusic.findSong({ addon, valuesByInputId: { link: ' https://clips.example/watch?v=abc123 ' } });
+      if (result.kind !== 'found') throw new Error(`Expected a song, got ${result.kind}.`);
+      const prepared = await makeSongMusic.prepareMusic({ musicId: result.musics[0]?.musicId ?? '', manifest: MANIFEST, jobFolder });
+      expect(prepared).toMatchObject({ song: { title: 'Night Drive', youtubeId }, source });
+    }
+  });
+
+  it('keeps no link for a search addon, only which addon found the music', async () => {
+    const answer: HttpResponse<unknown> = { status: 200, body: { song: { title: 'Night Drive', artist: 'Lumen Park' }, links: [{ kind: 'file-url', url: 'https://files.example.org/a.ogg', label: 'Music', fileName: null }] } };
+    const httpClient: HttpClient = { requestJson: () => Promise.resolve(answer), requestText: () => Promise.reject(new Error('Not used.')), requestBytes: () => Promise.reject(new Error('Not used.')) };
+    const { makeSongMusic } = buildMakeSongMusic({ httpClient });
+    const songScout: AddonManifest = { ...OPEN_AUDIO_LINKS, id: 'song.scout', name: 'Song Scout', inputs: [{ id: 'title', kind: 'search', label: 'Title', placeholder: null }] };
+    const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7803', manifest: songScout, consentedAt: '' });
+    const result = await makeSongMusic.findSong({ addon, valuesByInputId: { title: 'Night Drive' } });
+    if (result.kind !== 'found') throw new Error(`Expected a song, got ${result.kind}.`);
+    const prepared = await makeSongMusic.prepareMusic({ musicId: result.musics[0]?.musicId ?? '', manifest: MANIFEST, jobFolder });
+    expect(prepared.source).toEqual({ addonId: 'song.scout', addonName: 'Song Scout', link: null });
   });
 
   it('stops asking a link addon that is still working when the player presses Stop', async () => {

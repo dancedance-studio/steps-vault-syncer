@@ -22,6 +22,7 @@ import {
   type MultipartHttpClient,
   type SavedGeneratorJob,
   type SiteSongRequest,
+  type SongMusicSource,
   type VaultSongChoice,
 } from '@stepsvault/sync-core';
 
@@ -76,6 +77,8 @@ export interface GeneratorJobStart {
   playerMusicLocation: string;
   playerVideoLocation: string | null;
   siteRequest: SiteSongRequest | null;
+  /** Where the music came from, kept with the job and the made song; null for the player's own files. */
+  source: SongMusicSource | null;
 }
 
 /**
@@ -116,7 +119,7 @@ export class GeneratorJobRunner {
     await this.saveJob({
       jobKey: start.jobKey, generatorBaseUrl: start.generatorBaseUrl, generatorId: manifest.id, generatorName: jobGenerator.isStepsVault ? 'dancedance.studio generator' : manifest.name, generatorVersion: manifest.version, isStepsVault: jobGenerator.isStepsVault,
       jobId: null, song: start.song, difficulties: [...start.difficulties], state: 'sending', progress: null, stage: null, retryAfterSeconds: 10, message: null, vaultChoice: null, result: null,
-      playerMusicLocation: start.playerMusicLocation, playerVideoLocation: start.playerVideoLocation, collectedFilesLocation: null, siteRequest: start.siteRequest, startedAt: now, updatedAt: now,
+      playerMusicLocation: start.playerMusicLocation, playerVideoLocation: start.playerVideoLocation, collectedFilesLocation: null, siteRequest: start.siteRequest, source: start.source, startedAt: now, updatedAt: now,
     });
     void this.runOrFail({ jobKey: start.jobKey, work: () => this.sendAndFinish({ start, jobGenerator }) });
   }
@@ -228,6 +231,7 @@ export class GeneratorJobRunner {
     const request: GeneratedSongRequest = {
       generator: { id: job.generatorId, name: job.generatorName, version: job.generatorVersion }, song: job.song, difficulties: job.difficulties, files,
       playerMusicSourceId: this.dependencies.registerPlayerFile(job.playerMusicLocation), playerVideoSourceId: job.playerVideoLocation === null ? null : this.dependencies.registerPlayerFile(job.playerVideoLocation),
+      source: job.source,
     };
     const result = await this.dependencies.writeSong({ request, vaultSongChoice });
     if (result.kind === 'needs-vault-choice') {

@@ -1,4 +1,5 @@
 import { GENERATOR_DIFFICULTIES, type GeneratorDifficulty, type GeneratorSongFacts } from './generator-protocol';
+import { loadSongMusicSourceOrNull, type SongMusicSource } from './song-music-source';
 
 // Finished jobs stay listed for a while so the player sees how they ended; older ones are dropped.
 const MAX_FINISHED_JOBS = 20;
@@ -54,6 +55,8 @@ export interface SavedGeneratorJob {
   /** Where the platform keeps the files of a finished job until the song is written; opaque to the core. */
   collectedFilesLocation: string | null;
   siteRequest: SiteSongRequest | null;
+  /** The addon that found the music, and the link the player typed; null for the player's own files. */
+  source: SongMusicSource | null;
   startedAt: string;
   updatedAt: string;
 }
@@ -114,6 +117,7 @@ function loadSavedGeneratorJobOrNull(value: unknown): SavedGeneratorJob | null {
     playerVideoLocation: getTextOrNull(value.playerVideoLocation),
     collectedFilesLocation: getTextOrNull(value.collectedFilesLocation),
     siteRequest: loadSiteSongRequestOrNull(value.siteRequest),
+    source: loadSongMusicSourceOrNull(value.source),
     startedAt: value.startedAt as string,
     updatedAt: value.updatedAt as string,
   };
