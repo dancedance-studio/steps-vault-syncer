@@ -1,15 +1,21 @@
-import { getLinkSitesText, getSongSourceInputValues, InvalidSongSourceInputError, type SongSourceInput } from '@stepsvault/sync-core';
+import { getCheckedSongSourceInputValue, getLinkSitesText, getLinkSourceSite, getSongSourceInputValues, InvalidSongSourceInputError, type SongSourceInput } from '@stepsvault/sync-core';
 import { useEffect, useRef, useState, type SubmitEvent, type KeyboardEvent, type ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
 import { MissLine } from '../shared/miss-line';
 import { ReceptorLoader } from '../shared/receptor-loader';
-import type { MusicChoiceView, PreselectedSongView, SongSourceSearchRequest, SongSourceSearchResult, SongSourceTabView } from '../sync-ui-types';
+import type { LinksTabView, MusicChoiceView, PreselectedSongView, SongSourceSearchRequest, SongSourceSearchResult, SongSourceTabView } from '../sync-ui-types';
+import { findLinkFieldForLink } from '../views/build-addon-views';
 
 const MY_FILES_TAB_ID = 'my-files';
 const MUSIC_FOLDERS_TAB_ID = 'music-folders';
+const LINKS_TAB_ID = 'links';
+const SONG_LINK_INPUT_ID = 'song-link';
 
 export interface MusicSources {
+  /** One tab for every link addon that is on; null when none is. */
+  linksTab: LinksTabView | null;
+  /** One tab for each addon with search fields, after Links. */
   songSourceTabs: readonly SongSourceTabView[];
   /** Opens the platform's own file picker; null when the player closed it. */
   onChooseMusicFile: () => Promise<MusicChoiceView | null>;
@@ -29,12 +35,17 @@ export interface MusicStepProps extends MusicSources {
   preselectedSong?: PreselectedSongView | null;
 }
 
-/** "Get music from": the player's files, their music folders, and one tab per song source. */
+/** "Get music from": the player's files, their music folders, links, then one tab per search addon. */
 export function MusicTabs(props: MusicStepProps): ReactElement {
-  const tabs = [{ tabId: MY_FILES_TAB_ID, label: 'My files' }, { tabId: MUSIC_FOLDERS_TAB_ID, label: 'My music folders' }, ...props.songSourceTabs.map((tab) => ({ tabId: `addon-${tab.addonId}`, label: tab.name }))];
+  const tabs = [
+    { tabId: MY_FILES_TAB_ID, label: 'My files' },
+    { tabId: MUSIC_FOLDERS_TAB_ID, label: 'My music folders' },
+    ...(props.linksTab ? [{ tabId: LINKS_TAB_ID, label: 'Links' }] : []),
+    ...props.songSourceTabs.map((tab) => ({ tabId: `addon-${tab.addonId}`, label: tab.name })),
+  ];
   const [chosenTabId, setChosenTabId] = useState(props.preselectedSong ? MUSIC_FOLDERS_TAB_ID : MY_FILES_TAB_ID);
   const tabListRef = useRef<HTMLDivElement>(null);
-  // An addon turned off or removed while its tab is open takes its tab away: My files shows instead, quietly.
+  // A tab whose addon (or last link addon) is turned off or removed while it is open goes away: My files shows instead, quietly.
   const isChosenTabShown = tabs.some((tab) => tab.tabId === chosenTabId);
   const selectedTabId = isChosenTabShown ? chosenTabId : MY_FILES_TAB_ID;
   useEffect(() => {
@@ -64,6 +75,7 @@ export function MusicTabs(props: MusicStepProps): ReactElement {
       <div id="sv-sync-music-tab-panel" className="sv-sync-tab-panel" role="tabpanel" aria-labelledby={`sv-sync-tab-${selectedTabId}`}>
         {selectedTabId === MY_FILES_TAB_ID && <MyFilesTab {...props} />}
         {selectedTabId === MUSIC_FOLDERS_TAB_ID && <MusicFoldersTab {...props} />}
+        {selectedTabId === LINKS_TAB_ID && props.linksTab && <LinksTab {...props} links={props.linksTab} />}
         {songSourceTab && <SongSourceTab key={songSourceTab.addonId} tab={songSourceTab} {...props} />}
       </div>
     </div>
@@ -174,11 +186,66 @@ type SearchState =
   | { kind: 'not-found'; addonMessage: string }
   | { kind: 'not-answering' };
 
+/** What a finder's lines call whoever is asked: a search addon by its name, or "your link addon". */
+interface FinderWords {
+  seesWhatYouType: string;
+  asking: string;
+  didNotFind: string;
+  isNotAnswering: string;
+}
+
+/** What was typed, checked: the request to send, or the problem to show under a field. */
+type FinderCheck =
+  /** sourceText: what each found song shows as where it comes from, instead of the platform's own text; null keeps that. */
+  | { kind: 'request'; request: SongSourceSearchRequest; sourceText: string | null }
+  | { kind: 'problem'; inputId: string; message: string };
+
+interface SongFinderProps extends MusicStepProps {
+  inputs: readonly SongSourceInput[];
+  words: FinderWords;
+  /** Runs before anything is sent, so what breaks a field's rules never reaches an addon. */
+  checkInput: (valuesByInputId: Readonly<Record<string, string>>) => FinderCheck;
+}
+
+const LINK_ADDON_WORDS: FinderWords = { seesWhatYouType: 'Your link addon sees the link.', asking: 'Asking your link addon…', didNotFind: 'Your link addon didn’t find this song.', isNotAnswering: 'Your link addon isn’t answering.' };
+
 /**
- * An addon's tab: its fields, checked here before anything is sent; then the songs it found (one goes straight to
- * "Is this the song?", several are a list to pick from) to check and use. A link field names the sites it takes, and a link from any other site never reaches the addon.
+ * Links: one field for every link addon that is on. The link is checked against all their sites together, then goes to
+ * the first addon, in the player's order, whose sites take it; a found song shows the link's site as where it comes from.
  */
-function SongSourceTab({ tab, onPickMusic, onUseMusic, onFindSong, onStopFindingSong }: MusicStepProps & { tab: SongSourceTabView }): ReactElement {
+function LinksTab({ links, ...props }: MusicStepProps & { links: LinksTabView }): ReactElement {
+  const songLinkInput: SongSourceInput = { id: SONG_LINK_INPUT_ID, kind: 'link', label: 'Song link', placeholder: 'https://…', sites: links.sites };
+  return <SongFinder {...props} inputs={[songLinkInput]} words={LINK_ADDON_WORDS} checkInput={(valuesByInputId) => checkSongLink({ links, input: songLinkInput, value: valuesByInputId[SONG_LINK_INPUT_ID] ?? '' })} />;
+}
+
+function checkSongLink({ links, input, value }: { links: LinksTabView; input: SongSourceInput; value: string }): FinderCheck {
+  try {
+    const link = getCheckedSongSourceInputValue({ input, value });
+    // The check takes only links on the addons' sites together, so one of the addons takes this one.
+    const linkField = findLinkFieldForLink({ linksTab: links, link });
+    if (!linkField) return { kind: 'problem', inputId: input.id, message: 'That site isn’t allowed here.' };
+    return { kind: 'request', request: { addonId: linkField.addonId, valuesByInputId: { [linkField.inputId]: link } }, sourceText: getLinkSourceSite({ link, sites: linkField.sites }) };
+  } catch (error) {
+    if (error instanceof InvalidSongSourceInputError) return { kind: 'problem', inputId: error.inputId, message: error.message };
+    throw error;
+  }
+}
+
+/** A search addon's own tab: its search fields, and its name in every line. */
+function SongSourceTab({ tab, ...props }: MusicStepProps & { tab: SongSourceTabView }): ReactElement {
+  const words = { seesWhatYouType: `${tab.name} sees what you type.`, asking: `Asking ${tab.name}…`, didNotFind: `${tab.name} didn’t find this song.`, isNotAnswering: `${tab.name} isn’t answering.` };
+  const checkInput = (valuesByInputId: Readonly<Record<string, string>>): FinderCheck => {
+    const problem = getFirstInputProblemOrNull({ inputs: tab.inputs, valuesByInputId });
+    return problem ? { kind: 'problem', ...problem } : { kind: 'request', request: { addonId: tab.addonId, valuesByInputId }, sourceText: null };
+  };
+  return <SongFinder {...props} inputs={tab.inputs} words={words} checkInput={checkInput} />;
+}
+
+/**
+ * Fields, checked here before anything is sent; then the songs found (one goes straight to "Is this the song?",
+ * several are a list to pick from) to check and use.
+ */
+function SongFinder({ inputs, words, checkInput, onPickMusic, onUseMusic, onFindSong, onStopFindingSong }: SongFinderProps): ReactElement {
   const [valuesByInputId, setValuesByInputId] = useState<Record<string, string>>({});
   const [problemsByInputId, setProblemsByInputId] = useState<Record<string, string>>({});
   const [search, setSearch] = useState<SearchState>({ kind: 'idle' });
@@ -195,18 +262,19 @@ function SongSourceTab({ tab, onPickMusic, onUseMusic, onFindSong, onStopFinding
     setProblemsByInputId((current) => ({ ...current, [input.id]: '' }));
   };
   const findSong = async (): Promise<void> => {
-    const problem = getFirstInputProblemOrNull({ inputs: tab.inputs, valuesByInputId });
-    if (problem) {
-      showProblem(problem);
+    const checked = checkInput(valuesByInputId);
+    if (checked.kind === 'problem') {
+      showProblem(checked);
       return;
     }
     setProblemsByInputId({});
     setSearch({ kind: 'asking' });
     isAskingRef.current = true;
-    const result = await onFindSong({ addonId: tab.addonId, valuesByInputId }).catch((): SongSourceSearchResult => ({ kind: 'not-answering', message: '' }));
+    const result = await onFindSong(checked.request).catch((): SongSourceSearchResult => ({ kind: 'not-answering', message: '' }));
     isAskingRef.current = false;
-    setSearch(getSearchState(result));
-    if (result.kind === 'invalid-input') showProblem(result);
+    setSearch(getSearchState({ result, sourceText: checked.sourceText }));
+    // The platform checks again with the addon's own fields; the Links field stands for all of them.
+    if (result.kind === 'invalid-input') showProblem({ inputId: inputs.some((input) => input.id === result.inputId) ? result.inputId : (inputs[0]?.id ?? result.inputId), message: result.message });
   };
   const handleSubmit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
@@ -223,13 +291,13 @@ function SongSourceTab({ tab, onPickMusic, onUseMusic, onFindSong, onStopFinding
       return;
     }
     setSearch({ kind: 'idle' });
-    const firstInput = tab.inputs[0];
+    const firstInput = inputs[0];
     if (firstInput) fieldsByInputId.current.get(firstInput.id)?.focus();
   };
   const tryAgainButton = <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => void findSong()}>Try again</button>;
   return (
     <form className="sv-sync-stack-small" onSubmit={handleSubmit} noValidate>
-      {tab.inputs.map((input) => (
+      {inputs.map((input) => (
         <SongSourceField
           key={input.id}
           input={input}
@@ -239,12 +307,12 @@ function SongSourceTab({ tab, onPickMusic, onUseMusic, onFindSong, onStopFinding
           onChange={(value) => { changeValue({ input, value }); }}
         />
       ))}
-      <span className="sv-sync-sees-line"><Icon name="eye" size={15} />{tab.name} sees what you type.</span>
+      <span className="sv-sync-sees-line"><Icon name="eye" size={15} />{words.seesWhatYouType}</span>
       {search.kind === 'asking'
-        ? <div className="sv-sync-row sv-sync-wrap" aria-live="polite"><ReceptorLoader label={`Asking ${tab.name}…`} isSmall /><button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onStopFindingSong}>Stop</button></div>
+        ? <div className="sv-sync-row sv-sync-wrap" aria-live="polite"><ReceptorLoader label={words.asking} isSmall /><button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onStopFindingSong}>Stop</button></div>
         : <button className="sv-sync-button sv-sync-align-start" type="submit"><Icon name="search" />Find the song</button>}
-      {search.kind === 'not-found' && <MissLine action={tryAgainButton}>{tab.name} didn’t find this song.{search.addonMessage === '' ? '' : ` ${search.addonMessage}`}</MissLine>}
-      {search.kind === 'not-answering' && <MissLine action={tryAgainButton}>{tab.name} isn’t answering.</MissLine>}
+      {search.kind === 'not-found' && <MissLine action={tryAgainButton}>{words.didNotFind}{search.addonMessage === '' ? '' : ` ${search.addonMessage}`}</MissLine>}
+      {search.kind === 'not-answering' && <MissLine action={tryAgainButton}>{words.isNotAnswering}</MissLine>}
       {search.kind === 'found' && search.checkedMusic === null && (
         <div className="sv-sync-pick-list" role="radiogroup" aria-label="Music found">
           {search.musics.map((music) => <MusicChoiceRow key={music.musicId} music={music} isPicked={false} onPick={(picked) => { setSearch({ ...search, checkedMusic: picked }); }} />)}
@@ -305,8 +373,11 @@ function getFirstInputProblemOrNull({ inputs, valuesByInputId }: { inputs: reado
   }
 }
 
-function getSearchState(result: SongSourceSearchResult): SearchState {
-  if (result.kind === 'found') return { kind: 'found', musics: result.musics, checkedMusic: result.musics.length === 1 ? (result.musics[0] ?? null) : null };
+function getSearchState({ result, sourceText }: { result: SongSourceSearchResult; sourceText: string | null }): SearchState {
+  if (result.kind === 'found') {
+    const musics = sourceText === null ? result.musics : result.musics.map((music) => ({ ...music, sourceText }));
+    return { kind: 'found', musics, checkedMusic: musics.length === 1 ? (musics[0] ?? null) : null };
+  }
   if (result.kind === 'not-found') return { kind: 'not-found', addonMessage: result.message };
   if (result.kind === 'not-answering') return { kind: 'not-answering' };
   return { kind: 'idle' };

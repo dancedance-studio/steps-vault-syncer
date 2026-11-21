@@ -211,6 +211,7 @@ function renderGenerators({ state, bridge }: ScreenOptions): ReactNode {
       generators={state.generators}
       jobs={state.generatorJobs}
       generatedSongs={state.generatedSongs}
+      linksTab={state.linksTab}
       songSourceTabs={state.songSourceTabs}
       canUseStartCommand
       onLookUpGenerator={(request) => bridge.lookUpGenerator(request)}

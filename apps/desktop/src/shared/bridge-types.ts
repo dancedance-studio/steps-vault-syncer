@@ -14,6 +14,7 @@ import type {
   GeneratorView,
   LayoutPreview,
   LayoutPreviewsByLayout,
+  LinksTabView,
   MakeSongRequest,
   MakeSongResult,
   MusicChoiceView,
@@ -54,7 +55,9 @@ export interface DesktopSyncState {
   addons: AddonView[];
   stepsVaultGenerator: StepsVaultGeneratorView;
   generators: GeneratorView[];
-  /** One tab on the Make a song page per song-source addon that is on. */
+  /** The Links tab on the Make a song page, for every link addon that is on; null when none is. */
+  linksTab: LinksTabView | null;
+  /** One tab on the Make a song page per search addon that is on, after Links. */
   songSourceTabs: SongSourceTabView[];
   generatorJobs: GeneratorJobView[];
   generatedSongs: GeneratedSongView[];
