@@ -134,6 +134,10 @@ In the manifest:
   list is left out; an addon whose inputs are all left out is refused.
 - The player fills in at least one input; empty ones are left out of the request, and every filled one is checked
   before Sync calls the addon. The addon sees what the player typed, and Sync's consent screen says so.
+- Under a `link` input Sync names its sites ("Works with example.com and clips.example links."). A link from any
+  other site gets "That site isn't allowed here." under the field and is never sent.
+- The tabs of addons with a `link` input come first, then those with only `search` inputs. A song source's tab is
+  there only while the addon is on, and only in the desktop app; the website's Make a song keeps its own sources.
 
 ### `POST <address>/song-source`
 
