@@ -66,7 +66,7 @@ export function getCheckedSongSourceInputValue({ input, value }: { input: SongSo
   return trimmedValue;
 }
 
-/** True for a host that is one of the sites or a subdomain of one: music.youtube.com is on youtube.com, evil-youtube.com isn't. */
+/** True for a host that is one of the sites or a subdomain of one: media.clips.example is on clips.example, evil-clips.example isn't. */
 export function isHostOnSites({ hostName, sites }: { hostName: string; sites: readonly string[] }): boolean {
   return sites.some((site) => hostName === site || hostName.endsWith(`.${site}`));
 }
@@ -82,12 +82,23 @@ function getCheckedLink({ input, link }: { input: Extract<SongSourceInput, { kin
 function getLinkProblemOrNull({ input, url }: { input: Extract<SongSourceInput, { kind: 'link' }>; url: URL }): string | null {
   if (url.protocol !== 'https:') return 'Paste a link that starts with https://';
   if (url.username || url.password) return 'Paste the link without a user name or password in it.';
-  if (!isHostOnSites({ hostName: url.hostname, sites: input.sites })) return `Paste a link from ${input.sites.join(' or ')}.`;
+  if (!isHostOnSites({ hostName: url.hostname, sites: input.sites })) return `That site isn’t allowed here. Use ${getIndefiniteArticle(input.sites[0] ?? '')} ${getLinkSitesText({ sites: input.sites, joinWord: 'or' })} link.`;
   return null;
 }
 
+/** The sites of a link field as a sentence names them: "clips.example and media.example.org", or "a.example, b.example or c.example". */
+export function getLinkSitesText({ sites, joinWord }: { sites: readonly string[]; joinWord: 'and' | 'or' }): string {
+  if (sites.length <= 1) return sites.join('');
+  return `${sites.slice(0, -1).join(', ')} ${joinWord} ${sites[sites.length - 1] ?? ''}`;
+}
+
+// Site names are read letter by letter or as words; a vowel start is the case that reads "an".
+function getIndefiniteArticle(word: string): string {
+  return /^[aeio]/.test(word) ? 'an' : 'a';
+}
+
 function getEmptyInputMessage(input: SongSourceInput): string {
-  return input.kind === 'link' ? `Paste a link from ${input.sites.join(' or ')}.` : 'Type what to search for.';
+  return input.kind === 'link' ? `Paste a link from ${getLinkSitesText({ sites: input.sites, joinWord: 'or' })}.` : 'Type what to search for.';
 }
 
 function parseSongSourceInputOrNull(value: unknown): SongSourceInput | null {

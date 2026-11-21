@@ -1,4 +1,5 @@
 import type { GeneratorDifficulty, GeneratorSongFacts } from '../generators/generator-protocol';
+import { loadSongMusicSourceOrNull, type SongMusicSource } from '../generators/song-music-source';
 import type { SongsPath } from '../songs-folder/songs-path';
 import type { InstalledSongsRecord } from './installed-songs';
 
@@ -19,12 +20,19 @@ export interface GeneratedSong {
   folderPath: SongsPath;
   /** The vault song the player chose to replace with this one in the game; null when the vault has no such song. */
   inPlaceOfVaultSongId: string | null;
+  /** The addon that found the music and the link the player typed; null or missing for the player's own files. */
+  source?: SongMusicSource | null;
   generatedAt: string;
 }
 
 /** Records written before generators have no list of generated songs. */
 export function getGeneratedSongs(record: InstalledSongsRecord): readonly GeneratedSong[] {
   return record.generatedSongs ?? [];
+}
+
+/** Where the song's music came from; songs written before Sync kept it have none. */
+export function getGeneratedSongMusicSource(generatedSong: GeneratedSong): SongMusicSource | null {
+  return loadSongMusicSourceOrNull(generatedSong.source);
 }
 
 export function findGeneratedSong({ record, songKey }: { record: InstalledSongsRecord; songKey: string }): GeneratedSong | undefined {

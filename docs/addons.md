@@ -122,23 +122,27 @@ In the manifest:
 
 ```json
 "inputs": [
-  { "id": "link", "kind": "link", "label": "YouTube link", "placeholder": "https://youtu.be/…",
-    "sites": ["youtube.com", "youtu.be"] }
+  { "id": "link", "kind": "link", "label": "Clip link", "placeholder": "https://clips.example/watch?v=…",
+    "sites": ["clips.example", "media.example.org"] }
 ]
 ```
 
 - 1 to 3 inputs. `id`: as for option ids. `label`: up to 40 characters. `placeholder` (optional): up to 80.
 - `kind`: `link` (a web address; Sync accepts only `https` links, up to 2000 characters, on the listed `sites` or
   their subdomains) or `search` (free text, up to 200 characters, such as a title or an artist).
-- `sites`: 1 to 10 domain names such as `youtube.com` (not bare `com`, not an IP address). An input with a broken site
+- `sites`: 1 to 10 domain names such as `clips.example` (not bare `com`, not an IP address). An input with a broken site
   list is left out; an addon whose inputs are all left out is refused.
 - The player fills in at least one input; empty ones are left out of the request, and every filled one is checked
   before Sync calls the addon. The addon sees what the player typed, and Sync's consent screen says so.
+- Under a `link` input Sync names its sites ("Works with example.com and clips.example links."). A link from any
+  other site gets "That site isn't allowed here." under the field and is never sent.
+- The tabs of addons with a `link` input come first, then those with only `search` inputs. A song source's tab is
+  there only while the addon is on, and only in the desktop app; the website's Make a song keeps its own sources.
 
 ### `POST <address>/song-source`
 
 ```json
-{ "protocol": 1, "inputs": { "link": "https://youtu.be/dQw4w9WgXcQ" }, "options": { "media": "audio-and-video" } }
+{ "protocol": 1, "inputs": { "link": "https://clips.example/watch?v=abc123" }, "options": { "media": "audio-and-video" } }
 ```
 
 Answers:
@@ -163,6 +167,10 @@ isn't 11 characters becomes `null`. The first music link is used; `open-page` li
 
 There is nothing to compare a new song with, so Sync trusts the files a song source returns; the player chose the
 addon.
+
+Sync keeps which addon found the music, and the link the player typed (none for a search), with the made song, for
+"How it was made". It keeps them on the player's computer only and doesn't send them to dancedance.studio. Sync never
+reads anything out of the link itself: the song's facts, `youtubeId` among them, come only from the addon's answer.
 
 ## A minimal addon (Node)
 
@@ -194,7 +202,7 @@ function sendJson(response, status, value) {
 ## A program on the player's computer
 
 An addon or generator at `http://127.0.0.1:<port>` or `http://localhost:<port>` is a program the player runs. In the
-desktop app the player can give its **start command** when adding it (for example `C:/addons/youtube/start.cmd`):
+desktop app the player can give its **start command** when adding it (for example `C:/addons/my-addon/start.cmd`):
 Sync then starts the program when it needs it, waits for its manifest, and stops it after 10 minutes without a request.
 Sync only ever runs the command the player typed, never one an addon or generator suggests, and asks the player to
 allow it in the app's own dialog before running it for the first time. It runs through the system's shell, in the

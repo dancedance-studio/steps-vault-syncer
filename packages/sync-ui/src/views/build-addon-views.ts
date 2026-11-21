@@ -36,11 +36,18 @@ export function getAddonOptionValuesFromViews(options: readonly AddonOptionView[
   return Object.fromEntries(options.map((option) => [option.optionId, option.value]));
 }
 
-/** One tab on the Make a song page for each song source that is turned on, drawn from its declared inputs. */
+/**
+ * One tab on the Make a song page for each song source that is turned on, drawn from its declared inputs. Link addons
+ * (any link field) come before search addons; each group keeps the order the player added them in.
+ */
 export function buildSongSourceTabs(addons: readonly InstalledAddon[]): SongSourceTabView[] {
-  return addons
-    .filter((addon) => addon.isEnabled && isAddonProviding({ manifest: addon.manifest, ability: 'song-source' }))
+  const songSources = addons.filter((addon) => addon.isEnabled && isAddonProviding({ manifest: addon.manifest, ability: 'song-source' }));
+  return [...songSources.filter(hasLinkInput), ...songSources.filter((addon) => !hasLinkInput(addon))]
     .map((addon) => ({ addonId: addon.manifest.id, name: addon.manifest.name, inputs: addon.manifest.inputs }));
+}
+
+function hasLinkInput(addon: InstalledAddon): boolean {
+  return addon.manifest.inputs.some((input) => input.kind === 'link');
 }
 
 /** "Audio and video links · New songs to make": what Sync asks the addon for. */

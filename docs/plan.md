@@ -46,7 +46,7 @@ The website (a private repo) installs `sync-core` and `sync-ui` from npm under t
    copied into the song folder. The only time it leaves the computer is when the player makes a song with a generator
    that isn't on their computer (StepsVault's included): Sync first says "Your music file will be sent to <address>"
    and goes on only when the player agrees.
-3. **Addons see song facts only**: title, artist, album, genre, length and the YouTube link, plus what the player
+3. **Addons see song facts only**: title, artist, album, genre, length and the song's video link, plus what the player
    types into a song source's fields. They never see the player's account, files or anything else. The player agrees once per addon. StepsVault lists no addons and
    promotes none.
 4. **One clear status per song** (icon + word, never colour alone): Synced, Syncing…, Needs audio, Different edit,

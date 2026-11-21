@@ -5,6 +5,7 @@ import { buildGeneratedSongSsc, type GeneratedSongFileNames } from '../generator
 import type { GeneratedSongFiles } from '../generators/generator-files';
 import type { GeneratorDifficulty, GeneratorManifest, GeneratorSongFacts } from '../generators/generator-protocol';
 import { isPngPicture, PICTURE_SIZES_BY_KIND, SONG_PICTURE_KINDS, type PictureMaker, type ReadDownloadedPicture, type SongPictureKind } from '../generators/song-pictures';
+import type { SongMusicSource } from '../generators/song-music-source';
 import { getGroupName, getNewSongFolderName, type SongFolderNames } from '../layout/folder-layout';
 import { getPlayerGroupNames } from '../layout/player-groups';
 import { buildGeneratedSongMarkerText, getGeneratedSongFolderState } from '../ownership/generated-song-marker';
@@ -42,6 +43,8 @@ export interface GeneratedSongRequest {
   playerMusicSourceId: string;
   /** The video that came with the player's music (from an addon), or null. A video from the generator comes first. */
   playerVideoSourceId: string | null;
+  /** Where the music came from (a song-source addon), kept with the song; null for the player's own files. */
+  source?: SongMusicSource | null;
 }
 
 export type GeneratedSongWriteResult =
@@ -108,8 +111,8 @@ async function chooseNewFolderPath({ songsFolder, record, songNames }: { songsFo
 }
 
 function buildGeneratedSong({ dependencies, request, folderPath, inPlaceOfVaultSongId }: { dependencies: GeneratedSongWriterDependencies; request: GeneratedSongRequest; folderPath: SongsPath; inPlaceOfVaultSongId: string | null }): GeneratedSong {
-  const { generator, song, difficulties } = request;
-  return { songKey: getGeneratedSongKey(song), song, generatorId: generator.id, generatorVersion: generator.version, generatorName: generator.name, difficulties: [...difficulties], installId: dependencies.createId(), folderPath, inPlaceOfVaultSongId, generatedAt: dependencies.getNow() };
+  const { generator, song, difficulties, source = null } = request;
+  return { songKey: getGeneratedSongKey(song), song, generatorId: generator.id, generatorVersion: generator.version, generatorName: generator.name, difficulties: [...difficulties], installId: dependencies.createId(), folderPath, inPlaceOfVaultSongId, source, generatedAt: dependencies.getNow() };
 }
 
 /** Everything goes into a hidden folder first and is renamed into place last, so the game never sees a half-written song. */

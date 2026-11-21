@@ -159,7 +159,7 @@ describe('StepsVaultClient', () => {
 describe('reportComputerSongs', () => {
   it('posts the whole list with the device token to /api/computer-songs', async () => {
     const api = new RecordedApi({ 'POST https://stepsvault.com/api/computer-songs': { status: 200, body: { recordedSongCount: 1 } } });
-    const song = { localId: 'youtube:abc', title: 'Low Tide', artistName: 'Marla Quinn', generatorName: 'Groove Lab', difficulties: ['Easy', 'Hard'], madeAt: '2026-10-24T10:00:00.000Z' };
+    const song = { localId: 'song:low tide', title: 'Low Tide', artistName: 'Marla Quinn', generatorName: 'Groove Lab', difficulties: ['Easy', 'Hard'], madeAt: '2026-10-24T10:00:00.000Z' };
     await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).reportComputerSongs([song]);
     expect(api.requests[0]).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer device-token' }, jsonBody: { songs: [song] } });
   });
@@ -171,9 +171,9 @@ describe('reportComputerSongs', () => {
 });
 
 describe('buildComputerSongReports', () => {
-  it('lists the generated songs newest first, with the facts the site shows, and at most 500', () => {
+  it('lists the generated songs newest first, with the facts the site shows (never where the music came from), and at most 500', () => {
     const older = { songKey: 'song:a', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null }, generatorId: 'tap', generatorVersion: '1.0.0', generatorName: 'Tap Forge', difficulties: ['Easy' as const], installId: 'i1', folderPath: buildSongsPath('My generated songs', 'Night Drive'), inPlaceOfVaultSongId: null, generatedAt: '2026-10-21T10:00:00.000Z' };
-    const newer = { ...older, songKey: 'song:b', song: { ...older.song, title: 'Low Tide' }, generatedAt: '2026-10-24T10:00:00.000Z' };
+    const newer = { ...older, songKey: 'song:b', song: { ...older.song, title: 'Low Tide' }, source: { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' }, generatedAt: '2026-10-24T10:00:00.000Z' };
     expect(buildComputerSongReports([older, newer])).toEqual([
       { localId: 'song:b', title: 'Low Tide', artistName: 'Lumen Park', generatorName: 'Tap Forge', difficulties: ['Easy'], madeAt: '2026-10-24T10:00:00.000Z' },
       { localId: 'song:a', title: 'Night Drive', artistName: 'Lumen Park', generatorName: 'Tap Forge', difficulties: ['Easy'], madeAt: '2026-10-21T10:00:00.000Z' },
@@ -184,7 +184,7 @@ describe('buildComputerSongReports', () => {
 });
 
 describe('buildAddonSongFacts', () => {
-  it('passes only the facts addons may see, with the YouTube link built from the id', () => {
+  it('passes only the facts addons may see, with the video link built from the id', () => {
     expect(buildAddonSongFacts(VAULT_SONG)).toEqual({ title: '桜ドライブ', artist: 'Rei Hoshino', album: null, genre: 'J-Pop', lengthSeconds: 212, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' });
   });
 });

@@ -10,7 +10,7 @@ import { AddonOptionFields } from './addon-option-fields';
 import { AddressError, EMPTY_SERVICE_ADDRESS_DRAFT, getStartCommandOrNull, isServiceAddress, isThisComputerAddress, StartCommandField, StartCommandNote, type ServiceAddressDraft } from './start-command-field';
 
 /** The only song facts an addon ever receives (plan.md, "Addons see song facts only"). */
-export const ADDON_VISIBLE_SONG_FACTS = 'title, artist, album, genre, length, and the song’s YouTube link.';
+export const ADDON_VISIBLE_SONG_FACTS = 'title, artist, album, genre, length, and the song’s video link.';
 export const ADDON_NEVER_SEES = 'your account, or anything else on your computer.';
 /** What a song source also sees (addons.md, "Song sources"). */
 export const SONG_SOURCE_SEES = 'what you type in its tab in Make a song.';

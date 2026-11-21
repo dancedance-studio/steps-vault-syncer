@@ -278,7 +278,7 @@ export interface MusicChoiceView {
   musicId: string;
   title: string;
   artist: string;
-  /** Where it comes from, for example the file's folder, or "From YouTube Songs". */
+  /** Where it comes from, for example the file's folder, or "From Song Scout". */
   sourceText: string;
   /** For example "3:21"; null when not known. */
   lengthText: string | null;
@@ -382,4 +382,9 @@ export interface GeneratedSongView {
   madeAtText: string;
   /** True when the generator said how it made the song ("How it was made"). */
   hasReport: boolean;
+  /**
+   * "Music from Open Audio Links: https://…", under "How it was made"; null or missing for music from the player's own
+   * files (optional, so platforms that build these views themselves keep working).
+   */
+  musicSourceText?: string | null;
 }

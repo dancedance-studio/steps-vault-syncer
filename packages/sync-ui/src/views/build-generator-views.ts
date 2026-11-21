@@ -1,5 +1,5 @@
 /** Builds what the Generators screens show; shared by the website and the desktop app. */
-import { GENERATOR_DIFFICULTIES, getMusicUploadWarningOrNull, isOnThisComputer, type GeneratedSong, type GeneratorManifest, type InstalledGenerator, type SavedGeneratorJob } from '@stepsvault/sync-core';
+import { GENERATOR_DIFFICULTIES, getGeneratedSongMusicSource, getMusicUploadWarningOrNull, isOnThisComputer, type GeneratedSong, type GeneratorManifest, type InstalledGenerator, type SavedGeneratorJob, type SongMusicSource } from '@stepsvault/sync-core';
 import type { DifficultyLevels, GeneratedSongView, GeneratorInstallPreview, GeneratorJobStateView, GeneratorJobView, GeneratorView, ServiceLocationView } from '../sync-ui-types';
 import { buildAddonOptionViews } from './build-addon-views';
 
@@ -80,7 +80,13 @@ export function buildGeneratedSongViews({ generatedSongs, reportSongKeys }: { ge
       folderText: ['Songs', ...generatedSong.folderPath].join('/'),
       madeAtText: formatMadeAt(generatedSong.generatedAt),
       hasReport: reportSongKeys.has(generatedSong.songKey),
+      musicSourceText: getMusicSourceText(getGeneratedSongMusicSource(generatedSong)),
     }));
+}
+
+function getMusicSourceText(source: SongMusicSource | null): string | null {
+  if (source === null) return null;
+  return source.link === null ? `Music from ${source.addonName}` : `Music from ${source.addonName}: ${source.link}`;
 }
 
 function getJobStateView(job: SavedGeneratorJob): GeneratorJobStateView {

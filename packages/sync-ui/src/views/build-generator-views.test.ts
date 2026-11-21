@@ -9,12 +9,12 @@ const GENERATOR_MANIFEST: GeneratorManifest = {
   options: [{ id: 'jumps', label: 'Jumps', kind: 'choice', choices: [{ value: 'few', label: 'Few' }, { value: 'many', label: 'Many' }], default: 'few' }],
 };
 const SONG_SOURCE_MANIFEST: AddonManifest = {
-  protocol: 1, kind: 'addon', id: 'tube.songs', name: 'Tube Songs', version: '0.2.0', author: '@noa', description: '', provides: ['song-source'], options: [],
-  inputs: [{ id: 'link', kind: 'link', label: 'YouTube link', placeholder: null, sites: ['youtube.com'] }],
+  protocol: 1, kind: 'addon', id: 'clip.songs', name: 'Clip Songs', version: '0.2.0', author: '@noa', description: '', provides: ['song-source'], options: [],
+  inputs: [{ id: 'link', kind: 'link', label: 'Clip link', placeholder: null, sites: ['clips.example'] }],
 };
 const JOB: SavedGeneratorJob = {
   jobKey: 'job-1', generatorBaseUrl: 'http://127.0.0.1:7700', generatorId: 'stepcat.tap-forge', generatorName: 'Tap Forge', generatorVersion: '1.2.0', isStepsVault: false, jobId: 'a1', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null },
-  difficulties: ['Easy'], state: 'waiting', progress: 0.456, stage: 'Placing the steps', retryAfterSeconds: 10, message: null, vaultChoice: null, result: null, playerMusicLocation: 'C:\\Music\\a.mp3', playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null,
+  difficulties: ['Easy'], state: 'waiting', progress: 0.456, stage: 'Placing the steps', retryAfterSeconds: 10, message: null, vaultChoice: null, result: null, playerMusicLocation: 'C:\\Music\\a.mp3', playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null, source: null,
   startedAt: '2026-10-25T10:00:00.000Z', updatedAt: '2026-10-25T10:00:00.000Z',
 };
 
@@ -51,6 +51,15 @@ describe('generator views', () => {
     expect(views.map((view) => [view.title, view.hasReport])).toEqual([['Low Tide', false], ['Night Drive', true]]);
     expect(views[1]).toMatchObject({ difficultiesText: 'Easy, Medium, and Hard', folderText: 'Songs/My generated songs/Night Drive', levels: null });
     expect(views[0]?.levels).toEqual([null, 3, null, 9, null]);
+    expect(views.map((view) => view.musicSourceText)).toEqual([null, null]);
+  });
+
+  it('says where a generated song’s music came from: the addon, and the link the player typed', () => {
+    const generatedSong: GeneratedSong = { songKey: 'song:a', song: JOB.song, generatorId: 'stepcat.tap-forge', generatorVersion: '1.2.0', generatorName: 'Tap Forge', difficulties: ['Easy'], installId: 'i1', folderPath: ['My generated songs', 'Night Drive'], inPlaceOfVaultSongId: null, generatedAt: '2026-10-24T10:00:00.000Z' };
+    const fromLink = { ...generatedSong, source: { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' } };
+    const fromSearch = { ...generatedSong, songKey: 'song:b', source: { addonId: 'song.scout', addonName: 'Song Scout', link: null }, generatedAt: '2026-10-23T10:00:00.000Z' };
+    const views = buildGeneratedSongViews({ generatedSongs: [fromLink, fromSearch], reportSongKeys: new Set() });
+    expect(views.map((view) => view.musicSourceText)).toEqual(['Music from Open Audio Links: https://clips.example/watch?v=abc123', 'Music from Song Scout']);
   });
 
   it('tells each step of making a song in the Activity log', () => {
@@ -79,6 +88,6 @@ describe('song-source addon views', () => {
 
   it('gives each song source that is on a tab, drawn from its inputs', () => {
     const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7801', manifest: SONG_SOURCE_MANIFEST, consentedAt: '' });
-    expect(buildSongSourceTabs([addon, { ...addon, isEnabled: false }])).toEqual([{ addonId: 'tube.songs', name: 'Tube Songs', inputs: SONG_SOURCE_MANIFEST.inputs }]);
+    expect(buildSongSourceTabs([addon, { ...addon, isEnabled: false }])).toEqual([{ addonId: 'clip.songs', name: 'Clip Songs', inputs: SONG_SOURCE_MANIFEST.inputs }]);
   });
 });

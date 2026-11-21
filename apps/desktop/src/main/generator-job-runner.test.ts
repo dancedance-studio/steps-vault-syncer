@@ -15,6 +15,7 @@ import {
   type InstalledSongsRecord,
   type MultipartHttpClient,
   type MultipartHttpRequest,
+  type MultipartPart,
   type SavedGeneratorJob,
   type VaultSongIdentity,
 } from '@stepsvault/sync-core';
@@ -130,7 +131,7 @@ class FakeApp {
 function buildStart(overrides: Partial<GeneratorJobStart> = {}): GeneratorJobStart {
   return {
     jobKey: 'job-1', generatorBaseUrl: COMMUNITY_ADDRESS, song: NIGHT_DRIVE, difficulties: ['Easy'], music: { sourceId: 'file:C:\\Music\\Night Drive.ogg', fileName: 'Night Drive.ogg', contentType: 'audio/ogg', bytes: 4 }, video: null,
-    playerMusicLocation: 'C:\\Music\\Night Drive.ogg', playerVideoLocation: null, siteRequest: null, ...overrides,
+    playerMusicLocation: 'C:\\Music\\Night Drive.ogg', playerVideoLocation: null, siteRequest: null, source: null, ...overrides,
   };
 }
 
@@ -164,6 +165,37 @@ describe('GeneratorJobRunner', () => {
     await runner.startJob(buildStart({ siteRequest }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
     expect(app.savedJobs[0]?.siteRequest).toEqual(siteRequest);
+  });
+
+  it('sends the addon’s video id and the video to the generator, and keeps where the music came from with the job and the song', async () => {
+    const app = new FakeApp();
+    app.routeFinishedJob({ address: COMMUNITY_ADDRESS });
+    let sentParts: readonly MultipartPart[] = [];
+    app.generators.route({ method: 'POST', url: `${COMMUNITY_ADDRESS}/jobs`, answer: (request) => { sentParts = 'parts' in request ? request.parts : []; return { status: 202, body: { jobId: 'job-a1', retryAfterSeconds: 1 } }; } });
+    app.songsFolder.addMusicSource({ sourceId: 'file:jobs/job-1/source-video.mp4', bytes: new Uint8Array([0, 0, 0, 24]) });
+    app.generatorsByAddress.set(COMMUNITY_ADDRESS, { generator: buildInstalledGenerator({ baseUrl: COMMUNITY_ADDRESS, manifest: { ...MANIFEST, usesVideo: true } }), signIn: null, isStepsVault: false });
+    const runner = app.buildRunner();
+    await runner.initialize();
+    const source = { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' };
+    const video = { sourceId: 'file:jobs/job-1/source-video.mp4', fileName: 'source-video.mp4', contentType: 'video/mp4', bytes: 4 };
+    await runner.startJob(buildStart({ song: { ...NIGHT_DRIVE, youtubeId: 'Vid3o1d-x_Z' }, video, playerVideoLocation: 'jobs/job-1/source-video.mp4', source }));
+    await waitUntil(() => runner.jobs[0]?.state === 'done');
+    const requestPart = sentParts.find((part) => part.kind === 'json' && part.name === 'request');
+    expect(requestPart?.kind === 'json' ? requestPart.value : null).toMatchObject({ song: { title: 'Night Drive', youtubeId: 'Vid3o1d-x_Z' } });
+    expect(sentParts.some((part) => part.kind === 'file' && part.fileName === 'source-video.mp4')).toBe(true);
+    expect(app.savedJobs[0]?.source).toEqual(source);
+    expect(getGeneratedSongs(app.record)[0]).toMatchObject({ song: { youtubeId: 'Vid3o1d-x_Z' }, source });
+  });
+
+  it('keeps no source for music from the player’s own files', async () => {
+    const app = new FakeApp();
+    app.routeFinishedJob({ address: COMMUNITY_ADDRESS });
+    const runner = app.buildRunner();
+    await runner.initialize();
+    await runner.startJob(buildStart());
+    await waitUntil(() => runner.jobs[0]?.state === 'done');
+    expect(app.savedJobs[0]?.source).toBeNull();
+    expect(getGeneratedSongs(app.record)[0]?.source).toBeNull();
   });
 
   it('sends StepsVault’s generator the device token, and lets the vault install its song instead of writing it', async () => {
@@ -293,7 +325,7 @@ describe('GeneratorJobRunner', () => {
     app.routeFinishedJob({ address: COMMUNITY_ADDRESS });
     const waitingJob: SavedGeneratorJob = {
       jobKey: 'job-1', generatorBaseUrl: COMMUNITY_ADDRESS, generatorId: 'stepcat.tap-forge', generatorName: 'Tap Forge', generatorVersion: '1.2.0', isStepsVault: false, jobId: 'job-a1', song: NIGHT_DRIVE, difficulties: ['Easy'],
-      state: 'waiting', progress: 0.5, stage: 'Placing the steps', retryAfterSeconds: 1, message: null, vaultChoice: null, result: null, playerMusicLocation: buildStart().playerMusicLocation, playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null,
+      state: 'waiting', progress: 0.5, stage: 'Placing the steps', retryAfterSeconds: 1, message: null, vaultChoice: null, result: null, playerMusicLocation: buildStart().playerMusicLocation, playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null, source: null,
       startedAt: '2026-10-25T09:00:00.000Z', updatedAt: '2026-10-25T09:00:00.000Z',
     };
     app.savedJobs = [waitingJob, { ...waitingJob, jobKey: 'job-2', jobId: null, state: 'sending' }];

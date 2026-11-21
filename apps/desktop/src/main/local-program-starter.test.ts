@@ -30,11 +30,11 @@ function buildFakeComputer({ startupMilliseconds = 1_000, isAlreadyAnswering = f
 describe('LocalProgramStarter', () => {
   it('runs exactly the player’s command, in its own folder, only when the program isn’t answering', async () => {
     const { startedCommands, starter } = buildFakeComputer();
-    starter.setStartCommand({ baseUrl: BASE_URL, command: '"C:/addons/tube songs/start.cmd" --port 7700' });
+    starter.setStartCommand({ baseUrl: BASE_URL, command: '"C:/addons/my addon/start.cmd" --port 7700' });
     await starter.ensureRunningFor(`${BASE_URL}/manifest.json`);
     await starter.ensureRunningFor(`${BASE_URL}/song-source`);
     await starter.ensureRunningFor('http://127.0.0.1:7701/manifest.json');
-    expect(startedCommands).toEqual([{ command: '"C:/addons/tube songs/start.cmd" --port 7700', folder: 'C:/addons/tube songs' }]);
+    expect(startedCommands).toEqual([{ command: '"C:/addons/my addon/start.cmd" --port 7700', folder: 'C:/addons/my addon' }]);
   });
 
   it('starts nothing for an address without a start command, or a program the player already runs', async () => {
@@ -94,7 +94,7 @@ describe('LocalProgramStarter', () => {
 
 describe('getStartCommandFolder', () => {
   it.each([
-    ['C:/addons/youtube/start.cmd', 'C:/addons/youtube'],
+    ['C:/addons/my-addon/start.cmd', 'C:/addons/my-addon'],
     ['"C:\\Program Files\\Tap Forge\\tap-forge.exe" --serve', 'C:\\Program Files\\Tap Forge'],
     ['node server.js', os.homedir()],
   ])('runs %j in %j', (command, folder) => {
