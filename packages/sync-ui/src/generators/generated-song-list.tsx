@@ -30,13 +30,19 @@ export function GeneratedSongList({ songs, onFetchSongReport, onMakeSong }: Gene
   );
 }
 
-type ReportState = { kind: 'closed' } | { kind: 'loading' } | { kind: 'shown'; text: string } | { kind: 'missing' };
+/** shown: text is null when the generator sent no report, and only where the music came from is said. */
+type ReportState = { kind: 'closed' } | { kind: 'loading' } | { kind: 'shown'; text: string | null } | { kind: 'missing' };
 
 function GeneratedSongRow({ song, onFetchSongReport }: { song: GeneratedSongView; onFetchSongReport: (songKey: string) => Promise<string | null> }): ReactElement {
+  const musicSourceText = song.musicSourceText ?? null;
   const [report, setReport] = useState<ReportState>({ kind: 'closed' });
   const toggleReport = async (): Promise<void> => {
     if (report.kind !== 'closed') {
       setReport({ kind: 'closed' });
+      return;
+    }
+    if (!song.hasReport) {
+      setReport({ kind: 'shown', text: null });
       return;
     }
     setReport({ kind: 'loading' });
@@ -52,15 +58,16 @@ function GeneratedSongRow({ song, onFetchSongReport }: { song: GeneratedSongView
         </span>
         {song.levels ? <DifficultyLevelBadges levels={song.levels} /> : <span className="sv-sync-small sv-sync-muted">{song.difficultiesText}</span>}
         <span className="sv-sync-small sv-sync-subtle">{song.generatorName} · {song.madeAtText}</span>
-        {song.hasReport && (
+        {(song.hasReport || musicSourceText !== null) && (
           <button className="sv-sync-link-button" type="button" aria-expanded={report.kind !== 'closed'} onClick={() => void toggleReport()}>How it was made</button>
         )}
       </div>
       <span className="sv-sync-mono sv-sync-subtle sv-sync-break-all" dir="auto">{song.folderText}</span>
       {report.kind !== 'closed' && (
         <div className="sv-sync-report" aria-label={`How ${song.title} was made`}>
+          {musicSourceText !== null && <span className="sv-sync-report-source sv-sync-break-all" dir="auto">{musicSourceText}</span>}
           {report.kind === 'loading' && <ReceptorLoader label="Loading…" isSmall />}
-          {report.kind === 'shown' && <span className="sv-sync-report-text">{report.text}</span>}
+          {report.kind === 'shown' && report.text !== null && <span className="sv-sync-report-text">{report.text}</span>}
           {report.kind === 'missing' && <span className="sv-sync-muted">We can&apos;t find the report for this song.</span>}
         </div>
       )}

@@ -382,4 +382,9 @@ export interface GeneratedSongView {
   madeAtText: string;
   /** True when the generator said how it made the song ("How it was made"). */
   hasReport: boolean;
+  /**
+   * "Music from Open Audio Links: https://…", under "How it was made"; null or missing for music from the player's own
+   * files (optional, so platforms that build these views themselves keep working).
+   */
+  musicSourceText?: string | null;
 }

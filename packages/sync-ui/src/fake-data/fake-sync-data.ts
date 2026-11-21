@@ -162,8 +162,8 @@ export const FAKE_GENERATOR_JOBS: readonly GeneratorJobView[] = [
 ];
 
 export const FAKE_GENERATED_SONGS: readonly GeneratedSongView[] = [
-  { songKey: 'song:paper planes club', title: 'Paper Planes Club', artist: 'Sora Vega', generatorName: 'Tap Forge', difficultiesText: 'Easy, Medium and Hard', levels: [null, 3, 6, 9, null], folderText: 'Songs/My generated songs/Paper Planes Club', madeAtText: '24 Oct 2026, 21:14', hasReport: true },
-  { songKey: 'song:sky rails', title: 'Sky Rails', artist: 'Marla Quinn', generatorName: 'Groove Lab', difficultiesText: 'Easy and Hard', levels: null, folderText: 'Songs/My generated songs/Sky Rails', madeAtText: '22 Oct 2026, 18:02', hasReport: false },
+  { songKey: 'song:paper planes club', title: 'Paper Planes Club', artist: 'Sora Vega', generatorName: 'Tap Forge', difficultiesText: 'Easy, Medium and Hard', levels: [null, 3, 6, 9, null], folderText: 'Songs/My generated songs/Paper Planes Club', madeAtText: '24 Oct 2026, 21:14', hasReport: true, musicSourceText: null },
+  { songKey: 'song:sky rails', title: 'Sky Rails', artist: 'Marla Quinn', generatorName: 'Groove Lab', difficultiesText: 'Easy and Hard', levels: null, folderText: 'Songs/My generated songs/Sky Rails', madeAtText: '22 Oct 2026, 18:02', hasReport: false, musicSourceText: 'Music from Open Audio Links: https://clips.example/watch?v=abc123' },
 ];
 
 /** What a song source found for a search: a few versions to pick from. */

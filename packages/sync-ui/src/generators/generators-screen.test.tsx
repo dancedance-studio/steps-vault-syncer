@@ -238,9 +238,17 @@ describe('GeneratorsScreen', () => {
 
   it('shows how a generated song was made, as plain text', async () => {
     const props = renderGenerators();
-    await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'How it was made' })); });
+    await settle(() => { fireEvent.click(within(screen.getByRole('listitem', { name: 'Paper Planes Club' })).getByRole('button', { name: 'How it was made' })); });
     expect(props.onFetchSongReport).toHaveBeenCalledWith('song:paper planes club');
     expect(screen.getByLabelText('How Paper Planes Club was made').textContent).toBe('Made with onsets.');
+  });
+
+  it('says under How it was made where the music came from, even when the generator sent no report', async () => {
+    const props = renderGenerators();
+    const skyRails = screen.getByRole('listitem', { name: 'Sky Rails' });
+    await settle(() => { fireEvent.click(within(skyRails).getByRole('button', { name: 'How it was made' })); });
+    expect(screen.getByLabelText('How Sky Rails was made').textContent).toBe('Music from Open Audio Links: https://clips.example/watch?v=abc123');
+    expect(props.onFetchSongReport).not.toHaveBeenCalled();
   });
 
   it('says where a finished StepsVault song went', async () => {
