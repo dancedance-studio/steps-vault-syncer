@@ -419,10 +419,10 @@ describe('waitForSongSource', () => {
     expect(httpClient.requests).toHaveLength(1);
   });
 
-  it('gives up on an addon that keeps working for too long', async () => {
-    const httpClient = new RecordedHttpClient(Array.from({ length: 10 }, () => ({ status: 202, body: { retryAfterSeconds: 600 } })));
+  it('gives up on an addon that keeps working for more than 3 minutes', async () => {
+    const httpClient = new RecordedHttpClient(Array.from({ length: 10 }, () => ({ status: 202, body: { retryAfterSeconds: 60 } })));
     const result = await waitForSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: PLAYER_LINK, waitSeconds: () => Promise.resolve() });
-    expect(result).toEqual({ kind: 'not-answering', message: 'Clip Source is still working after 30 minutes. Try again later.' });
+    expect(result).toEqual({ kind: 'not-answering', message: 'Clip Source is still working after 3 minutes. Try again later.' });
     expect(httpClient.requests).toHaveLength(4);
   });
 });
