@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { buildInstalledAddon } from '../addons/addon-client';
 import { scanMusicLibrary, type MusicFile } from '../audio-sources/music-library';
 import type { AudioFingerprint } from '../audio-matching/audio-match';
 import { buildEmptyInstalledSongsRecord, type InstalledSongsRecord } from '../ownership/installed-songs';
-import type { HttpClient } from '../network/http-client';
+import type { HttpClient, HttpRequest } from '../network/http-client';
 import type { AudioMatch } from '../planner/sync-plan-types';
 import { MemorySongsFolder } from '../songs-folder/memory-songs-folder';
 import type { VaultSongDetails } from '../stepsvault-api/stepsvault-api-types';
@@ -119,5 +120,32 @@ describe('runSync', () => {
     const outcome = await runSync({ ports: buildPorts({ songsFolder, vault: new FakeVault([CHEAP_THRILLS]), recordStore, checkedFingerprints: [] }), settings: await buildSettings() });
     expect(outcome.events[0]?.folderPath).toEqual(['dancedance.studio', 'Cheap Thrills (Sia)']);
     expect(await songsFolder.readText(['dancedance.studio', 'Cheap Thrills', 'theirs.ssc'])).toBe('the player own song');
+  });
+
+  it('asks the addons for a song made from a website link with its video id, and puts its video in the game as a file', async () => {
+    // The site gives a link song the video the addon found, or the one the player picked in the site's video step.
+    const nightDrive: VaultSongDetails = { vaultSongId: 'song_12', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 221, levels: [2, 4, 6, 9, null], bpm: 118, youtubeId: 'Vid3o1d-x_Z', chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
+    const songsFolder = new MemorySongsFolder();
+    songsFolder.addMusicSource({ sourceId: 'download:night-drive.ogg', bytes: new Uint8Array([79, 103, 103, 83]) });
+    songsFolder.addMusicSource({ sourceId: 'download:night-drive.mp4', bytes: new Uint8Array([0, 0, 0, 24]) });
+    const addonRequests: HttpRequest[] = [];
+    const links = [{ kind: 'file-url', url: 'http://127.0.0.1:7802/files/night-drive.ogg', label: 'Music', fileName: 'night-drive.ogg' }, { kind: 'file-url', media: 'video', url: 'http://127.0.0.1:7802/files/night-drive.mp4', label: 'Video', fileName: 'night-drive.mp4' }];
+    const httpClient: HttpClient = { ...UNUSED_HTTP, requestJson: (request) => { addonRequests.push(request); return Promise.resolve({ status: 200, body: { links } }); } };
+    const manifest = { protocol: 1 as const, kind: 'addon' as const, id: 'open-audio-links', name: 'Open Audio Links', version: '1.0.0', author: '@noa', description: '', provides: ['audio-links' as const, 'video-links' as const, 'song-source' as const], options: [], inputs: [{ id: 'link', kind: 'link' as const, label: 'Audio link', placeholder: null, sites: ['clips.example', 'media.example.org'] }] };
+    // A video is lined up with the steps by the song's tempo, so this song file has one.
+    const vault: SyncVault = { fetchVault: () => Promise.resolve([nightDrive]), fetchFingerprint: () => Promise.resolve({ envelope: [1], rateHertz: 100 }), fetchSongFiles: () => Promise.resolve({ sscText: '#TITLE:Night Drive;\n#OFFSET:-0.100000;\n#BPMS:0.000=118.000;\n', images: [] }) };
+    const ports: SyncPorts = {
+      ...buildPorts({ songsFolder, vault: new FakeVault([]), recordStore: new MemoryRecordStore(), checkedFingerprints: [] }),
+      vault,
+      httpClient,
+      checkAudioSource: ({ sourceId }) => Promise.resolve({ kind: 'matched', sourceId, shiftSeconds: 0 }),
+      downloadAddonFile: ({ url }) => Promise.resolve(url.endsWith('.mp4') ? 'download:night-drive.mp4' : 'download:night-drive.ogg'),
+    };
+    const settings = { ...(await buildSettings()), addons: [buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7802', manifest, consentedAt: '2026-11-21T10:00:00Z' })] };
+    const outcome = await runSync({ ports, settings });
+    expect(addonRequests.map((request) => request.url)).toEqual(['http://127.0.0.1:7802/audio-links']);
+    expect(addonRequests[0]?.jsonBody).toMatchObject({ song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 221, youtubeId: 'Vid3o1d-x_Z' } });
+    expect(outcome.finalPlan.songPlans.map((songPlan) => songPlan.status)).toEqual(['synced']);
+    expect((await songsFolder.listEntries(['dancedance.studio', 'Night Drive'])).map((entry) => entry.name)).toContain('video.mp4');
   });
 });

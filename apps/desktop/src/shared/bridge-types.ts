@@ -134,7 +134,8 @@ export interface DesktopSyncBridge {
  */
 export type AudioJob =
   | { jobId: number; kind: 'check'; sourceId: string; bytes: Uint8Array; fingerprint: number[]; fingerprintRateHertz: number }
-  | { jobId: number; kind: 'convert-to-wav'; bytes: Uint8Array }
+  /** maxChannelCount 1 mixes the music down to mono, which halves the file. */
+  | { jobId: number; kind: 'convert-to-wav'; bytes: Uint8Array; maxChannelCount: 1 | 2 }
   | { jobId: number; kind: 'measure'; bytes: Uint8Array }
   | { jobId: number; kind: 'make-picture'; width: number; height: number; title: string; artist: string };
 

@@ -63,3 +63,6 @@ export * from './local-bridge/local-bridge-protocol';
 export * from './local-bridge/local-bridge-pairing';
 export * from './local-bridge/local-bridge-songs';
 export * from './local-bridge/local-bridge-requests';
+export * from './link-jobs/link-job-protocol';
+export * from './link-jobs/link-song-sources';
+export * from './link-jobs/link-audio-files';

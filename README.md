@@ -41,7 +41,8 @@ pnpm --filter @stepsvault/desktop start
 
 To try it against a StepsVault site on your own computer, set `STEPSVAULT_SITE_URL` (for example
 `http://127.0.0.1:8787`). `STEPSVAULT_USER_DATA_DIR` keeps a test run's settings apart from your real ones, and
-`STEPSVAULT_LOG_STATE=1` prints one line per change (never the sign-in token).
+`STEPSVAULT_LOG_STATE=1` prints one line per change (never the sign-in token), and one per step of a link job from the
+website (its id and status, never the link).
 
 ## Links from the website
 

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { HttpRequestError, scanMusicLibrary, SongsFolderError } from '@stepsvault/sync-core';
 import { JsonFileStore } from './json-file-store';
 import { MusicSourceRegistry } from './music-source-registry';
+import { NodeFileUploadHttpClient } from './node-file-upload-http-client';
 import { NodeHttpClient } from './node-http-client';
 import { NodeMusicLibrary } from './node-music-library';
 import { NodeSongsFolder } from './node-songs-folder';
@@ -133,6 +134,37 @@ describe('NodeHttpClient', () => {
     const error: unknown = await client.requestText(request(pathName, { timeoutMilliseconds: 300 })).then(() => null, (caught: unknown) => caught);
     expect(error).toBeInstanceOf(HttpRequestError);
     expect((error as HttpRequestError).failure).toBe(failure);
+  });
+});
+
+describe('NodeFileUploadHttpClient', () => {
+  it('sends the file as the whole body with its type and size, and reads the answer as text', async () => {
+    const received: { method: string | undefined; headers: Record<string, string | string[] | undefined>; body: Buffer }[] = [];
+    const server = createServer((request, response) => {
+      const chunks: Buffer[] = [];
+      request.on('data', (chunk: Buffer) => chunks.push(chunk));
+      request.on('end', () => {
+        received.push({ method: request.method, headers: request.headers, body: Buffer.concat(chunks) });
+        response.end('Stored.');
+      });
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const filePath = path.join(workFolder, 'night-drive.ogg');
+      await writeFile(filePath, 'OggS-night-drive');
+      const client = new NodeFileUploadHttpClient({ appVersion: '0.2.0', getSourceFilePath: (sourceId) => musicSources.getSource(sourceId)?.filePath ?? null });
+      const url = `http://127.0.0.1:${String((server.address() as AddressInfo).port)}/api/sync/link-jobs/lj_2/audio`;
+      const upload = { url, method: 'PUT' as const, headers: { Authorization: 'Bearer device-token-1' }, contentType: 'audio/ogg', timeoutMilliseconds: 5_000, maxResponseBytes: 1_000 };
+      expect(await client.requestTextWithFileBody({ ...upload, sourceId: musicSources.register(filePath) })).toEqual({ status: 200, body: 'Stored.' });
+      expect(received).toMatchObject([{ method: 'PUT', headers: { 'content-type': 'audio/ogg', 'content-length': '16', authorization: 'Bearer device-token-1', 'user-agent': 'StepsVaultSync/0.2.0' } }]);
+      expect(received[0]?.body.toString()).toBe('OggS-night-drive');
+      const error: unknown = await client.requestTextWithFileBody({ ...upload, sourceId: 'file:unknown' }).then(() => null, (caught: unknown) => caught);
+      expect(error).toBeInstanceOf(HttpRequestError);
+      expect(received).toHaveLength(1);
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => { resolve(); }));
+    }
   });
 });
 

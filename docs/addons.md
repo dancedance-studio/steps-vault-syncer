@@ -137,7 +137,8 @@ In the manifest:
 - Under a `link` input Sync names its sites ("Works with example.com and clips.example links."). A link from any
   other site gets "That site isn't allowed here." under the field and is never sent.
 - The tabs of addons with a `link` input come first, then those with only `search` inputs. A song source's tab is
-  there only while the addon is on, and only in the desktop app; the website's Make a song keeps its own sources.
+  there only while the addon is on, and only in the desktop app. The website's Make a song keeps its own sources,
+  except for links it hands to Sync (see "Links from the website" below).
 
 ### `POST <address>/song-source`
 
@@ -171,6 +172,21 @@ addon.
 Sync keeps which addon found the music, and the link the player typed (none for a search), with the made song, for
 "How it was made". It keeps them on the player's computer only and doesn't send them to dancedance.studio. Sync never
 reads anything out of the link itself: the song's facts, `youtubeId` among them, come only from the addon's answer.
+
+### Links from the website
+
+While Sync runs and is signed in, the website's Make page can take a link too, for a link addon that is on. The website
+hands the link to Sync on the player's computer, and Sync asks the addon exactly as its own tab does: the same
+`/song-source` request, after the same check against the input's `sites`. An addon's song source needs nothing new
+for this.
+
+- Sync tells the website which link addons are on: each one's `id`, `name`, and its first `link` input's `label`,
+  `placeholder` and `sites`. It sends nothing else about the addons, and nothing about the computer but its name.
+- It sends back what the addon found: title, artist, length, the declared site the link is on, and the video id when
+  the addon gives both the id and the video file. The website never gets the addon's address or its file links.
+- When the player picks the song, Sync gets its music file on this computer and uploads that file alone, as ogg, mp3,
+  m4a or wav (anything else as WAV). It keeps which addon found the music, and the link, by the website's song id.
+- An addon that doesn't answer within 18 seconds gets nothing sent back for it: the website says it isn't answering.
 
 ## A minimal addon (Node)
 
