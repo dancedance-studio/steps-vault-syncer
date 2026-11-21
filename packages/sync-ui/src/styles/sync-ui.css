@@ -708,6 +708,8 @@
 .sv-sync-start-command-line .sv-sync-mono { color: var(--sv-sync-text); }
 .sv-sync-sees-line { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--sv-sync-text-muted); }
 .sv-sync-sees-line svg { color: var(--sv-sync-addon); }
+.sv-sync-field-problem { display: flex; align-items: center; gap: 8px; }
+.sv-sync-field-problem svg { flex: none; }
 .sv-sync-song-check { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 12px; background: #0f1a22; border: 1px solid rgba(28, 216, 255, .45); color: var(--sv-sync-text-soft); font-size: 15px; }
 .sv-sync-song-check > b { color: #fff; font: italic 800 16px/1.1 var(--sv-sync-font-display); font-stretch: 115%; }
 .sv-sync-loading-panel { display: grid; place-items: center; }

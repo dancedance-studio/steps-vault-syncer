@@ -168,21 +168,20 @@ describe('GeneratorsScreen', () => {
     expect(screen.getByRole('dialog', { name: 'Pick the generator and difficulties' }).textContent).toContain('Music: Paper Planes Club · Sora Vega');
   });
 
-  it('draws a song source’s tab from its inputs, checks what the player types, and shows the found song to check', async () => {
+  it('draws a song source’s tab from its inputs, lists what it found, and checks the song before using it', async () => {
     const props = renderGenerators();
     fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Tube Songs' }));
-    const linkField = screen.getByRole('textbox', { name: 'YouTube link' });
-    fireEvent.change(linkField, { target: { value: 'https://evil-youtube.com/watch' } });
-    expect(screen.getByRole('alert').textContent).toBe('That site isn’t allowed here. Use a youtube.com or youtu.be link.');
-    fireEvent.change(linkField, { target: { value: 'https://youtu.be/dQw4w9WgXcQ' } });
-    expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.getByText('Tube Songs sees what you type here.')).toBeDefined();
+    expect(screen.getByRole('searchbox', { name: 'Or search' })).toBeDefined();
+    fireEvent.change(screen.getByRole('textbox', { name: 'YouTube link' }), { target: { value: 'https://youtu.be/dQw4w9WgXcQ' } });
+    expect(screen.getByText('Tube Songs sees what you type.')).toBeDefined();
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
     expect(props.onFindSong).toHaveBeenCalledWith({ addonId: 'tube-songs', valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } });
-    expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Yes, use it');
+    expect(screen.queryByRole('group', { name: 'Is this the song?' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Music found' })).getByRole('radio', { name: /Low Tide/ }));
     expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Low Tide · Marla Quinn');
-    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', false);
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
     fireEvent.click(screen.getByRole('button', { name: 'Yes, use it' }));
     expect(screen.getByRole('dialog', { name: 'Pick the generator and difficulties' }).textContent).toContain('Low Tide · Marla Quinn');
   });
@@ -196,9 +195,10 @@ describe('GeneratorsScreen', () => {
     const found = screen.getByRole('radiogroup', { name: 'Music found' });
     expect(within(found).getAllByRole('radio')).toHaveLength(3);
     fireEvent.click(within(found).getByRole('radio', { name: /Night Drive \(Live\)/ }));
+    expect(screen.queryByRole('radiogroup', { name: 'Music found' })).toBeNull();
     expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Night Drive (Live) · Lumen Park');
     fireEvent.click(screen.getByRole('button', { name: 'Pick another' }));
-    expect(within(screen.getByRole('radiogroup', { name: 'Music found' })).getByRole('radio', { name: /Night Drive \(Live\)/ })).toHaveProperty('checked', true);
+    expect(within(screen.getByRole('radiogroup', { name: 'Music found' })).getAllByRole('radio').map((radio) => (radio as HTMLInputElement).checked)).toEqual([false, false, false]);
   });
 
   it('shows the song source’s own sentence when it finds nothing, under the field it names when the input is refused', async () => {
@@ -247,9 +247,13 @@ describe('GeneratorsScreen', () => {
   });
 });
 
-describe('Make a song’s music tabs', () => {
+describe('Make a song from a link', () => {
   const OPEN_AUDIO_LINKS_TAB = { addonId: 'open.audio-links', name: 'Open Audio Links', inputs: [{ id: 'link', kind: 'link', label: 'Video link', placeholder: 'https://clips.example.com/watch?v=', sites: ['clips.example.com', 'clip.example'] }] } as const;
   const SONG_SCOUT_TAB = { addonId: 'song.scout', name: 'Song Scout', inputs: [{ id: 'title', kind: 'search', label: 'Title', placeholder: null }] } as const;
+  const LINK_FOUND_MUSICS = [
+    { musicId: 'found:night-drive', title: 'Night Drive', artist: 'Lumen Park', sourceText: 'From Open Audio Links', lengthText: '3:28', hasVideo: true },
+    { musicId: 'found:night-drive-live', title: 'Night Drive (Live)', artist: 'Lumen Park', sourceText: 'From Open Audio Links', lengthText: '4:58', hasVideo: false },
+  ];
 
   it('are real tabs: the arrow keys, Home and End move the selection and the focus', () => {
     renderGenerators({ songSourceTabs: [OPEN_AUDIO_LINKS_TAB, SONG_SCOUT_TAB] });
@@ -288,6 +292,109 @@ describe('Make a song’s music tabs', () => {
     expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'My files' }));
     rerender(<GeneratorsScreen {...props} />);
     expect(screen.getByRole('tab', { name: 'My files' }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  function openLinkTab(overrides: Partial<GeneratorsScreenProps> = {}): GeneratorsScreenProps {
+    const props = renderGenerators({ songSourceTabs: [SONG_SCOUT_TAB, OPEN_AUDIO_LINKS_TAB], ...overrides });
+    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Open Audio Links' }));
+    return props;
+  }
+
+  async function findSongFromLink(link = 'https://clip.example/n1ght'): Promise<void> {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Video link' }), { target: { value: link } });
+    await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
+  }
+
+  it('labels the link field as the addon does, names its sites under it, and says the addon sees what is typed', () => {
+    openLinkTab();
+    const linkField = screen.getByRole('textbox', { name: 'Video link' });
+    expect(linkField.getAttribute('type')).toBe('url');
+    expect(linkField.getAttribute('placeholder')).toBe('https://clips.example.com/watch?v=');
+    expect(screen.getByText('Works with clips.example.com and clip.example links.').id).toBe(linkField.getAttribute('aria-describedby'));
+    expect(screen.getByText('Open Audio Links sees what you type.').querySelector('svg')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
+  });
+
+  it.each([
+    ['https://other.example.net/n1ght', 'That site isn’t allowed here. Use a clips.example.com or clip.example link.'],
+    ['https://clips.example.com.other.example/n1ght', 'That site isn’t allowed here. Use a clips.example.com or clip.example link.'],
+    ['ftp://clip.example/n1ght', 'Paste a link that starts with https://'],
+  ])('refuses %s in the field, keeps the text and focuses it, and never asks the addon', async (link, message) => {
+    const props = openLinkTab();
+    await findSongFromLink(link);
+    const linkField = screen.getByRole('textbox', { name: 'Video link' });
+    expect(screen.getByRole('alert').textContent).toBe(message);
+    expect(linkField).toHaveProperty('value', link);
+    expect(linkField.getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(linkField);
+    expect(props.onFindSong).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
+    fireEvent.change(linkField, { target: { value: `${link}/` } });
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('asks the addon with the loader and Stop, lists what it found with Video too, checks it, then makes the song', async () => {
+    let answer: (result: SongSourceSearchResult) => void = () => undefined;
+    let finishPreparing: (result: MakeSongResult) => void = () => undefined;
+    const props = openLinkTab({
+      onFindSong: vi.fn(() => new Promise<SongSourceSearchResult>((resolve) => { answer = resolve; })),
+      onMakeSong: vi.fn(() => new Promise<MakeSongResult>((resolve) => { finishPreparing = resolve; })),
+    });
+    await findSongFromLink(' https://clip.example/n1ght ');
+    expect(props.onFindSong).toHaveBeenCalledWith({ addonId: 'open.audio-links', valuesByInputId: { link: 'https://clip.example/n1ght' } });
+    expect(within(screen.getByRole('dialog', { name: 'Pick the music' })).getByRole('status').textContent).toBe('Asking Open Audio Links…');
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+    expect(props.onStopFindingSong).toHaveBeenCalledTimes(1);
+    await settle(() => { answer({ kind: 'found', musics: LINK_FOUND_MUSICS }); });
+    const found = screen.getByRole('radiogroup', { name: 'Music found' });
+    const firstChoice = within(found).getAllByRole('radio')[0]?.closest('label');
+    expect(firstChoice?.textContent).toBe('Night Drive · Lumen ParkFrom Open Audio Links · 3:28Video too');
+    expect(within(found).getAllByText('Video too')).toHaveLength(1);
+    fireEvent.click(within(found).getByRole('radio', { name: /Night Drive · Lumen Park/ }));
+    expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Night Drive · Lumen Park · From Open Audio Links · 3:28 · video too');
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, use it' }));
+    const setupDialog = screen.getByRole('dialog', { name: 'Pick the generator and difficulties' });
+    expect(setupDialog.textContent).toContain('Music: Night Drive · Lumen Park');
+    fireEvent.click(within(setupDialog).getByRole('radio', { name: /Groove Lab/ }));
+    expect(setupDialog.textContent).toContain('Your music file will be sent to');
+    await settle(() => { fireEvent.click(within(setupDialog).getByRole('button', { name: 'Make the steps' })); });
+    expect(within(setupDialog).getByRole('status').textContent).toBe('Getting the music ready…');
+    expect(props.onMakeSong).toHaveBeenCalledWith({ musicId: 'found:night-drive', generatorId: 'grooveworks.groove-lab', difficulties: ['Easy', 'Medium', 'Hard'], hasAgreedToMusicUpload: true });
+    await settle(() => { finishPreparing({ kind: 'started', jobKey: 'job-1' }); });
+    expect(screen.getByRole('dialog', { name: 'Making the steps' }).textContent).toContain('Night Drive · Lumen Park');
+  });
+
+  it('says the addon didn’t find this song as a MISS with Try again, with the addon’s own reason', async () => {
+    const onFindSong = vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'not-found', message: 'That clip is private.' }));
+    openLinkTab({ onFindSong });
+    await findSongFromLink();
+    const miss = screen.getByRole('alert');
+    expect(miss.textContent).toBe('MISSOpen Audio Links didn’t find this song. That clip is private.Try again');
+    expect(screen.queryByRole('dialog', { name: /didn’t find/ })).toBeNull();
+    await settle(() => { fireEvent.click(within(miss).getByRole('button', { name: 'Try again' })); });
+    expect(onFindSong).toHaveBeenCalledTimes(2);
+  });
+
+  it('says the addon isn’t answering as a MISS with Try again, and asks it again', async () => {
+    const onFindSong = vi.fn()
+      .mockResolvedValueOnce({ kind: 'not-answering', message: 'Open Audio Links is taking too long to answer. Try again in a few minutes.' })
+      .mockResolvedValueOnce({ kind: 'found', musics: LINK_FOUND_MUSICS });
+    openLinkTab({ onFindSong });
+    await findSongFromLink();
+    const miss = screen.getByRole('alert');
+    expect(miss.textContent).toBe('MISSOpen Audio Links isn’t answering.Try again');
+    await settle(() => { fireEvent.click(within(miss).getByRole('button', { name: 'Try again' })); });
+    expect(onFindSong).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByRole('radiogroup', { name: 'Music found' })).toBeDefined();
+  });
+
+  it('has no link tab without a link addon that is on', () => {
+    renderGenerators({ songSourceTabs: [SONG_SCOUT_TAB] });
+    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['My files', 'My music folders', 'Song Scout']);
+    expect(screen.queryByText(/get an addon/i)).toBeNull();
   });
 });
 
@@ -404,6 +511,8 @@ describe('WebsiteGeneratorsScreen', () => {
     expect(screen.queryByText('Songs being made')).toBeNull();
     expect(screen.queryByText('My generated songs')).toBeNull();
     expect(screen.queryByText(/No generators of your own yet/)).toBeNull();
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Open Audio Links' })).toBeNull();
     const getTheApp = screen.getByRole('link', { name: 'Get the app' });
     expect(getTheApp.getAttribute('href')).toBe('/sync/download');
     expect(getTheApp.className).toBe('sv-sync-button');

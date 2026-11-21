@@ -1,4 +1,4 @@
-import { getCheckedSongSourceInputValue, InvalidSongSourceInputError, type SongSourceInput } from '@stepsvault/sync-core';
+import { getLinkSitesText, getSongSourceInputValues, InvalidSongSourceInputError, type SongSourceInput } from '@stepsvault/sync-core';
 import { useEffect, useRef, useState, type SubmitEvent, type KeyboardEvent, type ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
@@ -170,109 +170,134 @@ type SearchState =
   | { kind: 'idle' }
   | { kind: 'asking' }
   | { kind: 'found'; musics: readonly MusicChoiceView[]; checkedMusic: MusicChoiceView | null }
-  | { kind: 'problem'; message: string };
+  /** addonMessage: the addon's own sentence, when it gave one. */
+  | { kind: 'not-found'; addonMessage: string }
+  | { kind: 'not-answering' };
 
-function SongSourceTab({ tab, pickedMusic, onPickMusic, onUseMusic, onFindSong, onStopFindingSong }: MusicStepProps & { tab: SongSourceTabView }): ReactElement {
+/**
+ * An addon's tab: its fields, checked here before anything is sent; then the songs it found, one to check ("Is this
+ * the song?") and use. A link field names the sites it takes, and a link from any other site never reaches the addon.
+ */
+function SongSourceTab({ tab, onPickMusic, onUseMusic, onFindSong, onStopFindingSong }: MusicStepProps & { tab: SongSourceTabView }): ReactElement {
   const [valuesByInputId, setValuesByInputId] = useState<Record<string, string>>({});
   const [problemsByInputId, setProblemsByInputId] = useState<Record<string, string>>({});
   const [search, setSearch] = useState<SearchState>({ kind: 'idle' });
+  const fieldsByInputId = useRef(new Map<string, HTMLInputElement>());
   const isAskingRef = useRef(false);
   // Leaving the tab (another tab, Cancel, or the addon turned off) stops a question still waiting for its answer.
   useEffect(() => () => { if (isAskingRef.current) onStopFindingSong(); }, []);
+  const showProblem = ({ inputId, message }: { inputId: string; message: string }): void => {
+    setProblemsByInputId({ [inputId]: message });
+    fieldsByInputId.current.get(inputId)?.focus();
+  };
   const changeValue = ({ input, value }: { input: SongSourceInput; value: string }): void => {
     setValuesByInputId((current) => ({ ...current, [input.id]: value }));
-    setProblemsByInputId((current) => ({ ...current, [input.id]: value.trim() === '' ? '' : (getInputProblemOrNull({ input, value }) ?? '') }));
+    setProblemsByInputId((current) => ({ ...current, [input.id]: '' }));
   };
   const findSong = async (): Promise<void> => {
-    const firstInput = tab.inputs[0];
-    if (firstInput && tab.inputs.every((input) => (valuesByInputId[input.id] ?? '').trim() === '')) {
-      setProblemsByInputId({ [firstInput.id]: getInputProblemOrNull({ input: firstInput, value: '' }) ?? '' });
+    const problem = getFirstInputProblemOrNull({ inputs: tab.inputs, valuesByInputId });
+    if (problem) {
+      showProblem(problem);
       return;
     }
+    setProblemsByInputId({});
     setSearch({ kind: 'asking' });
     isAskingRef.current = true;
-    const result = await onFindSong({ addonId: tab.addonId, valuesByInputId }).catch((): SongSourceSearchResult => ({ kind: 'not-answering', message: `${tab.name} isn’t answering. Try again in a few minutes.` }));
+    const result = await onFindSong({ addonId: tab.addonId, valuesByInputId }).catch((): SongSourceSearchResult => ({ kind: 'not-answering', message: '' }));
     isAskingRef.current = false;
     setSearch(getSearchState(result));
-    if (result.kind === 'invalid-input') setProblemsByInputId({ [result.inputId]: result.message });
-    const onlyMusic = result.kind === 'found' && result.musics.length === 1 ? result.musics[0] : undefined;
-    if (onlyMusic) onPickMusic(onlyMusic);
+    if (result.kind === 'invalid-input') showProblem(result);
   };
   const handleSubmit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
     void findSong();
   };
-  const checkMusic = (music: MusicChoiceView): void => {
-    onPickMusic(music);
-    if (search.kind === 'found') setSearch({ ...search, checkedMusic: music });
+  const confirmMusic = (music: MusicChoiceView): void => {
+    if (onUseMusic) onUseMusic(music);
+    else onPickMusic(music);
   };
   const tryAgainButton = <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => void findSong()}>Try again</button>;
   return (
     <form className="sv-sync-stack-small" onSubmit={handleSubmit} noValidate>
-      {tab.inputs.map((input) => <SongSourceField key={input.id} input={input} value={valuesByInputId[input.id] ?? ''} problem={problemsByInputId[input.id] ?? ''} onChange={(value) => { changeValue({ input, value }); }} />)}
-      <span className="sv-sync-sees-line"><Icon name="info" size={14} />{tab.name} sees what you type here.</span>
+      {tab.inputs.map((input) => (
+        <SongSourceField
+          key={input.id}
+          input={input}
+          value={valuesByInputId[input.id] ?? ''}
+          problem={problemsByInputId[input.id] ?? ''}
+          fieldRef={(field) => { if (field) fieldsByInputId.current.set(input.id, field); else fieldsByInputId.current.delete(input.id); }}
+          onChange={(value) => { changeValue({ input, value }); }}
+        />
+      ))}
+      <span className="sv-sync-sees-line"><Icon name="eye" size={15} />{tab.name} sees what you type.</span>
       {search.kind === 'asking'
         ? <div className="sv-sync-row sv-sync-wrap" aria-live="polite"><ReceptorLoader label={`Asking ${tab.name}…`} isSmall /><button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onStopFindingSong}>Stop</button></div>
         : <button className="sv-sync-button sv-sync-align-start" type="submit"><Icon name="search" />Find the song</button>}
-      {search.kind === 'problem' && <MissLine action={tryAgainButton}>{search.message}</MissLine>}
-      {search.kind === 'found' && search.musics.length > 1 && search.checkedMusic === null && (
+      {search.kind === 'not-found' && <MissLine action={tryAgainButton}>{tab.name} didn’t find this song.{search.addonMessage !== '' && <> <span className="sv-sync-muted">{search.addonMessage}</span></>}</MissLine>}
+      {search.kind === 'not-answering' && <MissLine action={tryAgainButton}>{tab.name} isn’t answering.</MissLine>}
+      {search.kind === 'found' && search.checkedMusic === null && (
         <div className="sv-sync-pick-list" role="radiogroup" aria-label="Music found">
-          {search.musics.map((music) => <MusicChoiceRow key={music.musicId} music={music} isPicked={pickedMusic?.musicId === music.musicId} onPick={checkMusic} />)}
+          {search.musics.map((music) => <MusicChoiceRow key={music.musicId} music={music} isPicked={false} onPick={(picked) => { setSearch({ ...search, checkedMusic: picked }); }} />)}
         </div>
       )}
-      {search.kind === 'found' && (search.checkedMusic ?? (search.musics.length === 1 ? search.musics[0] : null)) && (
-        <SongCheck
-          music={search.checkedMusic ?? search.musics[0] as MusicChoiceView}
-          onUse={onUseMusic}
-          onPickAnother={search.musics.length > 1 ? () => { setSearch({ ...search, checkedMusic: null }); } : undefined}
-        />
-      )}
+      {search.kind === 'found' && search.checkedMusic && <SongCheck music={search.checkedMusic} onUse={confirmMusic} onPickAnother={() => { setSearch({ ...search, checkedMusic: null }); }} />}
     </form>
   );
 }
 
 /** "Is this the song?": what the song source found, to check before making it. */
-function SongCheck({ music, onUse, onPickAnother }: { music: MusicChoiceView; onUse?: (music: MusicChoiceView) => void; onPickAnother?: () => void }): ReactElement {
+function SongCheck({ music, onUse, onPickAnother }: { music: MusicChoiceView; onUse: (music: MusicChoiceView) => void; onPickAnother: () => void }): ReactElement {
   return (
     <div className="sv-sync-song-check" role="group" aria-label="Is this the song?">
       <b>Is this the song?</b>
       <span dir="auto">{[`${music.title} · ${music.artist}`, music.sourceText, music.lengthText].filter(Boolean).join(' · ')}{music.hasVideo ? ' · video too' : ''}</span>
-      {(onUse ?? onPickAnother) && (
-        <span className="sv-sync-row sv-sync-wrap">
-          {onUse && <button className="sv-sync-button sv-sync-button--small" type="button" onClick={() => { onUse(music); }}>Yes, use it</button>}
-          {onPickAnother && <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onPickAnother}>Pick another</button>}
-        </span>
-      )}
+      <span className="sv-sync-row sv-sync-wrap">
+        <button className="sv-sync-button sv-sync-button--small" type="button" onClick={() => { onUse(music); }}>Yes, use it</button>
+        <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onPickAnother}>Pick another</button>
+      </span>
     </div>
   );
 }
 
-function SongSourceField({ input, value, problem, onChange }: { input: SongSourceInput; value: string; problem: string; onChange: (value: string) => void }): ReactElement {
+interface SongSourceFieldProps {
+  input: SongSourceInput;
+  value: string;
+  problem: string;
+  fieldRef: (field: HTMLInputElement | null) => void;
+  onChange: (value: string) => void;
+}
+
+/** One field, labelled by the addon. A link field says which sites it takes; a problem stays until the player edits the text. */
+function SongSourceField({ input, value, problem, fieldRef, onChange }: SongSourceFieldProps): ReactElement {
+  const hintId = `sv-sync-input-hint-${input.id}`;
   const problemId = `sv-sync-input-problem-${input.id}`;
+  const describedByIds = [input.kind === 'link' ? hintId : '', problem === '' ? '' : problemId].filter(Boolean).join(' ');
   return (
     <div className="sv-sync-stack-tiny">
       <label className="sv-sync-field-label">
         {input.label}
-        <input className="sv-sync-field" type={input.kind === 'link' ? 'url' : 'search'} value={value} placeholder={input.placeholder ?? undefined} aria-invalid={problem !== ''} aria-describedby={problem === '' ? undefined : problemId} onChange={(event) => { onChange(event.target.value); }} />
+        <input ref={fieldRef} className={joinClassNames('sv-sync-field', input.kind === 'link' && 'sv-sync-mono')} type={input.kind === 'link' ? 'url' : 'search'} value={value} placeholder={input.placeholder ?? undefined} aria-invalid={problem !== ''} aria-describedby={describedByIds === '' ? undefined : describedByIds} onChange={(event) => { onChange(event.target.value); }} />
       </label>
-      {problem !== '' && <span id={problemId} className="sv-sync-small sv-sync-error-text" role="alert">{problem}</span>}
+      {input.kind === 'link' && <span id={hintId} className="sv-sync-small sv-sync-muted">Works with {getLinkSitesText({ sites: input.sites, joinWord: 'and' })} links.</span>}
+      {problem !== '' && <span id={problemId} className="sv-sync-small sv-sync-error-text sv-sync-field-problem" role="alert"><Icon name="warning" />{problem}</span>}
     </div>
   );
 }
 
-/** The sentence to show under a field as the player types, from the same check Sync runs before calling the addon. */
-function getInputProblemOrNull({ input, value }: { input: SongSourceInput; value: string }): string | null {
+/** The first field with a problem, from the same check Sync runs again before calling the addon; null when all are fine. */
+function getFirstInputProblemOrNull({ inputs, valuesByInputId }: { inputs: readonly SongSourceInput[]; valuesByInputId: Readonly<Record<string, string>> }): { inputId: string; message: string } | null {
   try {
-    getCheckedSongSourceInputValue({ input, value });
+    getSongSourceInputValues({ inputs, valuesByInputId });
     return null;
   } catch (error) {
-    if (error instanceof InvalidSongSourceInputError) return error.message;
+    if (error instanceof InvalidSongSourceInputError) return { inputId: error.inputId, message: error.message };
     throw error;
   }
 }
 
 function getSearchState(result: SongSourceSearchResult): SearchState {
   if (result.kind === 'found') return { kind: 'found', musics: result.musics, checkedMusic: null };
-  if (result.kind === 'not-found' || result.kind === 'not-answering') return { kind: 'problem', message: result.message };
+  if (result.kind === 'not-found') return { kind: 'not-found', addonMessage: result.message };
+  if (result.kind === 'not-answering') return { kind: 'not-answering' };
   return { kind: 'idle' };
 }
