@@ -1,6 +1,6 @@
 /** Builds what the addon screens show from installed addons; shared by the website and the desktop app. */
-import { getAddonOptionValues, isAddonProviding, type AddonManifest, type AddonOption, type AddonOptionValues, type InstalledAddon } from '@stepsvault/sync-core';
-import type { AddonInstallPreview, AddonOptionView, AddonView, SongSourceTabView } from '../sync-ui-types';
+import { getAddonOptionValues, isAddonProviding, isHostOnSites, parseUrlOrNull, type AddonManifest, type AddonOption, type AddonOptionValues, type InstalledAddon } from '@stepsvault/sync-core';
+import type { AddonInstallPreview, AddonOptionView, AddonView, LinkFieldView, LinksTabView, SongSourceTabView } from '../sync-ui-types';
 
 export function buildAddonView(addon: InstalledAddon): AddonView {
   const { manifest } = addon;
@@ -37,17 +37,35 @@ export function getAddonOptionValuesFromViews(options: readonly AddonOptionView[
 }
 
 /**
- * One tab on the Make a song page for each song source that is turned on, drawn from its declared inputs. Link addons
- * (any link field) come before search addons; each group keeps the order the player added them in.
+ * The tabs after Links on the Make a song page: one for each song source that is on and has search fields, named after
+ * it, in the order the player added them. A tab has only the addon's search fields; its link fields are in Links.
  */
 export function buildSongSourceTabs(addons: readonly InstalledAddon[]): SongSourceTabView[] {
-  const songSources = addons.filter((addon) => addon.isEnabled && isAddonProviding({ manifest: addon.manifest, ability: 'song-source' }));
-  return [...songSources.filter(hasLinkInput), ...songSources.filter((addon) => !hasLinkInput(addon))]
-    .map((addon) => ({ addonId: addon.manifest.id, name: addon.manifest.name, inputs: addon.manifest.inputs }));
+  return getSongSourcesThatAreOn(addons).flatMap((addon) => {
+    const searchInputs = addon.manifest.inputs.filter((input) => input.kind === 'search');
+    return searchInputs.length === 0 ? [] : [{ addonId: addon.manifest.id, name: addon.manifest.name, inputs: searchInputs }];
+  });
 }
 
-function hasLinkInput(addon: InstalledAddon): boolean {
-  return addon.manifest.inputs.some((input) => input.kind === 'link');
+/** One Links tab for every link addon that is on; null when none is, and then there is no Links tab. */
+export function buildLinksTab(addons: readonly InstalledAddon[]): LinksTabView | null {
+  const linkFields = getSongSourcesThatAreOn(addons).flatMap((addon) => addon.manifest.inputs.flatMap((input) => (input.kind === 'link' ? [{ addonId: addon.manifest.id, inputId: input.id, sites: [...input.sites] }] : [])));
+  if (linkFields.length === 0) return null;
+  return { linkFields, sites: [...new Set(linkFields.flatMap((linkField) => linkField.sites))] };
+}
+
+/**
+ * The link field a link goes to: the first, in the player's addon order, whose sites take the link's host (a subdomain
+ * of a site counts). Null for a link that isn't one, or is on no addon's site.
+ */
+export function findLinkFieldForLink({ linksTab, link }: { linksTab: LinksTabView; link: string }): LinkFieldView | null {
+  const hostName = parseUrlOrNull(link)?.hostname;
+  if (hostName === undefined) return null;
+  return linksTab.linkFields.find((linkField) => isHostOnSites({ hostName, sites: linkField.sites })) ?? null;
+}
+
+function getSongSourcesThatAreOn(addons: readonly InstalledAddon[]): InstalledAddon[] {
+  return addons.filter((addon) => addon.isEnabled && isAddonProviding({ manifest: addon.manifest, ability: 'song-source' }));
 }
 
 /** "Audio and video links · New songs to make": what Sync asks the addon for. */
