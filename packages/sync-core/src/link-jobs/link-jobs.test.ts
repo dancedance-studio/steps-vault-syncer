@@ -5,6 +5,7 @@ import type { SongSourceFileLink, SongSourceSong } from '../addons/song-source-p
 import type { FileUploadHttpClient, FileUploadHttpRequest, HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
 import { SignedOutError, StepsVaultApiError } from '../stepsvault-api/stepsvault-api-types';
 import { StepsVaultClient } from '../stepsvault-api/stepsvault-client';
+import { getLinkAudioContentTypeOrNull } from './link-audio-files';
 import { buildLinkFindResults, buildNotFoundAnswer, buildSyncPresence, findLinkAddon, isLinkJobExpired, parseLinkJobOrNull, parseLinkJobState, type SyncPresence } from './link-job-protocol';
 import { loadLinkSongSources, withLinkSongSource } from './link-song-sources';
 
@@ -222,6 +223,24 @@ describe('StepsVaultClient link jobs', () => {
   it('sends no file without an upload client: only the app uploads', async () => {
     const client = new StepsVaultClient({ httpClient: new RecordedSite({}), siteUrl: SITE_URL, deviceToken: null });
     await expect(client.uploadLinkJobAudio({ jobId: 'lj_2', audio: { sourceId: 'file:abc', contentType: 'audio/ogg' } })).rejects.toThrow('can’t send files');
+  });
+});
+
+describe('link audio files', () => {
+  const bytesOf = (...parts: (string | number[])[]): Uint8Array => new Uint8Array(parts.flatMap((part) => (typeof part === 'string' ? Array.from(part, (character) => character.charCodeAt(0)) : part)));
+
+  it('knows ogg, wav, m4a and mp3 by their first bytes, whatever the file is called', () => {
+    expect(getLinkAudioContentTypeOrNull(bytesOf('OggS', [0, 2]))).toBe('audio/ogg');
+    expect(getLinkAudioContentTypeOrNull(bytesOf('RIFF', [36, 0, 0, 0], 'WAVEfmt '))).toBe('audio/wav');
+    expect(getLinkAudioContentTypeOrNull(bytesOf([0, 0, 0, 32], 'ftypM4A '))).toBe('audio/mp4');
+    expect(getLinkAudioContentTypeOrNull(bytesOf('ID3', [4, 0]))).toBe('audio/mpeg');
+    expect(getLinkAudioContentTypeOrNull(bytesOf([0xff, 0xfb, 0x90, 0x64]))).toBe('audio/mpeg');
+  });
+
+  it('leaves every other file to be converted first: raw AAC, flac, webm, a video, nothing', () => {
+    for (const bytes of [bytesOf([0xff, 0xf1, 0x50, 0x80]), bytesOf('fLaC'), bytesOf([0x1a, 0x45, 0xdf, 0xa3]), bytesOf('RIFF', [0, 0, 0, 0], 'AVI '), new Uint8Array()]) {
+      expect(getLinkAudioContentTypeOrNull(bytes)).toBeNull();
+    }
   });
 });
 
