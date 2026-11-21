@@ -166,7 +166,7 @@ Answers:
 - `200 { "error": "One short sentence" }`: nothing found for this input.
 
 The same limits as `/audio-links` apply: an answer within 20 seconds and under 64 KB; Sync keeps asking after `202`
-for up to 30 minutes. Facts are trimmed to 200 characters; a `lengthSeconds` outside 0-3600 or a `youtubeId` that
+for up to 3 minutes, long enough to download a song's music and its video. Facts are trimmed to 200 characters; a `lengthSeconds` outside 0-3600 or a `youtubeId` that
 isn't 11 characters becomes `null`. The first music link is used; `open-page` links are ignored here. An answer with a
 `song` is used even if it also has an `error`; one with neither counts as not answering. A video needs no
 `video-links` in `provides`, and the `media` option "Music only" drops it, as for `/audio-links`.
@@ -191,7 +191,9 @@ for this.
   the addon gives both the id and the video file. The website never gets the addon's address or its file links.
 - When the player picks the song, Sync gets its music file on this computer and uploads that file alone, as ogg, mp3,
   m4a or wav (anything else as WAV). It keeps which addon found the music, and the link, by the website's song id.
-- An addon that doesn't answer within 18 seconds gets nothing sent back for it: the website says it isn't answering.
+- While the addon answers `202`, Sync keeps asking it as its own tab does, for up to 3 minutes, and tells the website
+  every 5 seconds that it is still working, so the find stays open. An addon that gives no answer at all for 18
+  seconds, or is still working after 3 minutes, gets nothing sent back for it: the website says it isn't answering.
 
 ## A minimal addon (Node)
 
