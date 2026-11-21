@@ -103,7 +103,7 @@ describe('MakeSongMusic', () => {
   it('shows a refused input under its field, without calling the addon', async () => {
     const { makeSongMusic } = buildMakeSongMusic();
     const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7801', manifest: SONG_SOURCE, consentedAt: '' });
-    expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://example.org/song' } })).toEqual({ kind: 'invalid-input', inputId: 'link', message: 'Paste a link from youtube.com or youtu.be.' });
+    expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://example.org/song' } })).toEqual({ kind: 'invalid-input', inputId: 'link', message: 'That site isn’t allowed here. Use a youtube.com or youtu.be link.' });
     expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } })).toMatchObject({ kind: 'not-answering' });
   });
 });

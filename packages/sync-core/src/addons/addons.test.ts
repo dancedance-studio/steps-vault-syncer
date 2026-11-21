@@ -5,7 +5,7 @@ import { buildInstalledAddon, fetchAddonManifest, fetchAudioLinks, isAddonSetToM
 import { parseAddonOptions, type AddonChoiceOption } from './addon-options';
 import { parseAddonManifest, type AddonManifest, type AddonSongFacts } from './addon-protocol';
 import { fetchSongSource, waitForSongSource } from './song-source-client';
-import { getCheckedSongSourceInputValue, getSongSourceInputValues, InvalidSongSourceInputError, type SongSourceInput } from './song-source-inputs';
+import { getCheckedSongSourceInputValue, getLinkSitesText, getSongSourceInputValues, InvalidSongSourceInputError, type SongSourceInput } from './song-source-inputs';
 
 const MANIFEST: AddonManifest = { protocol: 1, kind: 'addon', id: 'indie.tapes', name: 'Indie Tapes', version: '0.6.1', author: 'hyperpad', description: 'Links to files on our own server.', provides: ['audio-links'], inputs: [], options: [] };
 const MEDIA_OPTION: AddonChoiceOption = { id: 'media', label: 'What to get', kind: 'choice', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], default: 'audio-and-video' };
@@ -279,9 +279,9 @@ describe('song source inputs', () => {
   });
 
   it.each([
-    ['https://evil-youtube.com/watch?v=dQw4w9WgXcQ', 'Paste a link from youtube.com or youtu.be.'],
-    ['https://youtube.com.evil.example/watch', 'Paste a link from youtube.com or youtu.be.'],
-    ['https://vimeo.com/123', 'Paste a link from youtube.com or youtu.be.'],
+    ['https://evil-youtube.com/watch?v=dQw4w9WgXcQ', 'That site isn’t allowed here. Use a youtube.com or youtu.be link.'],
+    ['https://youtube.com.evil.example/watch', 'That site isn’t allowed here. Use a youtube.com or youtu.be link.'],
+    ['https://vimeo.com/123', 'That site isn’t allowed here. Use a youtube.com or youtu.be link.'],
     ['http://youtu.be/dQw4w9WgXcQ', 'Paste a link that starts with https://'],
     ['https://player:secret@youtu.be/dQw4w9WgXcQ', 'without a user name or password'],
     ['youtu.be/dQw4w9WgXcQ', 'doesn’t look like a link'],
@@ -289,6 +289,13 @@ describe('song source inputs', () => {
     ['   ', 'Paste a link from youtube.com or youtu.be.'],
   ])('refuses %s with a sentence for the field', (link, message) => {
     expect(getInputProblem({ input: YOUTUBE_LINK_INPUT, value: link })).toContain(message);
+  });
+
+  it('names a link field’s sites in a sentence, for the hint and the error', () => {
+    const input: SongSourceInput = { ...YOUTUBE_LINK_INPUT, sites: ['example.com', 'clips.example', 'media.example.org'] };
+    expect(getLinkSitesText({ sites: input.sites, joinWord: 'and' })).toBe('example.com, clips.example and media.example.org');
+    expect(getLinkSitesText({ sites: ['clips.example'], joinWord: 'or' })).toBe('clips.example');
+    expect(getInputProblem({ input, value: 'https://other.example.net/song' })).toBe('That site isn’t allowed here. Use an example.com, clips.example or media.example.org link.');
   });
 
   it('trims a search and refuses one over 200 characters', () => {

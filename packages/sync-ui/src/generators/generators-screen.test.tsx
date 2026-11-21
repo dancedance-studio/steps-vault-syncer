@@ -170,7 +170,7 @@ describe('GeneratorsScreen', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Tube Songs' }));
     const linkField = screen.getByRole('textbox', { name: 'YouTube link' });
     fireEvent.change(linkField, { target: { value: 'https://evil-youtube.com/watch' } });
-    expect(screen.getByRole('alert').textContent).toBe('Paste a link from youtube.com or youtu.be.');
+    expect(screen.getByRole('alert').textContent).toBe('That site isn’t allowed here. Use a youtube.com or youtu.be link.');
     fireEvent.change(linkField, { target: { value: 'https://youtu.be/dQw4w9WgXcQ' } });
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.getByText('Tube Songs sees what you type here.')).toBeDefined();
