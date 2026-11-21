@@ -8,6 +8,7 @@ import {
   getLinkAddonDeclarations,
   HttpRequestError,
   isLinkJobExpired,
+  MAX_SONG_SOURCE_WAIT_SECONDS,
   SignedOutError,
   StepsVaultApiError,
   withLinkSongSource,
@@ -27,8 +28,15 @@ import {
 import { SiteMusicLimitError, type FoundSongChoices, type MakeSongMusic } from './make-song-music';
 
 const PRESENCE_EVERY_MILLISECONDS = 30_000;
-/** The site gives up on a find 20 s after Sync took it; Sync stops waiting for the addon 2 s before that. */
-const FIND_WAIT_MILLISECONDS = 18_000;
+/**
+ * The site gives up on a find after 20 s with no answer and no keepalive; Sync stops waiting for an addon that is silent
+ * that long 2 s before.
+ */
+const FIND_SILENCE_MILLISECONDS = 18_000;
+/** While the addon answers "still working", Sync tells the site so this often, well inside the site's 20 s. */
+const FIND_KEEPALIVE_EVERY_MILLISECONDS = 5_000;
+/** The link tab's own limit for an addon that keeps working, so a find takes as long on the website as in Sync. */
+const MAX_FIND_MILLISECONDS = MAX_SONG_SOURCE_WAIT_SECONDS * 1000;
 /** After a failed ask for a job: 1 s, 2 s, 5 s, then every 30 s, so a site that is down isn't hammered. */
 const RETRY_WAITS_MILLISECONDS: readonly number[] = [1_000, 2_000, 5_000, 30_000];
 /** A site that answers "no job" at once, instead of holding the request, is still asked at most once a second. */
@@ -74,6 +82,38 @@ interface RememberedFind {
 
 /** Why a link song has no music, as one short sentence for the player; never an error's own text, which can hold an address. */
 class LinkMusicFailure extends Error {}
+
+/** One find while it runs. It ends when the addon answers or Sync gives up, or early when the site cancels it. */
+class RunningFind {
+  readonly takenAtMilliseconds: number;
+  /** The link tab's 3 minutes for an addon that keeps working, from when Sync took the job. */
+  readonly maxEndMilliseconds: number;
+  /** Resolves when the find ends, so no wait or keepalive outlives it. */
+  readonly ended: Promise<void>;
+  hasAsked = false;
+  isKeptAlive = false;
+  isEnded = false;
+  isCancelled = false;
+  private resolveEnded: () => void = () => undefined;
+
+  constructor({ takenAtMilliseconds, maxEndMilliseconds }: { takenAtMilliseconds: number; maxEndMilliseconds: number }) {
+    this.takenAtMilliseconds = takenAtMilliseconds;
+    this.maxEndMilliseconds = maxEndMilliseconds;
+    this.ended = new Promise((resolve) => {
+      this.resolveEnded = resolve;
+    });
+  }
+
+  end(): void {
+    this.isEnded = true;
+    this.resolveEnded();
+  }
+
+  cancel(): void {
+    this.isCancelled = true;
+    this.end();
+  }
+}
 
 /**
  * Link jobs from the website (design v3.124), while the app runs and the account is linked: the website relays a link
@@ -244,8 +284,9 @@ export class SiteLinkJobs {
 
   /**
    * The link tab's way to find a song: the link is checked against the addon's sites first, so a link from any other
-   * site never reaches the addon. An addon still silent after 18 s gets no answer from Sync at all; the site's own
-   * timeout then says it isn't answering, as the link tab does.
+   * site never reaches the addon. While the addon answers "still working" (202), Sync keeps asking it as the link tab
+   * does, for up to 3 minutes, and tells the site every 5 s so the find stays open. An addon silent for 18 s, or still
+   * working after 3 minutes, gets no answer from Sync at all; the site's own timeout then says it isn't answering.
    */
   private async runFindJob({ job, takenAtMilliseconds }: { job: FindLinkJob; takenAtMilliseconds: number }): Promise<void> {
     const linkAddon = findLinkAddon({ addons: this.dependencies.getAddons(), addonId: job.addonId });
@@ -253,14 +294,18 @@ export class SiteLinkJobs {
       await this.answerJob({ job, answer: { status: 'gone' } });
       return;
     }
-    const deadlineMilliseconds = takenAtMilliseconds + FIND_WAIT_MILLISECONDS;
+    const find = new RunningFind({ takenAtMilliseconds, maxEndMilliseconds: takenAtMilliseconds + MAX_FIND_MILLISECONDS });
     const found = await this.dependencies.songs.findSongChoices({
       addon: linkAddon.addon,
       valuesByInputId: { [linkAddon.linkInput.id]: job.link },
-      httpClient: this.buildAddonClientBefore(deadlineMilliseconds),
-      waitSeconds: (seconds) => this.waitBefore({ deadlineMilliseconds, milliseconds: seconds * 1000 }),
-      shouldStop: () => this.getNow() >= deadlineMilliseconds,
-    });
+      httpClient: this.buildAddonClientFor(find),
+      waitSeconds: (seconds) => this.waitWhileAddonWorks({ job, find, milliseconds: seconds * 1000 }),
+      shouldStop: () => find.isCancelled || this.getNow() >= find.maxEndMilliseconds,
+    }).finally(() => { find.end(); });
+    if (find.isCancelled) {
+      this.logJob({ job, status: 'stopped on the site, nothing sent' });
+      return;
+    }
     if (found.kind === 'found') {
       await this.answerFoundSongs({ job, found, sites: linkAddon.linkInput.sites });
       return;
@@ -361,28 +406,60 @@ export class SiteLinkJobs {
     return this.savingSources;
   }
 
-  /** The addon's network for one find: every request gives up at the find's deadline, starting a local addon included. */
-  private buildAddonClientBefore(deadlineMilliseconds: number): HttpClient {
+  /**
+   * After each "still working" (202): from the first one on, the site hears every 5 s that the find goes on. Sync then
+   * waits as long as the addon asked, but never past the find's 3 minutes, nor once the site has cancelled it.
+   */
+  private async waitWhileAddonWorks({ job, find, milliseconds }: { job: FindLinkJob; find: RunningFind; milliseconds: number }): Promise<void> {
+    if (!find.isKeptAlive) {
+      find.isKeptAlive = true;
+      this.logJob({ job, status: 'the addon is still working, keeping the find open' });
+      void this.keepFindAlive({ job, find });
+    }
+    const waitMilliseconds = Math.min(milliseconds, find.maxEndMilliseconds - this.getNow());
+    if (waitMilliseconds > 0) await Promise.race([this.dependencies.waitMilliseconds(waitMilliseconds), find.ended]);
+  }
+
+  /** "working" every 5 s until the find ends; a 410 means the player stopped it on the site, so Sync stops asking. */
+  private async keepFindAlive({ job, find }: { job: FindLinkJob; find: RunningFind }): Promise<void> {
+    while (!find.isEnded) {
+      const api = this.dependencies.buildApi();
+      if (!api) return;
+      const delivery = await api.answerLinkJob({ jobId: job.id, answer: { status: 'working' } }).catch((error: unknown) => {
+        if (error instanceof SignedOutError) this.handleSignedOut();
+        // A keepalive that doesn't arrive is sent again 5 s later.
+        return null;
+      });
+      if (delivery === 'late') {
+        find.cancel();
+        return;
+      }
+      await Promise.race([this.dependencies.waitMilliseconds(FIND_KEEPALIVE_EVERY_MILLISECONDS), find.ended]);
+    }
+  }
+
+  /**
+   * The addon's network for one find: an ask that gets no answer within 18 s gives up, starting a local addon included.
+   * The first ask counts from when Sync took the job, as the site's own wait does; later ones from when they start.
+   */
+  private buildAddonClientFor(find: RunningFind): HttpClient {
     const { addonHttpClient } = this.dependencies;
     return {
-      requestJson: (request) => this.sendBefore({ request, deadlineMilliseconds, send: (limitedRequest) => addonHttpClient.requestJson(limitedRequest) }),
-      requestText: (request) => this.sendBefore({ request, deadlineMilliseconds, send: (limitedRequest) => addonHttpClient.requestText(limitedRequest) }),
-      requestBytes: (request) => this.sendBefore({ request, deadlineMilliseconds, send: (limitedRequest) => addonHttpClient.requestBytes(limitedRequest) }),
+      requestJson: (request) => this.sendBeforeSilence({ request, find, send: (limitedRequest) => addonHttpClient.requestJson(limitedRequest) }),
+      requestText: (request) => this.sendBeforeSilence({ request, find, send: (limitedRequest) => addonHttpClient.requestText(limitedRequest) }),
+      requestBytes: (request) => this.sendBeforeSilence({ request, find, send: (limitedRequest) => addonHttpClient.requestBytes(limitedRequest) }),
     };
   }
 
-  private sendBefore<Body>({ request, deadlineMilliseconds, send }: { request: HttpRequest; deadlineMilliseconds: number; send: (request: HttpRequest) => Promise<HttpResponse<Body>> }): Promise<HttpResponse<Body>> {
-    const remainingMilliseconds = deadlineMilliseconds - this.getNow();
+  private sendBeforeSilence<Body>({ request, find, send }: { request: HttpRequest; find: RunningFind; send: (request: HttpRequest) => Promise<HttpResponse<Body>> }): Promise<HttpResponse<Body>> {
+    const silenceEndMilliseconds = (find.hasAsked ? this.getNow() : find.takenAtMilliseconds) + FIND_SILENCE_MILLISECONDS;
+    find.hasAsked = true;
+    const remainingMilliseconds = Math.min(silenceEndMilliseconds, find.maxEndMilliseconds) - this.getNow();
     if (remainingMilliseconds <= 0) return Promise.reject(buildAddonTimeoutError());
-    const deadlinePassed = this.dependencies.waitMilliseconds(remainingMilliseconds).then((): never => {
+    const silenceEnded = Promise.race([this.dependencies.waitMilliseconds(remainingMilliseconds), find.ended]).then((): never => {
       throw buildAddonTimeoutError();
     });
-    return Promise.race([send({ ...request, timeoutMilliseconds: Math.min(request.timeoutMilliseconds, remainingMilliseconds) }), deadlinePassed]);
-  }
-
-  private async waitBefore({ deadlineMilliseconds, milliseconds }: { deadlineMilliseconds: number; milliseconds: number }): Promise<void> {
-    const waitMilliseconds = Math.min(milliseconds, deadlineMilliseconds - this.getNow());
-    if (waitMilliseconds > 0) await this.dependencies.waitMilliseconds(waitMilliseconds);
+    return Promise.race([send({ ...request, timeoutMilliseconds: Math.min(request.timeoutMilliseconds, remainingMilliseconds) }), silenceEnded]);
   }
 
   private logJob({ job, status }: { job: LinkJob; status: string }): void {

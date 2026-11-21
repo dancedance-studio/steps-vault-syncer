@@ -78,6 +78,8 @@ class FakeSite implements HttpClient, FileUploadHttpClient {
   readonly stateChecks: string[] = [];
   readonly requests: { url: string; headers: Readonly<Record<string, string>> }[] = [];
   readonly statesByJobId = new Map<string, string>();
+  /** Jobs the player stopped: the site answers 410 to anything Sync sends for them. */
+  readonly endedJobIds = new Set<string>();
   readonly pollOutcomes: PollOutcome[] = [];
   pollCount = 0;
   private heldPoll: ((outcome: PollOutcome) => void) | null = null;
@@ -107,7 +109,8 @@ class FakeSite implements HttpClient, FileUploadHttpClient {
     }
     const jobId = decodeURIComponent(/^\/link-jobs\/([^/?]+)\/answer$/.exec(route)?.[1] ?? '');
     this.answers.push({ jobId, answer: request.jsonBody });
-    return Promise.resolve({ status: 200, body: '' });
+    if (this.endedJobIds.has(jobId)) return Promise.resolve({ status: 410, body: '{"error":"This find has ended."}' });
+    return Promise.resolve({ status: request.jsonBody !== null && typeof request.jsonBody === 'object' && 'status' in request.jsonBody && request.jsonBody.status === 'working' ? 204 : 200, body: '' });
   }
 
   requestBytes(): Promise<HttpResponse<Uint8Array>> {
@@ -243,6 +246,11 @@ async function waitUntil(isDone: () => boolean): Promise<void> {
   expect(isDone()).toBe(true);
 }
 
+/** The status of every answer the site got, keepalives included, in order. */
+function getAnswerStatuses(harness: LinkJobsHarness): string[] {
+  return harness.site.answers.map(({ answer }) => (typeof answer === 'object' && answer !== null && 'status' in answer && typeof answer.status === 'string' ? answer.status : ''));
+}
+
 /** Every music job removes its temporary folder when it ends, whatever happened. */
 async function waitForMusicJobFoldersToGo(): Promise<void> {
   await waitUntil(() => readdirSync(path.join(workFolder, 'link-jobs')).length === 0);
@@ -334,18 +342,79 @@ describe('find jobs', () => {
     expect(harness.site.answers).toEqual([]);
   });
 
-  it('send nothing either when the addon is still working after 18 s', async () => {
+  it('stay open while the addon is still working: "working" every 5 s, then the songs it found, even after 18 s', async () => {
+    const harness = new LinkJobsHarness();
+    const stillWorking: HttpResponse<unknown> = { status: 202, body: { retryAfterSeconds: 5 } };
+    const addonAnswers: HttpResponse<unknown>[] = [stillWorking, stillWorking, stillWorking, stillWorking, { status: 200, body: FOUND_NIGHT_DRIVE }];
+    harness.addon.answer = () => Promise.resolve(addonAnswers.shift() ?? { status: 500, body: {} });
+    harness.linkJobs.start();
+    harness.site.queueJob(FIND_JOB);
+    await waitUntil(() => harness.site.answers.length === 1);
+    expect(harness.site.answers[0]).toEqual({ jobId: 'lj_1', answer: { status: 'working' } });
+    for (let second = 0; second < 20; second += 5) await harness.clock.advance(5_000);
+    await waitUntil(() => getAnswerStatuses(harness).includes('found'));
+    const statuses = getAnswerStatuses(harness);
+    expect(statuses.at(-1)).toBe('found');
+    expect(statuses.slice(0, -1).every((status) => status === 'working')).toBe(true);
+    expect(statuses.length).toBeGreaterThanOrEqual(5);
+    expect(harness.addon.requests).toHaveLength(5);
+    expect(harness.hasLog('[link-jobs] find lj_1: the addon is still working, keeping the find open')).toBe(true);
+    await harness.clock.advance(30_000);
+    expect(getAnswerStatuses(harness)).toEqual(statuses);
+  });
+
+  it('give up on an addon still working after 3 minutes, and send nothing but the keepalives', async () => {
     const harness = new LinkJobsHarness();
     harness.addon.answer = () => Promise.resolve({ status: 202, body: { retryAfterSeconds: 5 } });
     harness.linkJobs.start();
     harness.site.queueJob(FIND_JOB);
     await waitUntil(() => harness.addon.requests.length === 1);
-    for (let second = 0; second < 17; second += 1) await harness.clock.advance(1_000);
+    for (let second = 0; second < 175; second += 5) await harness.clock.advance(5_000);
+    expect(harness.hasLog('[link-jobs] find lj_1: no answer from the addon, nothing sent')).toBe(false);
+    await harness.clock.advance(5_000);
+    await waitUntil(() => harness.hasLog('[link-jobs] find lj_1: no answer from the addon, nothing sent'));
+    const askCount = harness.addon.requests.length;
+    const statuses = getAnswerStatuses(harness);
+    expect(askCount).toBeGreaterThanOrEqual(36);
+    expect(statuses.every((status) => status === 'working')).toBe(true);
+    await harness.clock.advance(60_000);
+    expect(harness.addon.requests).toHaveLength(askCount);
+    expect(getAnswerStatuses(harness)).toEqual(statuses);
+  });
+
+  it('stop asking the addon when the site answers 410 to a keepalive, because the player stopped the find', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addon.answer = () => Promise.resolve({ status: 202, body: { retryAfterSeconds: 5 } });
+    harness.linkJobs.start();
+    harness.site.queueJob(FIND_JOB);
+    await waitUntil(() => harness.site.answers.length === 1);
+    harness.site.endedJobIds.add('lj_1');
+    await harness.clock.advance(5_000);
+    await waitUntil(() => harness.hasLog('[link-jobs] find lj_1: stopped on the site, nothing sent'));
+    const askCount = harness.addon.requests.length;
+    expect(askCount).toBeLessThanOrEqual(2);
+    await harness.clock.advance(60_000);
+    expect(harness.addon.requests).toHaveLength(askCount);
+    expect(getAnswerStatuses(harness).every((status) => status === 'working')).toBe(true);
+  });
+
+  it('give up 18 s into an ask that gets no answer, even after the addon said it was still working', async () => {
+    const harness = new LinkJobsHarness();
+    const addonAnswers: Promise<HttpResponse<unknown>>[] = [Promise.resolve({ status: 202, body: { retryAfterSeconds: 5 } })];
+    harness.addon.answer = () => addonAnswers.shift() ?? new Promise(() => undefined);
+    harness.linkJobs.start();
+    harness.site.queueJob(FIND_JOB);
+    await waitUntil(() => harness.addon.requests.length === 1);
+    await harness.clock.advance(5_000);
+    await waitUntil(() => harness.addon.requests.length === 2);
+    await harness.clock.advance(17_000);
     expect(harness.hasLog('[link-jobs] find lj_1: no answer from the addon, nothing sent')).toBe(false);
     await harness.clock.advance(1_000);
     await waitUntil(() => harness.hasLog('[link-jobs] find lj_1: no answer from the addon, nothing sent'));
-    expect(harness.addon.requests).toHaveLength(4);
-    expect(harness.site.answers).toEqual([]);
+    const statuses = getAnswerStatuses(harness);
+    expect(statuses.every((status) => status === 'working')).toBe(true);
+    await harness.clock.advance(30_000);
+    expect(getAnswerStatuses(harness)).toEqual(statuses);
   });
 });
 
