@@ -4,8 +4,12 @@ import { InvalidAddonAnswerError, isAddonProviding } from './addon-protocol';
 import { getSongSourceInputValues } from './song-source-inputs';
 import { buildSongSourceRequestBody, parseSongSourceAnswer, type SongSourceAnswer } from './song-source-protocol';
 
-// A song source may download a whole video before answering; past this, the player is better off trying again.
-const MAX_SONG_SOURCE_WAIT_SECONDS = 30 * 60;
+/**
+ * How long Sync keeps asking a song source that answers "still working" (202): long enough to download a song's music
+ * and its video, and the same for the link tab and for a link from the website. Past this, the player is better off
+ * trying again.
+ */
+export const MAX_SONG_SOURCE_WAIT_SECONDS = 3 * 60;
 
 export interface SongSourceCallOptions {
   httpClient: HttpClient;
