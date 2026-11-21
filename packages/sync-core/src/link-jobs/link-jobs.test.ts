@@ -90,7 +90,7 @@ describe('reading link jobs', () => {
 });
 
 describe('find answers', () => {
-  it('gives each found song a ref, its facts in whole seconds, the addon’s site the link is on, and the video when the addon gives its id and file', () => {
+  it('gives each found song a ref, its facts in whole seconds, the addon’s site the link is on, and the video whenever the addon gives its id, with or without its file yet', () => {
     const choices = [
       { song: NIGHT_DRIVE, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK },
       { song: { ...NIGHT_DRIVE, title: 'Night Drive (Live)' }, musicLink: MUSIC_LINK, videoLink: null },
@@ -100,7 +100,7 @@ describe('find answers', () => {
     const results = buildLinkFindResults({ choices, link: 'https://www.clips.example/v/night-drive', sites: ['clips.example', 'media.example.org'] });
     expect(results.map(({ result }) => result)).toEqual([
       { ref: 'r1', title: 'Night Drive', artist: 'Lumen Park', source: 'clips.example', lengthSec: 221, video: { videoId: 'Vid3o1d-x_Z', title: 'Night Drive', channel: 'Lumen Park', lengthSec: 221 } },
-      { ref: 'r2', title: 'Night Drive (Live)', artist: 'Lumen Park', source: 'clips.example', lengthSec: 221, video: null },
+      { ref: 'r2', title: 'Night Drive (Live)', artist: 'Lumen Park', source: 'clips.example', lengthSec: 221, video: { videoId: 'Vid3o1d-x_Z', title: 'Night Drive (Live)', channel: 'Lumen Park', lengthSec: 221 } },
       { ref: 'r3', title: 'Night Drive (Edit)', artist: 'Lumen Park', source: 'clips.example', lengthSec: 221, video: null },
       { ref: 'r4', title: 'Night Drive (Demo)', artist: 'Lumen Park', source: 'clips.example', lengthSec: null, video: { videoId: 'Vid3o1d-x_Z', title: 'Night Drive (Demo)', channel: 'Lumen Park', lengthSec: null } },
     ]);

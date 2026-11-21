@@ -213,13 +213,14 @@ export function buildNotFoundAnswer(addonError: string | null): LinkJobAnswer {
 }
 
 /**
- * The video only when the addon gives both its id and its file: the site links the id, and the file is what the game
- * gets later through video-links. The song-source answer has no facts of its own for the video, which comes from the
- * same upload as the music, so its title, channel and length are the song's.
+ * The video whenever the addon gives its id: the site links the id, and the game gets the file later through
+ * video-links when the song is installed. An addon may answer before the video file is downloaded, so its file is not
+ * required here. The song-source answer has no facts of its own for the video, which comes from the same upload as the
+ * music, so its title, channel and length are the song's.
  */
 function buildVideoFactsOrNull({ choice, lengthSec }: { choice: Pick<SongSourceChoice, 'song' | 'videoLink'>; lengthSec: number | null }): LinkVideoFacts | null {
   const videoId = choice.song.youtubeId;
-  if (videoId === null || choice.videoLink === null) return null;
+  if (videoId === null) return null;
   return { videoId, title: choice.song.title, channel: choice.song.artist, lengthSec };
 }
 
