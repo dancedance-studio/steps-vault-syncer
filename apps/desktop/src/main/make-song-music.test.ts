@@ -10,6 +10,8 @@ import { NodeMusicLibrary } from './node-music-library';
 const MANIFEST: GeneratorManifest = { protocol: 1, kind: 'generator', id: 'stepcat.tap-forge', name: 'Tap Forge', version: '1.2.0', author: '@stepcat', description: '', difficulties: ['Easy'], musicTypes: ['audio/ogg', 'audio/mpeg'], usesVideo: true, maxMusicBytes: 1_000_000, options: [] };
 const SONG_SOURCE: AddonManifest = { protocol: 1, kind: 'addon', id: 'tube.songs', name: 'Tube Songs', version: '0.2.0', author: '@noa', description: '', provides: ['song-source'], options: [], inputs: [{ id: 'link', kind: 'link', label: 'YouTube link', placeholder: null, sites: ['youtube.com', 'youtu.be'] }] };
 
+const OPEN_AUDIO_LINKS: AddonManifest = { protocol: 1, kind: 'addon', id: 'open.audio-links', name: 'Open Audio Links', version: '1.0.0', author: '@noa', description: '', provides: ['audio-links', 'video-links', 'song-source'], options: [], inputs: [{ id: 'link', kind: 'link', label: 'Video link', placeholder: null, sites: ['clips.example.com', 'clip.example'] }] };
+
 let workFolder: string;
 let jobFolder: string;
 
@@ -105,5 +107,35 @@ describe('MakeSongMusic', () => {
     const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7801', manifest: SONG_SOURCE, consentedAt: '' });
     expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://example.org/song' } })).toEqual({ kind: 'invalid-input', inputId: 'link', message: 'That site isn’t allowed here. Use a youtube.com or youtu.be link.' });
     expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } })).toMatchObject({ kind: 'not-answering' });
+  });
+
+  it('passes on a link addon’s not-found with its sentence, and a silent addon as not answering', async () => {
+    const answers: HttpResponse<unknown>[] = [{ status: 200, body: { error: 'That clip is private.' } }, { status: 500, body: {} }];
+    const requestedUrls: string[] = [];
+    const httpClient: HttpClient = { requestJson: ({ url }) => { requestedUrls.push(url); return Promise.resolve(answers.shift() ?? { status: 500, body: {} }); }, requestText: () => Promise.reject(new Error('Not used.')), requestBytes: () => Promise.reject(new Error('Not used.')) };
+    const { makeSongMusic } = buildMakeSongMusic({ httpClient });
+    const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7802', manifest: OPEN_AUDIO_LINKS, consentedAt: '' });
+    expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://clip.example/n1ght' } })).toEqual({ kind: 'not-found', message: 'That clip is private.' });
+    expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://clip.example/n1ght' } })).toMatchObject({ kind: 'not-answering' });
+    expect(requestedUrls).toEqual(['http://127.0.0.1:7802/song-source', 'http://127.0.0.1:7802/song-source']);
+  });
+
+  it('stops asking a link addon that is still working when the player presses Stop', async () => {
+    const httpClient: HttpClient = { requestJson: () => Promise.resolve({ status: 202, body: { retryAfterSeconds: 5 } }), requestText: () => Promise.reject(new Error('Not used.')), requestBytes: () => Promise.reject(new Error('Not used.')) };
+    let waitCount = 0;
+    const { makeSongMusic } = buildMakeSongMusic({ httpClient, waitMilliseconds: () => { waitCount += 1; if (waitCount === 2) makeSongMusic.stopFindingSong(); return Promise.resolve(); } });
+    const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7802', manifest: OPEN_AUDIO_LINKS, consentedAt: '' });
+    expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://clips.example.com/watch?v=n1ght' } })).toEqual({ kind: 'stopped' });
+  });
+
+  it('never asks a link addon about a link from a site it doesn’t list', async () => {
+    const requestedUrls: string[] = [];
+    const httpClient: HttpClient = { requestJson: ({ url }) => { requestedUrls.push(url); return Promise.resolve({ status: 200, body: {} }); }, requestText: () => Promise.reject(new Error('Not used.')), requestBytes: () => Promise.reject(new Error('Not used.')) };
+    const { makeSongMusic } = buildMakeSongMusic({ httpClient });
+    const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7802', manifest: OPEN_AUDIO_LINKS, consentedAt: '' });
+    for (const link of ['https://other.example.net/n1ght', 'https://clip.example.evil.example/n1ght', 'javascript:alert(1)']) {
+      expect(await makeSongMusic.findSong({ addon, valuesByInputId: { link } })).toMatchObject({ kind: 'invalid-input', inputId: 'link' });
+    }
+    expect(requestedUrls).toEqual([]);
   });
 });
