@@ -7,6 +7,7 @@ const NOT_IN_LIBRARY_REASON = 'Sync didn’t find this song in your library list
 const NO_MUSIC_REASON = 'Sync couldn’t find this song’s music in your music folders or through your addons.';
 const STILL_GETTING_MUSIC_REASON = 'Your link addon is still getting the music. Try again in a few minutes.';
 const DIFFERENT_EDIT_REASON = 'The music Sync found is a different version of this song, so the steps wouldn’t line up.';
+const ADDON_DIFFERENT_EDIT_REASON = 'The music your link addon got is another version of this song, or another song.';
 const NOT_WRITTEN_REASON = 'Sync couldn’t write the song into your game folder. Try again.';
 
 /** Where a library song stands after a sync, for an install job from the website ("Into my game"). */
@@ -15,14 +16,17 @@ export type SongInstallCheck =
   | { kind: 'installed' }
   /** An addon is still getting the music, or isn't answering yet: another sync may bring it. */
   | { kind: 'waiting-for-addon'; reason: string }
+  /** The music an addon got is another version of the song, or another song: the site may drop an unchecked video link. */
+  | { kind: 'different'; reason: string }
   /** reason: why not, in Sync's own words, plain and at most 140 characters. */
   | { kind: 'failed'; reason: string };
 
 /**
  * Checks the game folder itself, not only Sync's record: the song counts as in the game only when the music file (and
- * the video the record names) is really in its folder.
+ * the video the record names) is really in its folder. Another version is "different" only when an addon's file was it
+ * (isAddonFile): a file of the player's own says nothing about the song's video link.
  */
-export async function checkSongInstall({ songsFolder, outcome, vaultSongId }: { songsFolder: SongsFolder; outcome: SyncOutcome; vaultSongId: string }): Promise<SongInstallCheck> {
+export async function checkSongInstall({ songsFolder, outcome, vaultSongId, isAddonFile = () => false }: { songsFolder: SongsFolder; outcome: SyncOutcome; vaultSongId: string; isAddonFile?: (sourceId: string) => boolean }): Promise<SongInstallCheck> {
   const installedSong = outcome.record.installedSongs.find((song) => song.vaultSongId === vaultSongId);
   if (installedSong && (await hasSongFiles({ songsFolder, installedSong }))) return { kind: 'installed' };
   const songPlan = outcome.finalPlan.songPlans.find((plan) => plan.vaultSongId === vaultSongId);
@@ -30,9 +34,15 @@ export async function checkSongInstall({ songsFolder, outcome, vaultSongId }: { 
   const addonMessage = outcome.audioResultsBySongId.get(vaultSongId)?.addonMessages[0] ?? null;
   if (songPlan.status === 'needs-audio' && songPlan.isWaitingForAddon) return { kind: 'waiting-for-addon', reason: getPlainReasonOrNull(addonMessage) ?? STILL_GETTING_MUSIC_REASON };
   if (songPlan.status === 'needs-audio') return buildFailedCheck(addonMessage ?? NO_MUSIC_REASON);
-  if (songPlan.status === 'different-edit') return buildFailedCheck(DIFFERENT_EDIT_REASON);
+  if (songPlan.status === 'different-edit') return getDifferentEditCheck({ outcome, vaultSongId, isAddonFile });
   const writeFailure = outcome.events.find((event) => event.vaultSongId === vaultSongId && event.kind === 'failed' && event.partyListId === undefined);
   return buildFailedCheck(writeFailure?.message ?? NOT_WRITTEN_REASON);
+}
+
+function getDifferentEditCheck({ outcome, vaultSongId, isAddonFile }: { outcome: SyncOutcome; vaultSongId: string; isAddonFile: (sourceId: string) => boolean }): SongInstallCheck {
+  const match = outcome.audioResultsBySongId.get(vaultSongId)?.match;
+  if (match?.kind === 'different-edit' && isAddonFile(match.sourceId)) return { kind: 'different', reason: ADDON_DIFFERENT_EDIT_REASON };
+  return buildFailedCheck(DIFFERENT_EDIT_REASON);
 }
 
 async function hasSongFiles({ songsFolder, installedSong }: { songsFolder: SongsFolder; installedSong: InstalledSong }): Promise<boolean> {

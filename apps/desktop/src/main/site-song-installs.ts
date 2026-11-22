@@ -8,7 +8,7 @@ const NO_GAME_REASON = 'Sync has no game folder yet. Open dancedance.studio Sync
 const GAME_RUNNING_REASON = 'StepMania is running. Close it so Sync can add the song, then try again.';
 const SYNC_STOPPED_REASON = 'Sync couldn’t finish a sync. Try again in a minute.';
 
-/** How an install job from the website ends: the song is in the game, or why not. */
+/** How an install job from the website ends: the song is in the game, or why not ("different": the addon's music isn't it). */
 export type SiteSongInstallResult = Exclude<SongInstallCheck, { kind: 'waiting-for-addon' }>;
 
 /** What an install needs from the app: its syncs, its game folder and the time. */
@@ -22,6 +22,8 @@ export interface SiteSongInstallPorts {
   /** Why the last sync stopped, as a sentence for the player; null when it didn't. */
   getProblem(): string | null;
   getSongsFolder(): SongsFolder;
+  /** True for a file Sync downloaded from an addon, so another version of the song in it is the addon's ("different"). */
+  isAddonFile: (sourceId: string) => boolean;
   getNowMilliseconds(): number;
   waitMilliseconds(milliseconds: number): Promise<void>;
 }
@@ -36,12 +38,12 @@ export async function installSongForSite({ ports, vaultSongId }: { ports: SiteSo
   if (!ports.hasGame()) return { kind: 'failed', reason: NO_GAME_REASON };
   const untilMilliseconds = ports.getNowMilliseconds() + MAX_INSTALL_MILLISECONDS;
   const runningOutcome = await ports.waitForRunningSync();
-  if (runningOutcome && (await checkSongInstall({ songsFolder: ports.getSongsFolder(), outcome: runningOutcome, vaultSongId })).kind === 'installed') return { kind: 'installed' };
+  if (runningOutcome && (await checkSongInstall({ songsFolder: ports.getSongsFolder(), outcome: runningOutcome, vaultSongId, isAddonFile: ports.isAddonFile })).kind === 'installed') return { kind: 'installed' };
   for (;;) {
     if (await ports.isGameRunning()) return { kind: 'failed', reason: GAME_RUNNING_REASON };
     const outcome = await ports.syncNow();
     if (!outcome) return { kind: 'failed', reason: getPlainReasonOrNull(ports.getProblem()) ?? SYNC_STOPPED_REASON };
-    const check = await checkSongInstall({ songsFolder: ports.getSongsFolder(), outcome, vaultSongId });
+    const check = await checkSongInstall({ songsFolder: ports.getSongsFolder(), outcome, vaultSongId, isAddonFile: ports.isAddonFile });
     if (check.kind !== 'waiting-for-addon') return check;
     if (ports.getNowMilliseconds() + ADDON_RETRY_MILLISECONDS > untilMilliseconds) return { kind: 'failed', reason: check.reason };
     await ports.waitMilliseconds(ADDON_RETRY_MILLISECONDS);

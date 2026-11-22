@@ -1,4 +1,5 @@
-const SAME_EDIT_MINIMUM_CORRELATION = 0.6;
+/** How well two onset envelopes must correlate to be the same music: the engine's own rule. */
+export const SAME_EDIT_MINIMUM_CORRELATION = 0.6;
 const MAXIMUM_LENGTH_DIFFERENCE_SECONDS = 3;
 /** Copies of one edit differ by leading silence or a cut-off start, not by more than a few seconds. */
 const MAXIMUM_SHIFT_SECONDS = 15;

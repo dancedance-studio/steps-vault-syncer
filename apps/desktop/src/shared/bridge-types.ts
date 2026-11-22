@@ -1,4 +1,4 @@
-import type { FolderLayout } from '@stepsvault/sync-core';
+import type { FolderLayout, VideoAudioComparison } from '@stepsvault/sync-core';
 import type {
   ActivityEntryView,
   AddonInstallPreview,
@@ -140,12 +140,15 @@ export type AudioJob =
   /** maxChannelCount 1 mixes the music down to mono, which halves the file. */
   | { jobId: number; kind: 'convert-to-wav'; bytes: Uint8Array; maxChannelCount: 1 | 2 }
   | { jobId: number; kind: 'measure'; bytes: Uint8Array }
+  /** A video's music next to a song's fingerprint: its length, and whether the middle of the song is in it. */
+  | { jobId: number; kind: 'compare-video'; bytes: Uint8Array; fingerprint: number[]; fingerprintRateHertz: number }
   | { jobId: number; kind: 'make-picture'; width: number; height: number; title: string; artist: string };
 
 export type AudioJobResult =
   | { jobId: number; kind: 'check'; match: { kind: 'matched'; sourceId: string; shiftSeconds: number } | { kind: 'different-edit'; sourceId: string } }
   | { jobId: number; kind: 'convert-to-wav'; bytes: Uint8Array }
   | { jobId: number; kind: 'measure'; lengthSeconds: number }
+  | { jobId: number; kind: 'compare-video'; comparison: VideoAudioComparison }
   | { jobId: number; kind: 'make-picture'; bytes: Uint8Array }
   | { jobId: number; kind: 'failed'; message: string };
 

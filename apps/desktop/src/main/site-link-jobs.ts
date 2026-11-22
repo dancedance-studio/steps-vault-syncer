@@ -14,6 +14,7 @@ import {
   withLinkSongSource,
   type FindLinkJob,
   type InstallLinkJob,
+  type VerifyLinkJob,
   type HttpClient,
   type HttpRequest,
   type HttpResponse,
@@ -28,6 +29,7 @@ import {
 } from '@stepsvault/sync-core';
 import { SiteMusicLimitError, type FoundSongChoices, type MakeSongMusic } from './make-song-music';
 import type { SiteSongInstallResult } from './site-song-installs';
+import type { AddonWait, SiteVideoCheckAnswer } from './site-video-checks';
 
 const PRESENCE_EVERY_MILLISECONDS = 30_000;
 /**
@@ -44,8 +46,11 @@ const RETRY_WAITS_MILLISECONDS: readonly number[] = [1_000, 2_000, 5_000, 30_000
 /** A site that answers "no job" at once, instead of holding the request, is still asked at most once a second. */
 const MIN_ASK_EVERY_MILLISECONDS = 1_000;
 // One install at a time: each one runs a whole sync.
-const MAX_RUNNING_JOBS_BY_KIND: Readonly<Record<LinkJob['kind'], number>> = { find: 1, music: 2, install: 1 };
+const MAX_RUNNING_JOBS_BY_KIND: Readonly<Record<LinkJob['kind'], number>> = { find: 1, music: 2, install: 1, verify: 1 };
 const INSTALL_FAILED_REASON = 'Sync couldn’t put the song in your game. Try again.';
+/** The site gives a verify job 3 minutes; the addon gets 2.5 of them, so the download and the comparison fit too. */
+const MAX_VERIFY_ADDON_WAIT_MILLISECONDS = 150_000;
+const VERIFY_FAILED_REASON = 'Sync couldn’t check the music from that video. Try again.';
 /** Taken jobs waiting their turn; past this, Sync takes no more until one ends. */
 const MAX_WAITING_JOBS = 10;
 /** A player's recent finds, so a song found a while ago can still be picked, or tried again. */
@@ -73,6 +78,8 @@ export interface SiteLinkJobsDependencies {
   onSignedOut(): void;
   /** "Into my game": syncs now and says whether the library song really is in the game, or why not. */
   installSong(options: { vaultSongId: string }): Promise<SiteSongInstallResult>;
+  /** A verify job: is the video's music the song? Nothing is installed or uploaded for it. */
+  checkVideo(options: { job: VerifyLinkJob; wait: AddonWait }): Promise<SiteVideoCheckAnswer>;
 }
 
 interface TakenJob {
@@ -89,10 +96,10 @@ interface RememberedFind {
 /** Why a link song has no music, as one short sentence for the player; never an error's own text, which can hold an address. */
 class LinkMusicFailure extends Error {}
 
-/** One find while it runs. It ends when the addon answers or Sync gives up, or early when the site cancels it. */
-class RunningFind {
+/** One find or verify while it runs. It ends when the addon answers or Sync gives up, or early when the site cancels it. */
+class RunningJob {
   readonly takenAtMilliseconds: number;
-  /** The link tab's 3 minutes for an addon that keeps working, from when Sync took the job. */
+  /** How long an addon that keeps working may take, from when Sync took the job. */
   readonly maxEndMilliseconds: number;
   /** Resolves when the find ends, so no wait or keepalive outlives it. */
   readonly ended: Promise<void>;
@@ -135,7 +142,7 @@ export class SiteLinkJobs {
   private runNumber = 0;
   private lastSentDeclarationsText: string | null = null;
   private readonly waitingJobs: TakenJob[] = [];
-  private readonly runningCountsByKind: Record<LinkJob['kind'], number> = { find: 0, music: 0, install: 0 };
+  private readonly runningCountsByKind: Record<LinkJob['kind'], number> = { find: 0, music: 0, install: 0, verify: 0 };
   private readonly findsById = new Map<string, RememberedFind>();
   private jobEndListeners: (() => void)[] = [];
   private sources: LinkSongSource[] | null = null;
@@ -284,7 +291,8 @@ export class SiteLinkJobs {
       }
       if (job.kind === 'find') await this.runFindJob({ job, takenAtMilliseconds });
       else if (job.kind === 'music') await this.runMusicJob(job);
-      else await this.runInstallJob(job);
+      else if (job.kind === 'install') await this.runInstallJob(job);
+      else await this.runVerifyJob({ job, takenAtMilliseconds });
     } catch (error) {
       this.logJob({ job, status: `stopped (${describeFailure(error)})` });
     }
@@ -302,7 +310,7 @@ export class SiteLinkJobs {
       await this.answerJob({ job, answer: { status: 'gone' } });
       return;
     }
-    const find = new RunningFind({ takenAtMilliseconds, maxEndMilliseconds: takenAtMilliseconds + MAX_FIND_MILLISECONDS });
+    const find = new RunningJob({ takenAtMilliseconds, maxEndMilliseconds: takenAtMilliseconds + MAX_FIND_MILLISECONDS });
     const found = await this.dependencies.songs.findSongChoices({
       addon: linkAddon.addon,
       valuesByInputId: { [linkAddon.linkInput.id]: job.link },
@@ -334,7 +342,31 @@ export class SiteLinkJobs {
   /** "Into my game": answered only once the song's music is in its folder in the game, or with why it isn't. */
   private async runInstallJob(job: InstallLinkJob): Promise<void> {
     const result = await this.dependencies.installSong({ vaultSongId: job.songId }).catch((): SiteSongInstallResult => ({ kind: 'failed', reason: INSTALL_FAILED_REASON }));
-    await this.answerJob({ job, answer: result.kind === 'installed' ? { status: 'installed' } : { status: 'failed', reason: result.reason } });
+    await this.answerJob({ job, answer: result.kind === 'installed' ? { status: 'installed' } : { status: result.kind, reason: result.reason } });
+  }
+
+  /**
+   * Is this video's music the song? The site hears "working" every 5 s from the start: the addon may answer 202 for a
+   * while, and the download and the comparison take time too. A 410 to it means the player stopped the check.
+   */
+  private async runVerifyJob({ job, takenAtMilliseconds }: { job: VerifyLinkJob; takenAtMilliseconds: number }): Promise<void> {
+    const run = new RunningJob({ takenAtMilliseconds, maxEndMilliseconds: takenAtMilliseconds + MAX_VERIFY_ADDON_WAIT_MILLISECONDS });
+    void this.keepJobAlive({ job, run });
+    const wait: AddonWait = {
+      waitSeconds: (seconds) => this.waitWhileRunning({ run, milliseconds: seconds * 1000 }),
+      shouldStop: () => run.isCancelled || this.getNow() >= run.maxEndMilliseconds,
+    };
+    const answer = await this.dependencies.checkVideo({ job, wait }).catch((): SiteVideoCheckAnswer => ({ status: 'failed', reason: VERIFY_FAILED_REASON })).finally(() => { run.end(); });
+    if (run.isCancelled) {
+      this.logJob({ job, status: 'stopped on the site, nothing sent' });
+      return;
+    }
+    await this.answerJob({ job, answer });
+  }
+
+  private async waitWhileRunning({ run, milliseconds }: { run: RunningJob; milliseconds: number }): Promise<void> {
+    const waitMilliseconds = Math.min(milliseconds, run.maxEndMilliseconds - this.getNow());
+    if (waitMilliseconds > 0) await Promise.race([this.dependencies.waitMilliseconds(waitMilliseconds), run.ended]);
   }
 
   /** The found song the player picked: its music only, as the site takes it, uploaded only while the job is open. */
@@ -424,19 +456,19 @@ export class SiteLinkJobs {
    * After each "still working" (202): from the first one on, the site hears every 5 s that the find goes on. Sync then
    * waits as long as the addon asked, but never past the find's 3 minutes, nor once the site has cancelled it.
    */
-  private async waitWhileAddonWorks({ job, find, milliseconds }: { job: FindLinkJob; find: RunningFind; milliseconds: number }): Promise<void> {
+  private async waitWhileAddonWorks({ job, find, milliseconds }: { job: FindLinkJob; find: RunningJob; milliseconds: number }): Promise<void> {
     if (!find.isKeptAlive) {
       find.isKeptAlive = true;
       this.logJob({ job, status: 'the addon is still working, keeping the find open' });
-      void this.keepFindAlive({ job, find });
+      void this.keepJobAlive({ job, run: find });
     }
     const waitMilliseconds = Math.min(milliseconds, find.maxEndMilliseconds - this.getNow());
     if (waitMilliseconds > 0) await Promise.race([this.dependencies.waitMilliseconds(waitMilliseconds), find.ended]);
   }
 
-  /** "working" every 5 s until the find ends; a 410 means the player stopped it on the site, so Sync stops asking. */
-  private async keepFindAlive({ job, find }: { job: FindLinkJob; find: RunningFind }): Promise<void> {
-    while (!find.isEnded) {
+  /** "working" every 5 s until the job ends; a 410 means the player stopped it on the site, so Sync stops asking. */
+  private async keepJobAlive({ job, run }: { job: FindLinkJob | VerifyLinkJob; run: RunningJob }): Promise<void> {
+    while (!run.isEnded) {
       const api = this.dependencies.buildApi();
       if (!api) return;
       const delivery = await api.answerLinkJob({ jobId: job.id, answer: { status: 'working' } }).catch((error: unknown) => {
@@ -445,10 +477,10 @@ export class SiteLinkJobs {
         return null;
       });
       if (delivery === 'late') {
-        find.cancel();
+        run.cancel();
         return;
       }
-      await Promise.race([this.dependencies.waitMilliseconds(FIND_KEEPALIVE_EVERY_MILLISECONDS), find.ended]);
+      await Promise.race([this.dependencies.waitMilliseconds(FIND_KEEPALIVE_EVERY_MILLISECONDS), run.ended]);
     }
   }
 
@@ -456,7 +488,7 @@ export class SiteLinkJobs {
    * The addon's network for one find: an ask that gets no answer within 18 s gives up, starting a local addon included.
    * The first ask counts from when Sync took the job, as the site's own wait does; later ones from when they start.
    */
-  private buildAddonClientFor(find: RunningFind): HttpClient {
+  private buildAddonClientFor(find: RunningJob): HttpClient {
     const { addonHttpClient } = this.dependencies;
     return {
       requestJson: (request) => this.sendBeforeSilence({ request, find, send: (limitedRequest) => addonHttpClient.requestJson(limitedRequest) }),
@@ -465,7 +497,7 @@ export class SiteLinkJobs {
     };
   }
 
-  private sendBeforeSilence<Body>({ request, find, send }: { request: HttpRequest; find: RunningFind; send: (request: HttpRequest) => Promise<HttpResponse<Body>> }): Promise<HttpResponse<Body>> {
+  private sendBeforeSilence<Body>({ request, find, send }: { request: HttpRequest; find: RunningJob; send: (request: HttpRequest) => Promise<HttpResponse<Body>> }): Promise<HttpResponse<Body>> {
     const silenceEndMilliseconds = (find.hasAsked ? this.getNow() : find.takenAtMilliseconds) + FIND_SILENCE_MILLISECONDS;
     find.hasAsked = true;
     const remainingMilliseconds = Math.min(silenceEndMilliseconds, find.maxEndMilliseconds) - this.getNow();

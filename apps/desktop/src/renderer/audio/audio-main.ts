@@ -1,4 +1,4 @@
-import { getAudioMatch } from '@stepsvault/sync-core';
+import { compareVideoAudio, getAudioMatch } from '@stepsvault/sync-core';
 import type { AudioJob, AudioJobResult } from '../../shared/bridge-types';
 import { encodeWav } from './wav-encoder';
 
@@ -73,6 +73,10 @@ async function runJob(job: AudioJob): Promise<AudioJobResult> {
   if (job.kind === 'make-picture') return { jobId: job.jobId, kind: 'make-picture', bytes: await makePlainPicture(job) };
   const audio = await decodeAudio(job.bytes);
   if (job.kind === 'measure') return { jobId: job.jobId, kind: 'measure', lengthSeconds: audio.duration };
+  if (job.kind === 'compare-video') {
+    const comparison = compareVideoAudio({ audio: { samples: getMonoSamples(audio), sampleRate: audio.sampleRate }, storedFingerprint: { envelope: job.fingerprint, rateHertz: job.fingerprintRateHertz } });
+    return { jobId: job.jobId, kind: 'compare-video', comparison };
+  }
   if (job.kind === 'convert-to-wav') {
     const channels = job.maxChannelCount === 1 ? [getMonoSamples(audio)] : Array.from({ length: Math.min(MAX_WAV_CHANNELS, audio.numberOfChannels) }, (_, channel) => audio.getChannelData(channel));
     return { jobId: job.jobId, kind: 'convert-to-wav', bytes: encodeWav({ channels, sampleRate: audio.sampleRate }) };

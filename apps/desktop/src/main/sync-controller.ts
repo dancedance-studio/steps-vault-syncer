@@ -36,6 +36,7 @@ import {
   type SyncOutcome,
   type SyncPorts,
   type SyncVault,
+  type VerifyLinkJob,
   type VaultSongChoice,
   type VaultSongIdentity,
 } from '@stepsvault/sync-core';
@@ -90,6 +91,7 @@ import { NodeMusicLibrary } from './node-music-library';
 import { NodeSongsFolder } from './node-songs-folder';
 import { SiteLinkJobs } from './site-link-jobs';
 import { installSongForSite, type SiteSongInstallResult } from './site-song-installs';
+import { checkVideoForSite, type AddonWait, type SiteVideoCheckAnswer } from './site-video-checks';
 import type { MakeSongLink } from './sync-link';
 
 const MAX_ADDON_FILE_BYTES = 200 * 1024 * 1024;
@@ -530,6 +532,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       log: (line) => { this.options.logSupportLine(line); },
       onSignedOut: () => { void this.handleSignedOutFromLinkJobs(); },
       installSong: ({ vaultSongId }) => this.installSongForSite(vaultSongId),
+      checkVideo: ({ job, wait }) => this.checkVideoForSite({ job, wait }),
     });
   }
 
@@ -548,8 +551,28 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
         syncNow: () => this.syncNowForOutcome(),
         getProblem: () => this.problem,
         getSongsFolder: () => this.buildSongsFolder(),
+        isAddonFile: (sourceId) => this.addonNamesBySourceId.has(sourceId),
         getNowMilliseconds: () => Date.now(),
         waitMilliseconds: delay,
+      },
+    });
+  }
+
+  /** A verify job from the website: the job's link addon gets the video's music, which is compared with the song. */
+  private checkVideoForSite({ job, wait }: { job: VerifyLinkJob; wait: AddonWait }): Promise<SiteVideoCheckAnswer> {
+    return checkVideoForSite({
+      job,
+      wait,
+      ports: {
+        getAddons: () => this.settings.addons,
+        addonHttpClient: this.serviceClient,
+        downloadAddonFile: (download) => this.downloadAddonFile(download),
+        fetchFingerprint: (vaultSongId) => this.buildClient().fetchFingerprint(vaultSongId),
+        compareVideoAudio: async ({ sourceId, fingerprint }) => {
+          const source = this.musicSources.getSource(sourceId);
+          if (!source) throw new Error('The music from that video is gone. Try again.');
+          return this.options.audioBridge.compareVideoAudio({ bytes: new Uint8Array(await readFile(source.filePath)), fingerprint });
+        },
       },
     });
   }

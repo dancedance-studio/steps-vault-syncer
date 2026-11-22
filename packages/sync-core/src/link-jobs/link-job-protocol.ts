@@ -13,6 +13,7 @@ export const MAX_LINK_AUDIO_SECONDS = 8 * 60;
 export const LINK_JOB_WAIT_MILLISECONDS = 25_000;
 const LINK_JOBS_VERSION = 1;
 const INSTALL_JOBS_VERSION = 1;
+const VERIFY_JOBS_VERSION = 1;
 const MAX_FIND_RESULTS = 10;
 const MAX_REASON_LENGTH = 140;
 const MAX_JOB_ID_LENGTH = 200;
@@ -47,6 +48,8 @@ export interface SyncPresence {
   linkJobs: typeof LINK_JOBS_VERSION;
   /** This Sync takes install jobs too ("Into my game"); the site sends none to a Sync that doesn't say so. */
   installJobs: typeof INSTALL_JOBS_VERSION;
+  /** This Sync checks a video link against a song's music (verify jobs); the site sends none to a Sync that doesn't say so. */
+  verifyJobs: typeof VERIFY_JOBS_VERSION;
   /** Empty means no link option on the website. */
   linkAddons: LinkAddonDeclaration[];
   /** Only on quit, so the site shows the computer offline at once instead of after 75 s. */
@@ -62,11 +65,28 @@ export type LinkJob =
    * "Into my game": a song already in the player's library list, to install now instead of at the next background sync.
    * songId is its vaultSongId; addonId is the link addon whose sites take its video link.
    */
-  | { id: string; kind: 'install'; addonId: string; songId: string; expiresAt: string | null };
+  | { id: string; kind: 'install'; addonId: string; songId: string; expiresAt: string | null }
+  /**
+   * Is this video's music the song? songId is its vaultSongId; song its facts as the vault list gives them (it is often
+   * not in the player's library); videoId the video to ask the addon about. Nothing is installed or uploaded for it.
+   */
+  | { id: string; kind: 'verify'; addonId: string; songId: string; videoId: string; song: VerifySongFacts; expiresAt: string | null };
+
+/** The facts of a verify job's song that the addon is asked with, as the vault list gives them. */
+export interface VerifySongFacts {
+  vaultSongId: string;
+  title: string;
+  artist: string;
+  album: string | null;
+  genre: string | null;
+  /** 0 when the site sent none, as for a vault song. */
+  lengthSeconds: number;
+}
 
 export type FindLinkJob = Extract<LinkJob, { kind: 'find' }>;
 export type MusicLinkJob = Extract<LinkJob, { kind: 'music' }>;
 export type InstallLinkJob = Extract<LinkJob, { kind: 'install' }>;
+export type VerifyLinkJob = Extract<LinkJob, { kind: 'verify' }>;
 
 /** GET /api/sync/link-jobs/:id. Sync uploads only while it is open. */
 export type LinkJobState = 'open' | 'cancelled' | 'expired';
@@ -107,7 +127,11 @@ export type LinkJobAnswer =
   /** Sent instead of the audio, or for an install that didn't reach the game, with why. */
   | { status: 'failed'; reason: string }
   /** An install job's song is in the game: its steps and its music, and its video when the addon gave one. */
-  | { status: 'installed' };
+  | { status: 'installed' }
+  /** A verify job's video has the song's music: its length, and how much later its music starts (negative: earlier). */
+  | { status: 'matched'; lengthSec: number; offsetSec: number }
+  /** The music the addon got isn't the song (a verify job, or an install job whose addon file is another version). */
+  | { status: 'different'; reason: string };
 
 /** What the site did with an answer or an upload: took it, or the job had already ended (410). */
 export type LinkJobDelivery = 'delivered' | 'late';
@@ -148,7 +172,7 @@ export function getLinkAddonDeclarations(addons: readonly InstalledAddon[]): Lin
 }
 
 export function buildSyncPresence({ computerName, appVersion, addons, isLeaving }: { computerName: string; appVersion: string; addons: readonly InstalledAddon[]; isLeaving: boolean }): SyncPresence {
-  const presence: SyncPresence = { computerName, appVersion, linkJobs: LINK_JOBS_VERSION, installJobs: INSTALL_JOBS_VERSION, linkAddons: getLinkAddonDeclarations(addons) };
+  const presence: SyncPresence = { computerName, appVersion, linkJobs: LINK_JOBS_VERSION, installJobs: INSTALL_JOBS_VERSION, verifyJobs: VERIFY_JOBS_VERSION, linkAddons: getLinkAddonDeclarations(addons) };
   return isLeaving ? { ...presence, leaving: true } : presence;
 }
 
@@ -161,6 +185,7 @@ export function parseLinkJobOrNull(value: unknown): LinkJob | null {
   const expiresAt = typeof value.expiresAt === 'string' ? value.expiresAt : null;
   if (value.kind === 'find') return typeof value.link === 'string' ? { id, kind: 'find', addonId, link: value.link, expiresAt } : null;
   if (value.kind === 'install') return parseInstallJobOrNull({ value, id, addonId, expiresAt });
+  if (value.kind === 'verify') return parseVerifyJobOrNull({ value, id, addonId, expiresAt });
   if (value.kind !== 'music') return null;
   const findId = getJobIdOrNull(value.findId);
   const ref = getJobIdOrNull(value.ref);
@@ -172,6 +197,26 @@ export function parseLinkJobOrNull(value: unknown): LinkJob | null {
 function parseInstallJobOrNull({ value, id, addonId, expiresAt }: { value: Record<string, unknown>; id: string; addonId: string; expiresAt: string | null }): InstallLinkJob | null {
   const songId = getJobIdOrNull(value.songId);
   return songId === null ? null : { id, kind: 'install', addonId, songId, expiresAt };
+}
+
+function parseVerifyJobOrNull({ value, id, addonId, expiresAt }: { value: Record<string, unknown>; id: string; addonId: string; expiresAt: string | null }): VerifyLinkJob | null {
+  const songId = getJobIdOrNull(value.songId);
+  const videoId = getJobIdOrNull(value.videoId);
+  const song = parseVerifySongFactsOrNull(value.song);
+  if (songId === null || videoId === null || song === null) return null;
+  return { id, kind: 'verify', addonId, songId, videoId, song: { ...song, vaultSongId: songId }, expiresAt };
+}
+
+/** A song without a title and an artist can't be asked about; its id is the job's songId. */
+function parseVerifySongFactsOrNull(value: unknown): Omit<VerifySongFacts, 'vaultSongId'> | null {
+  if (!isRecord(value) || typeof value.title !== 'string' || typeof value.artist !== 'string' || value.title.trim() === '' || value.artist.trim() === '') return null;
+  return {
+    title: value.title,
+    artist: value.artist,
+    album: typeof value.album === 'string' ? value.album : null,
+    genre: typeof value.genre === 'string' ? value.genre : null,
+    lengthSeconds: typeof value.lengthSeconds === 'number' && Number.isFinite(value.lengthSeconds) && value.lengthSeconds > 0 ? value.lengthSeconds : 0,
+  };
 }
 
 /** Anything but open or cancelled means the job ended, so nothing is uploaded for it. */
