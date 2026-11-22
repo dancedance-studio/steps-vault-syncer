@@ -197,6 +197,11 @@ for this.
 - "Into my game" on the website puts a song that is already in the player's library into their game now. Sync runs a
   sync, which asks the addons for the song's music and video with `/audio-links`, as for any library song, and syncs
   again while an addon answers `202`. Then it tells the website whether the music reached the game, or why not.
+- When a player adds a song's video link on the website, Sync can check it first. The link addon gets that video's
+  music with `/audio-links` (the song's facts, with the video's id), as for any song. Sync compares it with the song's
+  fingerprint on the player's computer: the middle of the song must be in it, and its length within 10 seconds of the
+  song's. Nothing is installed or uploaded; the website hears only that it matched, that it is different, or why the
+  check failed.
 
 ## A minimal addon (Node)
 
