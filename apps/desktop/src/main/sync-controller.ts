@@ -548,6 +548,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
         syncNow: () => this.syncNowForOutcome(),
         getProblem: () => this.problem,
         getSongsFolder: () => this.buildSongsFolder(),
+        isAddonFile: (sourceId) => this.addonNamesBySourceId.has(sourceId),
         getNowMilliseconds: () => Date.now(),
         waitMilliseconds: delay,
       },

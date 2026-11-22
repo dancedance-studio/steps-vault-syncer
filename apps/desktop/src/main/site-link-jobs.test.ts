@@ -519,6 +519,15 @@ describe('install jobs', () => {
     ]);
   });
 
+  it('answer different when the music the addon got isn’t the song, so the site can drop an unchecked link', async () => {
+    const harness = new LinkJobsHarness();
+    harness.installSong = () => Promise.resolve({ kind: 'different', reason: 'The music your link addon got is another version of this song, or another song.' });
+    harness.linkJobs.start();
+    harness.site.queueJob(INSTALL_JOB);
+    await waitUntil(() => harness.site.answers.length === 1);
+    expect(harness.site.answers).toEqual([{ jobId: 'lj_9', answer: { status: 'different', reason: 'The music your link addon got is another version of this song, or another song.' } }]);
+  });
+
   it('drop the answer when the site says the job is over (410)', async () => {
     const harness = new LinkJobsHarness();
     harness.site.endedJobIds.add('lj_9');

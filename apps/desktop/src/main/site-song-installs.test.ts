@@ -41,6 +41,7 @@ class FakeApp {
     },
     getProblem: () => this.problem,
     getSongsFolder: () => this.songsFolder,
+    isAddonFile: (sourceId) => sourceId.startsWith('addon:'),
     getNowMilliseconds: () => this.nowMilliseconds,
     waitMilliseconds: (milliseconds) => {
       this.waits.push(milliseconds);
@@ -88,6 +89,16 @@ describe('installSongForSite', () => {
     expect(await app.install()).toEqual({ kind: 'installed' });
     expect(app.syncCount).toBe(3);
     expect(app.waits).toEqual([15_000, 15_000]);
+  });
+
+  it('answers different when the music the addon got is another version, and failed when the player’s own file is', async () => {
+    const fromSource = (sourceId: string): SyncOutcome => ({ ...NO_MUSIC, finalPlan: { songPlans: [{ vaultSongId: 'song_42', status: 'different-edit', actions: [], isWaitingForAddon: false }], forgetActions: [] }, audioResultsBySongId: new Map([['song_42', { match: { kind: 'different-edit', sourceId }, addonMessages: [], pageLinks: [] }]]) });
+    const fromAddon = new FakeApp();
+    fromAddon.outcomes = [fromSource('addon:night-drive.ogg')];
+    expect(await fromAddon.install()).toEqual({ kind: 'different', reason: 'The music your link addon got is another version of this song, or another song.' });
+    const fromPlayer = new FakeApp();
+    fromPlayer.outcomes = [fromSource('file:Night Drive.mp3')];
+    expect((await fromPlayer.install()).kind).toBe('failed');
   });
 
   it('answers failed with a reason when the song’s audio can’t be found', async () => {

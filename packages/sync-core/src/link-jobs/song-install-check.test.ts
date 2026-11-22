@@ -58,6 +58,13 @@ describe('checkSongInstall', () => {
     expect(await checkSongInstall({ songsFolder, outcome: buildOutcome({}), vaultSongId: 'song_42' })).toEqual({ kind: 'failed', reason: 'Sync didn’t find this song in your library list. Try again in a minute.' });
   });
 
+  it('says different only when the other version came from an addon’s file, not from the player’s own', async () => {
+    const fromSource = (sourceId: string): SyncOutcome => buildOutcome({ songPlans: [buildSongPlan({ status: 'different-edit' })], audioResultsBySongId: new Map([['song_42', { match: { kind: 'different-edit', sourceId }, addonMessages: [], pageLinks: [] }]]) });
+    const isAddonFile = (sourceId: string): boolean => sourceId.startsWith('addon:');
+    expect(await checkSongInstall({ songsFolder: new MemorySongsFolder(), outcome: fromSource('addon:night-drive.ogg'), vaultSongId: 'song_42', isAddonFile })).toEqual({ kind: 'different', reason: 'The music your link addon got is another version of this song, or another song.' });
+    expect((await checkSongInstall({ songsFolder: new MemorySongsFolder(), outcome: fromSource('file:Night Drive.mp3'), vaultSongId: 'song_42', isAddonFile })).kind).toBe('failed');
+  });
+
   it('keeps a reason plain and at most 140 characters', async () => {
     const longMessage = `Open Audio Links: ${'x'.repeat(300)}`;
     const outcome = buildOutcome({ songPlans: [buildSongPlan({ status: 'needs-audio' })], audioResultsBySongId: new Map([['song_42', { match: { kind: 'not-found', isWaitingForAddon: false }, addonMessages: [longMessage], pageLinks: [] }]]) });

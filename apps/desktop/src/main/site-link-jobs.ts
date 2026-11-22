@@ -334,7 +334,7 @@ export class SiteLinkJobs {
   /** "Into my game": answered only once the song's music is in its folder in the game, or with why it isn't. */
   private async runInstallJob(job: InstallLinkJob): Promise<void> {
     const result = await this.dependencies.installSong({ vaultSongId: job.songId }).catch((): SiteSongInstallResult => ({ kind: 'failed', reason: INSTALL_FAILED_REASON }));
-    await this.answerJob({ job, answer: result.kind === 'installed' ? { status: 'installed' } : { status: 'failed', reason: result.reason } });
+    await this.answerJob({ job, answer: result.kind === 'installed' ? { status: 'installed' } : { status: result.kind, reason: result.reason } });
   }
 
   /** The found song the player picked: its music only, as the site takes it, uploaded only while the job is open. */
