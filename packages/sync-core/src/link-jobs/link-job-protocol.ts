@@ -107,7 +107,11 @@ export type LinkJobAnswer =
   /** Sent instead of the audio, or for an install that didn't reach the game, with why. */
   | { status: 'failed'; reason: string }
   /** An install job's song is in the game: its steps and its music, and its video when the addon gave one. */
-  | { status: 'installed' };
+  | { status: 'installed' }
+  /** A verify job's video has the song's music: its length, and how much later its music starts (negative: earlier). */
+  | { status: 'matched'; lengthSec: number; offsetSec: number }
+  /** The music the addon got isn't the song (a verify job, or an install job whose addon file is another version). */
+  | { status: 'different'; reason: string };
 
 /** What the site did with an answer or an upload: took it, or the job had already ended (410). */
 export type LinkJobDelivery = 'delivered' | 'late';

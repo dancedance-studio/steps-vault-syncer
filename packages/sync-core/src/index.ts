@@ -67,3 +67,5 @@ export * from './link-jobs/link-job-protocol';
 export * from './link-jobs/link-song-sources';
 export * from './link-jobs/link-audio-files';
 export * from './link-jobs/song-install-check';
+export * from './link-jobs/video-link-check';
+export * from './audio-matching/middle-match';
