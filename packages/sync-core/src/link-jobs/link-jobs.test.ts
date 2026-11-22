@@ -38,6 +38,7 @@ describe('presence', () => {
       appVersion: '0.2.0',
       linkJobs: 1,
       installJobs: 1,
+      verifyJobs: 1,
       linkAddons: [
         { id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] },
         { id: 'media-links', name: 'Media Links', label: 'Clip link', placeholder: '', sites: ['media.example.org'] },
@@ -46,7 +47,7 @@ describe('presence', () => {
   });
 
   it('still says it takes link jobs with no link addon on, and says leaving only on quit', () => {
-    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: searchOnly })], isLeaving: false })).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, linkAddons: [] });
+    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: searchOnly })], isLeaving: false })).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, verifyJobs: 1, linkAddons: [] });
     expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons, isLeaving: true }).leaving).toBe(true);
   });
 
@@ -59,10 +60,15 @@ describe('presence', () => {
 });
 
 describe('reading link jobs', () => {
-  it('reads find, music and install jobs as the site sends them', () => {
+  it('reads find, music, install and verify jobs as the site sends them', () => {
     expect(parseLinkJobOrNull({ id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/night-drive', expiresAt: '2026-11-21T12:00:20.000Z' })).toEqual({ id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/night-drive', expiresAt: '2026-11-21T12:00:20.000Z' });
     expect(parseLinkJobOrNull({ id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' })).toEqual({ id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' });
     expect(parseLinkJobOrNull({ id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' })).toEqual({ id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' });
+    const vaultSong = { vaultSongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, youtubeId: null, chartVersion: 'v1' };
+    expect(parseLinkJobOrNull({ id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z', song: vaultSong })).toEqual({
+      id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z',
+      song: { vaultSongId: 'song_42', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221 },
+    });
   });
 
   it.each([
@@ -71,6 +77,8 @@ describe('reading link jobs', () => {
     [{ id: 'lj_4', kind: 'find', addonId: 'open-audio-links' }],
     [{ id: 'lj_5', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1' }],
     [{ id: 'lj_8', kind: 'install', addonId: 'open-audio-links' }],
+    [{ id: 'lj_13', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', song: { title: 'Night Drive', artist: 'Lumen Park' } }],
+    [{ id: 'lj_14', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', song: { title: 'Night Drive' } }],
     [{ id: 'lj\n6', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/a' }],
     [{ id: 'x'.repeat(201), kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/a' }],
     ['lj_7'],

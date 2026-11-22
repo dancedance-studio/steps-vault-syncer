@@ -1,5 +1,5 @@
 import type { BrowserWindow, IpcMain, IpcMainEvent } from 'electron';
-import type { AudioFingerprint, AudioMatch, PictureMaker, PlainPictureRequest } from '@stepsvault/sync-core';
+import type { AudioFingerprint, AudioMatch, PictureMaker, PlainPictureRequest, VideoAudioComparison } from '@stepsvault/sync-core';
 import { AUDIO_JOB_CHANNEL, AUDIO_RESULT_CHANNEL, type AudioJob, type AudioJobResult } from '../shared/bridge-types';
 
 const JOB_TIMEOUT_MILLISECONDS = 120_000;
@@ -41,6 +41,13 @@ export class AudioBridge implements PictureMaker {
     const result = await this.runJob({ kind: 'convert-to-wav', bytes, maxChannelCount: 1 });
     if (result.kind === 'convert-to-wav') return result.bytes;
     throw new Error(result.kind === 'failed' ? result.message : 'The music could not be converted.');
+  }
+
+  /** For a verify job: the video's music next to the song's fingerprint (its length, and the middle of the song). */
+  async compareVideoAudio({ bytes, fingerprint }: { bytes: Uint8Array; fingerprint: AudioFingerprint }): Promise<VideoAudioComparison> {
+    const result = await this.runJob({ kind: 'compare-video', bytes, fingerprint: Array.from(fingerprint.envelope), fingerprintRateHertz: fingerprint.rateHertz });
+    if (result.kind === 'compare-video') return result.comparison;
+    throw new Error(result.kind === 'failed' ? result.message : 'Sync couldn’t read the music from that video.');
   }
 
   /** The song's length in seconds, as Chromium decodes it. */

@@ -184,7 +184,7 @@ export async function pollDeviceSignIn({ httpClient, siteUrl, pollingId }: { htt
 }
 
 /** Exactly the facts an addon may see (docs/addons.md). */
-export function buildAddonSongFacts(song: VaultSongDetails): AddonSongFacts {
+export function buildAddonSongFacts(song: Pick<VaultSongDetails, 'title' | 'artist' | 'album' | 'genre' | 'lengthSeconds' | 'youtubeId'>): AddonSongFacts {
   return {
     title: song.title,
     artist: song.artist,

@@ -15,12 +15,14 @@ import {
   type HttpResponse,
   type InstalledAddon,
   type LinkSongSource,
+  type VideoAudioComparison,
 } from '@stepsvault/sync-core';
 import { GeneratorJobFiles } from './generator-job-files';
 import { MakeSongMusic, type MakeSongMusicPorts } from './make-song-music';
 import { MusicSourceRegistry } from './music-source-registry';
 import { SiteLinkJobs } from './site-link-jobs';
 import type { SiteSongInstallResult } from './site-song-installs';
+import { checkVideoForSite } from './site-video-checks';
 
 const API_URL = 'https://dancedance.studio/api/sync';
 const ADDON_URL = 'http://127.0.0.1:7802';
@@ -37,6 +39,12 @@ const FIND_JOB = { id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 
 const MUSIC_JOB = { id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' };
 /** "Into my game" for a song already in the player's library list; songId is its vaultSongId. */
 const INSTALL_JOB = { id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' };
+/** Is this video's music the song? The song's facts come as the vault list gives them; it has no video link yet. */
+const VERIFY_JOB = {
+  id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z',
+  song: { vaultSongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, youtubeId: null, chartVersion: 'v1' },
+};
+const VIDEO_AUDIO_LINKS = { status: 200, body: { links: [{ kind: 'file-url', url: `${ADDON_URL}/files/night-drive-video.ogg`, label: 'Music', fileName: 'night-drive-video.ogg' }] } };
 
 let workFolder: string;
 
@@ -153,6 +161,8 @@ function toPollResponse(outcome: PollOutcome): Promise<HttpResponse<unknown>> {
 class FakeAddon implements HttpClient {
   readonly requests: HttpRequest[] = [];
   answer: () => Promise<HttpResponse<unknown>> = () => Promise.resolve({ status: 200, body: FOUND_NIGHT_DRIVE });
+  /** Its /audio-links: the music of the video it is asked about. */
+  answerAudioLinks: () => Promise<HttpResponse<unknown>> = () => Promise.resolve(VIDEO_AUDIO_LINKS);
 
   get songSourceBodies(): unknown[] {
     return this.requests.map((request) => request.jsonBody);
@@ -160,6 +170,7 @@ class FakeAddon implements HttpClient {
 
   requestJson(request: HttpRequest): Promise<HttpResponse<unknown>> {
     this.requests.push(request);
+    if (request.url === `${ADDON_URL}/audio-links`) return this.answerAudioLinks();
     if (request.url !== `${ADDON_URL}/song-source`) return Promise.reject(new Error(`The addon has no ${request.url}.`));
     return this.answer();
   }
@@ -188,6 +199,11 @@ class LinkJobsHarness {
   readonly installedSongIds: string[] = [];
   /** Stands for the app's sync and its check of the game folder: installed unless a test says otherwise. */
   installSong: (vaultSongId: string) => Promise<SiteSongInstallResult> = () => Promise.resolve({ kind: 'installed' });
+  /** The songs whose fingerprint a verify job fetched, and the addon files it downloaded. */
+  readonly fingerprintSongIds: string[] = [];
+  readonly addonFileUrls: string[] = [];
+  /** Stands for the audio window's comparison: the same music, 221 s long, unless a test says otherwise. */
+  videoComparison: VideoAudioComparison = { videoLengthSeconds: 221, fingerprintLengthSeconds: 221, middle: { isSameMusic: true, correlation: 0.92, shiftSeconds: 1.234 } };
   readonly linkJobs: SiteLinkJobs;
   private isLinked = true;
 
@@ -221,6 +237,23 @@ class LinkJobsHarness {
         this.installedSongIds.push(vaultSongId);
         return this.installSong(vaultSongId);
       },
+      checkVideo: ({ job, wait }) => checkVideoForSite({
+        job,
+        wait,
+        ports: {
+          getAddons: () => this.addons,
+          addonHttpClient: this.addon,
+          downloadAddonFile: ({ url }) => {
+            this.addonFileUrls.push(url);
+            return Promise.resolve(`addon:${url}`);
+          },
+          fetchFingerprint: (vaultSongId) => {
+            this.fingerprintSongIds.push(vaultSongId);
+            return Promise.resolve({ envelope: [0.1, 0.5, 0.2], rateHertz: 100 });
+          },
+          compareVideoAudio: () => Promise.resolve(this.videoComparison),
+        },
+      }),
     });
   }
 
@@ -277,13 +310,13 @@ describe('presence', () => {
     const harness = new LinkJobsHarness();
     harness.linkJobs.start();
     await waitUntil(() => harness.site.presences.length === 1);
-    expect(harness.site.presences[0]).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, linkAddons: [{ id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }] });
+    expect(harness.site.presences[0]).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, verifyJobs: 1, linkAddons: [{ id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }] });
     await harness.clock.advance(30_000);
     await waitUntil(() => harness.site.presences.length === 2);
     harness.addons = harness.addons.map((addon) => ({ ...addon, isEnabled: false }));
     harness.linkJobs.handleAddonsChange();
     await waitUntil(() => harness.site.presences.length === 3);
-    expect(harness.site.presences[2]).toMatchObject({ linkJobs: 1, installJobs: 1, linkAddons: [] });
+    expect(harness.site.presences[2]).toMatchObject({ linkJobs: 1, installJobs: 1, verifyJobs: 1, linkAddons: [] });
     harness.linkJobs.handleAddonsChange();
     await waitBriefly();
     expect(harness.site.presences).toHaveLength(3);
@@ -569,6 +602,108 @@ describe('install jobs', () => {
     finishInstalls[1]?.();
     await waitUntil(() => harness.site.answers.length === 2);
     expect(harness.installedSongIds).toEqual(['song_42', 'song_43']);
+  });
+});
+
+describe('verify jobs', () => {
+  it('ask the link addon for the video’s music with the song’s facts and the video id, compare it, and answer matched', async () => {
+    const harness = new LinkJobsHarness();
+    harness.linkJobs.start();
+    harness.site.queueJob(VERIFY_JOB);
+    await waitUntil(() => getAnswerStatuses(harness).includes('matched'));
+    expect(harness.addon.requests.map((request) => request.url)).toEqual([`${ADDON_URL}/audio-links`]);
+    expect(harness.addon.requests[0]?.jsonBody).toMatchObject({ song: { title: 'Night Drive', artist: 'Lumen Park', genre: 'Synthwave', lengthSeconds: 221, youtubeId: 'Vid3o1d-x_Z' } });
+    expect(harness.addonFileUrls).toEqual([`${ADDON_URL}/files/night-drive-video.ogg`]);
+    expect(harness.fingerprintSongIds).toEqual(['song_42']);
+    expect(harness.site.answers.at(-1)).toEqual({ jobId: 'lj_12', answer: { status: 'matched', lengthSec: 221, offsetSec: 1.23 } });
+  });
+
+  it('never install or upload anything for a verify job', async () => {
+    const harness = new LinkJobsHarness();
+    harness.linkJobs.start();
+    harness.site.queueJob(VERIFY_JOB);
+    await waitUntil(() => getAnswerStatuses(harness).includes('matched'));
+    expect(harness.installedSongIds).toEqual([]);
+    expect(harness.site.uploads).toEqual([]);
+    expect(harness.downloads).toEqual([]);
+    expect(harness.savedSources).toEqual([]);
+  });
+
+  it('answer different for other music, and for a length more than 10 s off, with both lengths', async () => {
+    const harness = new LinkJobsHarness();
+    harness.videoComparison = { ...harness.videoComparison, middle: { isSameMusic: false, correlation: 0.11, shiftSeconds: 0 } };
+    harness.linkJobs.start();
+    harness.site.queueJob(VERIFY_JOB);
+    await waitUntil(() => getAnswerStatuses(harness).includes('different'));
+    expect(harness.site.answers.at(-1)).toEqual({ jobId: 'lj_12', answer: { status: 'different', reason: 'The music in that video isn’t this song.' } });
+    harness.videoComparison = { ...harness.videoComparison, videoLengthSeconds: 312, middle: { isSameMusic: true, correlation: 0.9, shiftSeconds: 0 } };
+    harness.site.queueJob({ ...VERIFY_JOB, id: 'lj_13' });
+    await waitUntil(() => harness.site.answers.some(({ jobId, answer }) => jobId === 'lj_13' && (answer as { status: string }).status === 'different'));
+    expect(harness.site.answers.at(-1)).toEqual({ jobId: 'lj_13', answer: { status: 'different', reason: 'That video is 5:12 long; this song is 3:41.' } });
+  });
+
+  it('answer failed when the link addon can’t get the music, isn’t answering, or is off', async () => {
+    const harness = new LinkJobsHarness();
+    const addonAnswers: HttpResponse<unknown>[] = [{ status: 200, body: { links: [], error: 'This video is private.' } }, { status: 500, body: {} }];
+    harness.addon.answerAudioLinks = () => Promise.resolve(addonAnswers.shift() ?? VIDEO_AUDIO_LINKS);
+    harness.linkJobs.start();
+    harness.site.queueJob(VERIFY_JOB);
+    harness.site.queueJob({ ...VERIFY_JOB, id: 'lj_13' });
+    await waitUntil(() => getAnswerStatuses(harness).filter((status) => status === 'failed').length === 2);
+    harness.addons = harness.addons.map((addon) => ({ ...addon, isEnabled: false }));
+    harness.site.queueJob({ ...VERIFY_JOB, id: 'lj_14' });
+    await waitUntil(() => getAnswerStatuses(harness).filter((status) => status === 'failed').length === 3);
+    expect(harness.site.answers.filter(({ answer }) => (answer as { status: string }).status === 'failed')).toEqual([
+      { jobId: 'lj_12', answer: { status: 'failed', reason: 'This video is private.' } },
+      { jobId: 'lj_13', answer: { status: 'failed', reason: 'Your link addon isn’t answering. Check that it is running, then try again.' } },
+      { jobId: 'lj_14', answer: { status: 'failed', reason: 'Your link addon is off in Sync, so it can’t get that video’s music.' } },
+    ]);
+    expect(harness.addonFileUrls).toEqual([]);
+  });
+
+  it('keep the check open with "working" every 5 s while the addon is still getting the music, then answer', async () => {
+    const harness = new LinkJobsHarness();
+    const stillWorking: HttpResponse<unknown> = { status: 202, body: { retryAfterSeconds: 5 } };
+    const addonAnswers = [stillWorking, stillWorking, VIDEO_AUDIO_LINKS];
+    harness.addon.answerAudioLinks = () => Promise.resolve(addonAnswers.shift() ?? VIDEO_AUDIO_LINKS);
+    harness.linkJobs.start();
+    harness.site.queueJob(VERIFY_JOB);
+    await waitUntil(() => harness.addon.requests.length === 1 && harness.site.answers.length === 1);
+    expect(harness.site.answers[0]).toEqual({ jobId: 'lj_12', answer: { status: 'working' } });
+    await harness.clock.advance(5_000);
+    await harness.clock.advance(5_000);
+    await waitUntil(() => getAnswerStatuses(harness).includes('matched'));
+    const statuses = getAnswerStatuses(harness);
+    expect(statuses.at(-1)).toBe('matched');
+    expect(statuses.slice(0, -1).every((status) => status === 'working')).toBe(true);
+    expect(statuses.length).toBeGreaterThanOrEqual(3);
+    expect(harness.addon.requests).toHaveLength(3);
+  });
+
+  it('give up on an addon still working after 2.5 minutes, answering failed inside the site’s 3', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addon.answerAudioLinks = () => Promise.resolve({ status: 202, body: { retryAfterSeconds: 5 } });
+    harness.linkJobs.start();
+    harness.site.queueJob(VERIFY_JOB);
+    await waitUntil(() => harness.addon.requests.length === 1);
+    for (let second = 0; second < 150; second += 5) await harness.clock.advance(5_000);
+    await waitUntil(() => getAnswerStatuses(harness).includes('failed'));
+    expect(harness.site.answers.at(-1)).toEqual({ jobId: 'lj_12', answer: { status: 'failed', reason: 'Your link addon is still getting that video’s music. Try again in a few minutes.' } });
+    expect(harness.addonFileUrls).toEqual([]);
+  });
+
+  it('drop the check when the site answers 410 because the player stopped it, and send nothing more', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addon.answerAudioLinks = () => Promise.resolve({ status: 202, body: { retryAfterSeconds: 5 } });
+    harness.site.endedJobIds.add('lj_12');
+    harness.linkJobs.start();
+    harness.site.queueJob(VERIFY_JOB);
+    await waitUntil(() => harness.hasLog('[link-jobs] verify lj_12: stopped on the site, nothing sent'));
+    const askCount = harness.addon.requests.length;
+    await harness.clock.advance(60_000);
+    expect(harness.addon.requests).toHaveLength(askCount);
+    expect(getAnswerStatuses(harness)).toEqual(['working']);
+    expect(harness.fingerprintSongIds).toEqual([]);
   });
 });
 
