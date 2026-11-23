@@ -1,3 +1,4 @@
+import { writeSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { app, BrowserWindow, clipboard, dialog, ipcMain, session, shell } from 'electron';
@@ -19,6 +20,7 @@ import { createAudioWindow, createMainWindow } from './windows';
 
 const BACKGROUND_SYNC_MINUTES = 15;
 const AUDIO_FILE_EXTENSIONS = ['mp3', 'ogg', 'oga', 'opus', 'wav', 'flac', 'm4a', 'aac', 'webm'];
+const PRINT_VERSION_ARGUMENT = '--print-version';
 
 let mainWindow: BrowserWindow | null = null;
 let audioWindow: BrowserWindow | null = null;
@@ -208,10 +210,25 @@ async function start(): Promise<void> {
   }, BACKGROUND_SYNC_MINUTES * 60 * 1000);
 }
 
+/**
+ * `--print-version` writes the version and quits, before the single-instance lock and without a window: the release
+ * check runs it on the installed app to see that it starts.
+ */
+function printVersionAndQuit(): void {
+  try {
+    writeSync(1, `${app.getVersion()}\n`);
+  } catch {
+    // Started with no console or pipe to write to; the exit code still says the app started.
+  }
+  app.exit(0);
+}
+
 // DANCEDANCE_USER_DATA_DIR keeps a test run's settings, record and token apart from the player's own.
 if (process.env.DANCEDANCE_USER_DATA_DIR) app.setPath('userData', process.env.DANCEDANCE_USER_DATA_DIR);
 
-if (!app.requestSingleInstanceLock()) {
+if (process.argv.includes(PRINT_VERSION_ARGUMENT)) {
+  printVersionAndQuit();
+} else if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   // Windows starts a second copy with the clicked link as an argument; that copy quits at once and hands it over here.
