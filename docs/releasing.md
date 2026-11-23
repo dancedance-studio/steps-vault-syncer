@@ -27,7 +27,7 @@ only when the owner runs **Ship it** (`.github/workflows/ship-it.yml`). The app 
 4. **Run Ship it.** In GitHub: Actions › ship-it › Run workflow, version `0.2.0`. It makes the pre-release the latest
    full release with the same files (nothing is built or signed again), posts "Released ✓" to #admins and the What's
    new to #announcements. Every installed copy with automatic checks on finds it within 6 hours, downloads it quietly
-   and shows "Restart to update". Ship it refuses a version whose release run didn't finish green.
+   and shows "Restart to update". Ship it refuses a version whose automatic check didn't pass.
 
 `v0.1.0-preview.1` is the one exception: it was published by hand, unsigned, for the SignPath application, with no
 update file. Nothing unsigned is ever published by the workflow.

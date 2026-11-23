@@ -50,9 +50,14 @@ jobs:
             echo "::error::v$VERSION is already a full release."
             exit 1
           fi
-          conclusion=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release.yml --branch "v$VERSION" --event push --limit 1 --json conclusion --jq '.[0].conclusion // ""')
-          if [ "$conclusion" != "success" ]; then
-            echo "::error::The release run for v$VERSION didn't finish green (\"$conclusion\"), so its check hasn't passed. Fix it, or re-run its failed jobs, then ship."
+          # The automatic check itself must have passed: a tag built without SignPath also ends green, with no check.
+          run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release.yml --branch "v$VERSION" --event push --limit 1 --json databaseId --jq '.[0].databaseId // ""')
+          check=""
+          if [ -n "$run_id" ]; then
+            check=$(gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json jobs --jq '.jobs[] | select(.name == "check-test-version") | .conclusion')
+          fi
+          if [ "$check" != "success" ]; then
+            echo "::error::The automatic check of v$VERSION hasn't passed (\"$check\"). Fix it, or re-run the release run's failed jobs, then ship."
             exit 1
           fi
       - name: Make it the latest full release
