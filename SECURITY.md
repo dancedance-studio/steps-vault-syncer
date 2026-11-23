@@ -6,5 +6,6 @@ Sync writes into players' game folders and reads their music folders, so we take
 vulnerability" button on this repo's Security tab. We answer within 7 days.
 
 In scope: anything that lets Sync write outside the chosen `Songs` folder, touch a folder it doesn't own, send the
-player's files or account details anywhere, run code from an addon or a downloaded file, or install an unsigned
-update.
+player's files or account details anywhere, run code from an addon or a downloaded file, or install an update that
+isn't from this repo's GitHub releases. (Sync isn't code signed yet, so an update is checked against its release's
+`latest.yml`, not a signature: see the [code signing policy](docs/code-signing-policy.md).)

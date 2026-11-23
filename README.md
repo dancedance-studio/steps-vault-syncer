@@ -15,8 +15,13 @@ packages in this repo. How it works and what is planned: [docs/plan.md](docs/pla
 Get the Windows installer from [dancedance.studio/sync/about](https://dancedance.studio/sync/about) or this repo's
 [releases](https://github.com/dancedance-studio/sync/releases).
 
-- **Code signing policy:** [docs/code-signing-policy.md](docs/code-signing-policy.md). Free code signing provided by
-  [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+- **Sync isn't code signed yet.** Windows says the installer comes from an unknown publisher: choose **More info**,
+  then **Run anyway**. On a PC with Smart App Control on, Windows blocks it with no **Run anyway**; there, use Sync in
+  the browser on [dancedance.studio](https://dancedance.studio) (Chrome or Edge). We plan to apply for code signing
+  again. More in the [code signing policy](docs/code-signing-policy.md).
+- **Check your download:** every release is built in public GitHub Actions from a tagged commit of this repo, and from
+  0.1.0 on each release lists the SHA-256 of its files in `SHA256SUMS.txt`.
+  [How to compare them](docs/code-signing-policy.md#check-a-download).
 - **Privacy:** [what Sync sends, and where](docs/privacy.md).
 
 ## Build it
