@@ -1,7 +1,7 @@
 {
   "name": "@dancedance/desktop",
   "productName": "dancedance.studio Sync",
-  "version": "0.1.0",
+  "version": "0.1.0-preview.1",
   "private": true,
   "description": "dancedance.studio Sync for Windows: your library's songs in your own StepMania, lined up with your own music.",
   "license": "Apache-2.0",
