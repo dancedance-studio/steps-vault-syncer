@@ -1,7 +1,7 @@
 # "Ship it": the owner runs this by hand once a test version is checked (docs/releasing.md). It makes that GitHub
-# pre-release the latest full release, with the same signed files (nothing is built or signed again), so every
-# installed copy finds it within 6 hours. Then #admins hears "Released ✓" and #announcements gets the version's
-# "What's new".
+# pre-release the latest full release, with the same files the check passed (nothing is built or signed again; they are
+# signed or unsigned as the release run made them), so every installed copy finds it within 6 hours. Then #admins hears
+# "Released ✓" and #announcements gets the version's "What's new".
 name: ship-it
 
 on:
@@ -50,7 +50,8 @@ jobs:
             echo "::error::v$VERSION is already a full release."
             exit 1
           fi
-          # The automatic check itself must have passed: a tag built without SignPath also ends green, with no check.
+          # The automatic check itself must have passed, signed or unsigned. A release run with no such job is refused:
+          # v0.1.0-preview.1's run ended green, but it was published by hand and never checked.
           run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release.yml --branch "v$VERSION" --event push --limit 1 --json databaseId --jq '.[0].databaseId // ""')
           check=""
           if [ -n "$run_id" ]; then

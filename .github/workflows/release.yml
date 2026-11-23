@@ -1,11 +1,14 @@
-# Builds dancedance.studio Sync for Windows in public CI, has SignPath sign it, publishes it as a test version (a GitHub
-# pre-release) and checks it on a clean Windows machine (docs/releasing.md). Players get it only when the owner runs
-# the "ship-it" workflow.
+# Builds dancedance.studio Sync for Windows in public CI, publishes it as a test version (a GitHub pre-release) and
+# checks it on a clean Windows machine (docs/releasing.md). Players get it only when the owner runs the "ship-it"
+# workflow.
 #
-# Signing happens twice because Smart App Control checks both: first every program inside the app, then the installer
-# made from the signed app. The owner approves each signing request by hand on SignPath; #admins on Discord is told.
-# Without SignPath (or on a manual run) the workflow builds an unsigned test installer and runs the same install check
-# on it, but it never publishes anything unsigned.
+# Two ways, chosen by the SIGNPATH_* variables:
+# - Unsigned (no SignPath variables; today, docs/code-signing-policy.md): a tag publishes the unsigned build, and the
+#   check makes sure nothing in it is signed, so a half-signed build is caught.
+# - Signed (SignPath set up): signing happens twice because Smart App Control checks both: first every program inside
+#   the app, then the installer made from the signed app. The owner approves each signing request by hand on SignPath;
+#   #admins on Discord is told.
+# A manual run builds the unsigned installer and checks it the same way, but never publishes or posts anything.
 name: release
 
 on:
@@ -121,7 +124,7 @@ jobs:
 
   build-installer:
     needs: [package-app, sign-app]
-    # Runs after signing, or straight after packaging when nothing is signed (a test build that is never published).
+    # Runs after signing, or straight after packaging when nothing is signed (an unsigned release, or a manual run).
     if: ${{ !cancelled() && needs.package-app.result == 'success' && needs.sign-app.result != 'failure' && needs.sign-app.result != 'cancelled' }}
     runs-on: windows-latest
     timeout-minutes: 30
@@ -159,41 +162,25 @@ jobs:
           name: update-files
           path: apps/desktop/release/latest.yml
           retention-days: 7
+      # Unsigned, the files are ready as they are: electron-builder wrote latest.yml and the blockmap for this installer.
+      - if: needs.sign-app.result != 'success'
+        name: Nothing in the unsigned build is signed, and write checksums
+        shell: bash
+        working-directory: apps/desktop/release
+        run: |
+          node ../scripts/check-signature.mjs "$(ls *.exe)" --not-signed
+          node ../scripts/check-signature.mjs "app/dancedance.studio Sync.exe" --not-signed
+          sha256sum *.exe *.blockmap latest.yml > SHA256SUMS.txt && cat SHA256SUMS.txt
       - if: needs.sign-app.result != 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
-          name: test-build-unsigned
+          name: release-files
           path: |
             apps/desktop/release/*.exe
             apps/desktop/release/*.blockmap
             apps/desktop/release/latest.yml
+            apps/desktop/release/SHA256SUMS.txt
           retention-days: 7
-
-  # The unsigned test build gets the same install check as a test version, without the signatures and without Discord.
-  check-test-build:
-    needs: [package-app, build-installer]
-    if: ${{ !cancelled() && needs.build-installer.result == 'success' && needs.build-installer.outputs.is-signed-app != 'true' }}
-    runs-on: windows-latest
-    timeout-minutes: 30
-    env:
-      VERSION: ${{ needs.package-app.outputs.version }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
-        with:
-          node-version: 22
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
-        with:
-          name: test-build-unsigned
-          path: test-build
-      - name: latest.yml matches the installer
-        shell: bash
-        run: node apps/desktop/scripts/check-update-files.mjs test-build "$VERSION"
-      - name: Install, start and uninstall the test build
-        shell: pwsh
-        run: ./apps/desktop/scripts/check-installer.ps1 -Installer (Get-Item test-build/*.exe).FullName -Version $env:VERSION
 
   sign-installer:
     needs: [package-app, sign-app, build-installer]
@@ -262,8 +249,13 @@ jobs:
           retention-days: 7
 
   publish-test-version:
-    needs: [package-app, sign-installer]
-    if: startsWith(github.ref, 'refs/tags/v') && needs.sign-installer.result == 'success'
+    needs: [package-app, build-installer, sign-installer]
+    # Signed: once both signings passed. Unsigned: only while SignPath isn't set up, so a signed release that stopped
+    # never goes out unsigned.
+    if: >-
+      ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v')
+      && (needs.sign-installer.result == 'success'
+      || (vars.SIGNPATH_ORGANIZATION_ID == '' && needs.build-installer.result == 'success' && needs.build-installer.outputs.is-signed-app != 'true')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -279,19 +271,37 @@ jobs:
         with:
           name: release-files
           path: release
-      - name: Publish the signed files as a test version (a GitHub pre-release)
+      - name: Publish the files as a test version (a GitHub pre-release)
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.package-app.outputs.version }}
+          IS_SIGNED: ${{ needs.build-installer.outputs.is-signed-app }}
+          # Under the What's new on the release page only; #announcements gets the tag's message as it is.
+          UNSIGNED_NOTE: >-
+            **This version isn't code signed yet.** Windows says it comes from an unknown publisher: choose **More
+            info**, then **Run anyway**. PCs with Smart App Control block it; there, use Sync in the browser on
+            [dancedance.studio](https://dancedance.studio). How to check your download:
+            [code signing policy](${{ github.server_url }}/${{ github.repository }}/blob/main/docs/code-signing-policy.md).
         run: |
           bash apps/desktop/scripts/get-whats-new.sh "$GITHUB_REF_NAME" whats-new.md
+          if [ "$IS_SIGNED" != "true" ]; then printf '\n---\n\n%s\n' "$UNSIGNED_NOTE" >> whats-new.md; fi
           gh release create "$GITHUB_REF_NAME" release/*.exe release/*.blockmap release/latest.yml release/SHA256SUMS.txt \
             --verify-tag --prerelease --title "dancedance.studio Sync $VERSION" --notes-file whats-new.md
+      - name: 'Tell #admins the unsigned test version is out'
+        if: needs.build-installer.outputs.is-signed-app != 'true'
+        shell: bash
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_ADMINS_WEBHOOK_URL }}
+          DISCORD_MESSAGE: 'Sync ${{ needs.package-app.outputs.version }} test version is out (unsigned) → [The test version](<${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}>) · the automatic check is next'
+        run: bash apps/desktop/scripts/post-to-discord.sh admins
 
-  # A fresh machine that never built anything: it downloads what players would, and installs it like a player.
+  # A fresh machine that never built anything: it downloads what players would, and installs it like a player. A manual
+  # run checks its unsigned build the same way, from the run's own files (nothing is published), and posts nothing.
   check-test-version:
-    needs: [package-app, publish-test-version]
-    if: needs.publish-test-version.result == 'success'
+    needs: [package-app, build-installer, publish-test-version]
+    if: >-
+      ${{ !cancelled() && (needs.publish-test-version.result == 'success'
+      || (!startsWith(github.ref, 'refs/tags/v') && needs.build-installer.result == 'success' && needs.build-installer.outputs.is-signed-app != 'true')) }}
     runs-on: windows-latest
     timeout-minutes: 30
     env:
@@ -304,15 +314,28 @@ jobs:
         with:
           node-version: 22
       - id: download
+        if: startsWith(github.ref, 'refs/tags/v')
         name: Download the test version from its GitHub release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir test-version
+      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        name: Take the test build from this run (a manual run publishes nothing)
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: release-files
+          path: test-version
       - id: installer-signature
+        if: needs.build-installer.outputs.is-signed-app == 'true'
         name: The installer's signature
         shell: bash
         run: node apps/desktop/scripts/check-signature.mjs "$(ls test-version/*.exe)" "SignPath Foundation"
+      - id: installer-not-signed
+        if: needs.build-installer.outputs.is-signed-app != 'true'
+        name: The installer has no signature (an unsigned release)
+        shell: bash
+        run: node apps/desktop/scripts/check-signature.mjs "$(ls test-version/*.exe)" --not-signed
       - id: update-files
         name: latest.yml and the checksums match the installer
         shell: bash
@@ -322,21 +345,25 @@ jobs:
       - id: install
         name: Install, start and uninstall the test version
         shell: pwsh
-        run: ./apps/desktop/scripts/check-installer.ps1 -Installer (Get-Item test-version/*.exe).FullName -Version $env:VERSION -ExpectedPublisher 'SignPath Foundation'
+        env:
+          # Empty for an unsigned release: then the installed app must have no signature either.
+          EXPECTED_PUBLISHER: ${{ needs.build-installer.outputs.is-signed-app == 'true' && 'SignPath Foundation' || '' }}
+        run: ./apps/desktop/scripts/check-installer.ps1 -Installer (Get-Item test-version/*.exe).FullName -Version $env:VERSION -ExpectedPublisher "$env:EXPECTED_PUBLISHER"
       - name: 'Tell #admins it is ready to ship'
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_ADMINS_WEBHOOK_URL }}
           DISCORD_MESSAGE: 'Sync ${{ needs.package-app.outputs.version }} checked ✓ · ready to ship → [Run Ship it](<${{ github.server_url }}/${{ github.repository }}/actions/workflows/ship-it.yml>)'
         run: bash apps/desktop/scripts/post-to-discord.sh admins
       - name: 'Tell #admins the check failed'
-        if: failure()
+        if: failure() && startsWith(github.ref, 'refs/tags/v')
         shell: bash
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_ADMINS_WEBHOOK_URL }}
           FAILED_STEP: >-
             ${{ steps.download.outcome == 'failure' && 'downloading the test version'
-            || steps.installer-signature.outcome == 'failure' && 'the installer''s signature'
+            || (steps.installer-signature.outcome == 'failure' || steps.installer-not-signed.outcome == 'failure') && 'the installer''s signature'
             || steps.update-files.outcome == 'failure' && 'latest.yml and the checksums'
             || steps.install.outcome == 'failure' && (steps.install.outputs.failed-step || 'installing the test version')
             || 'getting the machine ready' }}
