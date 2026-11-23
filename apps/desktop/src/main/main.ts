@@ -12,8 +12,9 @@ import { SafePairedBrowserStore } from './paired-browser-store';
 import { isGameRunning } from './game-process';
 import { SyncController } from './sync-controller';
 import { findSyncLinkInArguments, getMakeSongLinkOrNull, SYNC_LINK_SCHEME, type MakeSongLink } from './sync-link';
+import { createStartWithWindows } from './start-with-windows';
 import { SyncTray } from './tray';
-import { installUpdateNow, startUpdateChecks } from './updates';
+import { createElectronAppUpdater } from './updates';
 import { createAudioWindow, createMainWindow } from './windows';
 
 const BACKGROUND_SYNC_MINUTES = 15;
@@ -84,6 +85,7 @@ function getSystemName(): string {
 }
 
 function createController(tray: Pick<SyncTray, 'show'>): SyncController {
+  const appUpdater = app.isPackaged ? createElectronAppUpdater() : null;
   return new SyncController({
     dataFolder: app.getPath('userData'),
     appDataFolder: app.getPath('appData'),
@@ -95,6 +97,11 @@ function createController(tray: Pick<SyncTray, 'show'>): SyncController {
     pairedBrowserStore: new SafePairedBrowserStore({ dataFolder: app.getPath('userData') }),
     bridgeOrigins: getLocalBridgeOrigins({ isPackaged: app.isPackaged, siteUrl: getSiteUrl(), developmentOriginsText: process.env.DANCEDANCE_BRIDGE_DEV_ORIGINS }),
     audioBridge: new AudioBridge({ ipcMain, getAudioWindow }),
+    appUpdater,
+    startWithWindows: createStartWithWindows({
+      copy: { isPackaged: app.isPackaged, programPath: process.execPath, appFolder: app.getAppPath(), platform: process.platform, isTestRun: process.env.DANCEDANCE_USER_DATA_DIR !== undefined },
+      setLoginItemSettings: (settings) => { app.setLoginItemSettings(settings); },
+    }),
     services: {
       chooseFolder: async (title) => (await dialog.showOpenDialog({ title, properties: ['openDirectory'] })).filePaths[0] ?? null,
       chooseAudioFile: async () => (await dialog.showOpenDialog({ title: 'Choose this song’s music', properties: ['openFile'], filters: [{ name: 'Music', extensions: AUDIO_FILE_EXTENSIONS }] })).filePaths[0] ?? null,
@@ -119,7 +126,7 @@ It runs in ${folder}, and Sync stops it after 10 minutes without use. Only allow
       },
       installUpdate: () => {
         isQuitting = true;
-        installUpdateNow();
+        appUpdater?.installNow();
       },
     },
     onStateChange: (state) => {
@@ -194,7 +201,7 @@ async function start(): Promise<void> {
   getAudioWindow();
   showMainWindow();
   await controller.initialize();
-  startUpdateChecks({ onUpdateReady: (version) => { controller.setUpdateReady(version); } });
+  controller.startUpdateChecks();
   void controller.syncNow();
   setInterval(() => {
     if (controller.isBackgroundSyncOn) void controller.syncNow();

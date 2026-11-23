@@ -11,6 +11,14 @@ export interface DesktopSettings {
   layout: FolderLayout;
   shouldUpdateAutomatically: boolean;
   isBackgroundSyncOn: boolean;
+  /** "Check for new versions automatically": off means no check at start, none every 6 hours and no download. */
+  isAutomaticUpdateCheckOn: boolean;
+  /** "Get test versions first": new versions while they are still GitHub pre-releases. */
+  shouldGetTestVersionsFirst: boolean;
+  /** "Start Sync when Windows starts". */
+  shouldStartWithWindows: boolean;
+  /** What Sync last wrote in Windows' list of programs to start (src/main/start-with-windows.ts); null when nothing. */
+  startWithWindowsCommand: string | null;
   /** Files the player chose with "Choose audio…", by library song id. */
   pickedFilePathsBySongId: Record<string, string>;
   addons: InstalledAddon[];
@@ -36,6 +44,10 @@ export function buildDefaultSettings(): DesktopSettings {
     layout: 'one-group',
     shouldUpdateAutomatically: true,
     isBackgroundSyncOn: true,
+    isAutomaticUpdateCheckOn: true,
+    shouldGetTestVersionsFirst: false,
+    shouldStartWithWindows: true,
+    startWithWindowsCommand: null,
     pickedFilePathsBySongId: {},
     addons: [],
     generators: [],
@@ -61,6 +73,10 @@ export function parseSettings(value: unknown): DesktopSettings {
     layout: typeof saved.layout === 'string' && (FOLDER_LAYOUTS as readonly string[]).includes(saved.layout) ? (saved.layout as FolderLayout) : defaults.layout,
     shouldUpdateAutomatically: saved.shouldUpdateAutomatically !== false,
     isBackgroundSyncOn: saved.isBackgroundSyncOn !== false,
+    isAutomaticUpdateCheckOn: saved.isAutomaticUpdateCheckOn !== false,
+    shouldGetTestVersionsFirst: saved.shouldGetTestVersionsFirst === true,
+    shouldStartWithWindows: saved.shouldStartWithWindows !== false,
+    startWithWindowsCommand: typeof saved.startWithWindowsCommand === 'string' ? saved.startWithWindowsCommand : null,
     pickedFilePathsBySongId: getStringsByKey(saved.pickedFilePathsBySongId),
     addons: Array.isArray(saved.addons) ? saved.addons.flatMap((addon) => loadSavedAddon(addon) ?? []) : [],
     generators: Array.isArray(saved.generators) ? saved.generators.flatMap((generator) => loadSavedGenerator(generator) ?? []) : [],
