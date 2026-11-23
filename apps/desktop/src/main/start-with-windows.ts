@@ -40,7 +40,8 @@ export interface StartWithWindows {
  */
 export function createStartWithWindows({ copy, setLoginItemSettings }: { copy: SyncCopy; setLoginItemSettings: (settings: LoginItemSettings) => void }): StartWithWindows {
   const isChangeable = copy.platform === 'win32' && !copy.isTestRun;
-  const args = copy.isPackaged ? [] : [`"${copy.appFolder}"`];
+  // Electron quotes each argument itself (and escapes quotes inside it), so the folder goes in bare.
+  const args = copy.isPackaged ? [] : [copy.appFolder];
   const name = copy.isPackaged ? INSTALLED_LOGIN_ITEM_NAME : FROM_SOURCE_LOGIN_ITEM_NAME;
   return {
     command: isChangeable ? [`"${copy.programPath}"`, ...args].join(' ') : null,
