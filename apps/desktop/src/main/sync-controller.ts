@@ -79,6 +79,7 @@ import { findInstalledGames, getInstallParentFolders, type FoundGame } from './g
 import { GeneratorJobFiles } from './generator-job-files';
 import { GeneratorJobRunner } from './generator-job-runner';
 import { GeneratorSettings, type StartCommandConfirmation } from './generator-settings';
+import { withInstallerChoicesOrNull, type InstallerChoices } from './installer-choices';
 import { JsonFileStore } from './json-file-store';
 import { LocalBridgeServer } from './local-bridge-server';
 import { isServiceAnswering, startProgramWithShell, StartingHttpClient } from './local-program-process';
@@ -91,9 +92,9 @@ import { NodeMultipartHttpClient } from './node-multipart-http-client';
 import { NodeMusicLibrary } from './node-music-library';
 import { NodeSongsFolder } from './node-songs-folder';
 import { SiteLinkJobs } from './site-link-jobs';
-import { getStartWithWindowsChangeOrNull, type StartWithWindows } from './start-with-windows';
 import { installSongForSite, type SiteSongInstallResult } from './site-song-installs';
 import { checkVideoForSite, type AddonWait, type SiteVideoCheckAnswer } from './site-video-checks';
+import { getStartWithWindowsChangeOrNull, type StartWithWindows } from './start-with-windows';
 import type { MakeSongLink } from './sync-link';
 
 const MAX_ADDON_FILE_BYTES = 200 * 1024 * 1024;
@@ -130,6 +131,8 @@ export interface SyncControllerOptions {
   /** Null for a copy run from source: its updates come from git. */
   appUpdater: AppUpdater | null;
   startWithWindows: StartWithWindows;
+  /** The answers on the installer's "What Sync sends" page; null for a copy run from source. */
+  readInstallerChoices: () => Promise<InstallerChoices | null>;
   services: DesktopServices;
   onStateChange: (state: DesktopSyncState) => void;
   /** A line for support (link jobs from the website: their ids and statuses, never a link). */
@@ -215,6 +218,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   async initialize(): Promise<void> {
     [this.settings, this.record, this.deviceToken] = await Promise.all([this.settingsStore.load(), this.recordStore.load(), this.options.tokenStore.load()]);
     if (this.deviceToken) this.signIn = { kind: 'signed-in', computerName: this.options.computerName };
+    await this.applyInstallerChoices();
     await this.applyStartWithWindowsIfChanged();
     for (const filePath of Object.values(this.settings.pickedFilePathsBySongId)) this.musicSources.register(filePath);
     this.generatorSettings.applyStartCommands();
@@ -522,6 +526,16 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     this.dismissedUpdateVersion = this.appUpdates?.readyVersion ?? null;
     this.publish();
     return Promise.resolve();
+  }
+
+  /** Before any update check: a player who unticked it in the installer never has GitHub asked. */
+  private async applyInstallerChoices(): Promise<void> {
+    const settings = withInstallerChoicesOrNull({ settings: this.settings, choices: await this.options.readInstallerChoices() });
+    if (!settings) return;
+    // Written like the player's own choice: the uninstaller of an earlier install may have removed the value.
+    const { startWithWindows } = this.options;
+    startWithWindows.apply(settings.shouldStartWithWindows);
+    await this.saveSettings({ ...settings, startWithWindowsCommand: settings.shouldStartWithWindows ? startWithWindows.command : null });
   }
 
   private async applyStartWithWindowsIfChanged(): Promise<void> {
