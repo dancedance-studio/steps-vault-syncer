@@ -73,6 +73,13 @@ describe('the signature check', () => {
     expect(getSignatureProblemOrNull({ fileName: 'Setup.exe', status: 'Valid', subject: 'CN=Someone Else, O=Someone Else', expectedPublisher: 'SignPath Foundation' })).toBe('Setup.exe is signed by Someone Else, not SignPath Foundation.');
     expect(getCommonName('CN="Example, Inc.", O=Example')).toBe('Example, Inc.');
   });
+
+  it('for an unsigned release, accepts only a file with no signature at all', () => {
+    expect(getSignatureProblemOrNull({ fileName: 'Setup.exe', status: 'NotSigned', subject: '', expectedPublisher: null })).toBeNull();
+    expect(getSignatureProblemOrNull({ fileName: 'Sync.exe', status: 'Valid', subject: 'CN=SignPath Foundation, O=SignPath Foundation', expectedPublisher: null })).toBe('Sync.exe is signed by SignPath Foundation, but nothing in an unsigned release may be signed: this is a half-signed build.');
+    expect(getSignatureProblemOrNull({ fileName: 'Sync.exe', status: 'HashMismatch', subject: 'CN=Someone', expectedPublisher: null })).toBe('Sync.exe has a signature that is not valid (HashMismatch), but nothing in an unsigned release may be signed: this is a half-signed build.');
+    expect(getSignatureProblemOrNull({ fileName: 'Sync.exe', status: 'UnknownError', subject: '', expectedPublisher: null })).toContain('half-signed');
+  });
 });
 
 describe('the Discord message body', () => {

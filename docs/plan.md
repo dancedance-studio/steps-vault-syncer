@@ -94,8 +94,9 @@ fingerprint. A slow or offline addon makes only the songs that wait on it wait; 
 
 `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` and a strict Content Security Policy in the
 renderer. The main process exposes a small, typed bridge, and it only touches the chosen `Songs` folder and the
-chosen music folders. Releases are built in public CI and signed through SignPath's free plan for open-source
-projects.
+chosen music folders. Releases are built in public CI from tagged commits, with SHA-256 checksums. They aren't code
+signed yet: we plan to apply for code signing again, and the release workflow is ready to sign through SignPath
+([code signing policy](code-signing-policy.md)).
 
 ## Tasks
 
