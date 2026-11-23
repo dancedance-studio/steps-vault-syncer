@@ -19,7 +19,7 @@ async function flushPromises(): Promise<void> {
 
 describe('the agent skills', () => {
   it('come from one place, with the owner’s GitHub links and prompts that name them', () => {
-    expect(ADDON_AGENT_SKILL.githubUrl).toBe('https://github.com/steps-vault/steps-vault-syncer/tree/main/.claude/skills/make-an-addon');
+    expect(ADDON_AGENT_SKILL.githubUrl).toBe('https://github.com/dancedance-studio/sync/tree/main/.claude/skills/make-an-addon');
     expect(GENERATOR_AGENT_SKILL.githubUrl).toBe(`${AGENT_SKILLS_BASE_URL}/make-a-generator`);
     expect(ADDON_AGENT_SKILL.promptText).toBe(`Use the make-an-addon skill from ${ADDON_AGENT_SKILL.githubUrl} to build me an addon that finds songs in my Dropbox music folder.`);
     expect(GENERATOR_AGENT_SKILL.promptText).toContain('to connect my own generator to dancedance.studio Sync, running on my computer.');

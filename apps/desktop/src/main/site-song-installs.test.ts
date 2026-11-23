@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { buildEmptyInstalledSongsRecord, MemorySongsFolder, type InstalledSong, type SongPlan, type SyncOutcome } from '@stepsvault/sync-core';
+import { buildEmptyInstalledSongsRecord, MemorySongsFolder, type InstalledSong, type SongPlan, type SyncOutcome } from '@dancedance/sync-core';
 import { installSongForSite, type SiteSongInstallPorts } from './site-song-installs';
 
 const NIGHT_DRIVE_FOLDER = ['dancedance.studio', 'Night Drive'];
 const NIGHT_DRIVE: InstalledSong = {
-  vaultSongId: 'song_42', chartVersion: 'v1', installId: 'install-1', folderPath: NIGHT_DRIVE_FOLDER, chartHashesByFileName: { 'Night Drive.ssc': 'hash' },
+  librarySongId: 'song_42', chartVersion: 'v1', installId: 'install-1', folderPath: NIGHT_DRIVE_FOLDER, chartHashesByFileName: { 'Night Drive.ssc': 'hash' },
   music: { fileName: 'music.ogg', videoFileName: 'video.mp4', shiftSeconds: 0 }, installedAt: '2026-11-21T10:00:00.000Z',
 };
 
 function buildOutcome({ installedSongs = [], songPlan }: { installedSongs?: InstalledSong[]; songPlan: SongPlan }): SyncOutcome {
-  return { vaultSongs: [], partyLists: null, finalPlan: { songPlans: [songPlan], forgetActions: [] }, audioResultsBySongId: new Map(), events: [], record: { ...buildEmptyInstalledSongsRecord(), installedSongs } };
+  return { librarySongs: [], partyLists: null, finalPlan: { songPlans: [songPlan], forgetActions: [] }, audioResultsBySongId: new Map(), events: [], record: { ...buildEmptyInstalledSongsRecord(), installedSongs } };
 }
 
-const INSTALLED = buildOutcome({ installedSongs: [NIGHT_DRIVE], songPlan: { vaultSongId: 'song_42', status: 'synced', actions: [], isWaitingForAddon: false } });
-const STILL_GETTING_MUSIC = buildOutcome({ songPlan: { vaultSongId: 'song_42', status: 'needs-audio', actions: [], isWaitingForAddon: true } });
-const NO_MUSIC = buildOutcome({ songPlan: { vaultSongId: 'song_42', status: 'needs-audio', actions: [], isWaitingForAddon: false } });
+const INSTALLED = buildOutcome({ installedSongs: [NIGHT_DRIVE], songPlan: { librarySongId: 'song_42', status: 'synced', actions: [], isWaitingForAddon: false } });
+const STILL_GETTING_MUSIC = buildOutcome({ songPlan: { librarySongId: 'song_42', status: 'needs-audio', actions: [], isWaitingForAddon: true } });
+const NO_MUSIC = buildOutcome({ songPlan: { librarySongId: 'song_42', status: 'needs-audio', actions: [], isWaitingForAddon: false } });
 
 /** The app around an install: its syncs (each gives the next outcome), its game folder in memory, and the time. */
 class FakeApp {
@@ -55,7 +55,7 @@ class FakeApp {
   }
 
   install(): ReturnType<typeof installSongForSite> {
-    return installSongForSite({ ports: this.ports, vaultSongId: 'song_42' });
+    return installSongForSite({ ports: this.ports, librarySongId: 'song_42' });
   }
 }
 
@@ -92,7 +92,7 @@ describe('installSongForSite', () => {
   });
 
   it('answers different when the music the addon got is another version, and failed when the player’s own file is', async () => {
-    const fromSource = (sourceId: string): SyncOutcome => ({ ...NO_MUSIC, finalPlan: { songPlans: [{ vaultSongId: 'song_42', status: 'different-edit', actions: [], isWaitingForAddon: false }], forgetActions: [] }, audioResultsBySongId: new Map([['song_42', { match: { kind: 'different-edit', sourceId }, addonMessages: [], pageLinks: [] }]]) });
+    const fromSource = (sourceId: string): SyncOutcome => ({ ...NO_MUSIC, finalPlan: { songPlans: [{ librarySongId: 'song_42', status: 'different-edit', actions: [], isWaitingForAddon: false }], forgetActions: [] }, audioResultsBySongId: new Map([['song_42', { match: { kind: 'different-edit', sourceId }, addonMessages: [], pageLinks: [] }]]) });
     const fromAddon = new FakeApp();
     fromAddon.outcomes = [fromSource('addon:night-drive.ogg')];
     expect(await fromAddon.install()).toEqual({ kind: 'different', reason: 'The music your link addon got is another version of this song, or another song.' });

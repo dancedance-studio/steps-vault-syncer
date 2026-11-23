@@ -3,19 +3,19 @@ import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
 import { FourArrowLoader } from '../shared/four-arrow-loader';
 import { LifeBar } from '../shared/life-bar';
-import type { GeneratorJobView, VaultChoiceAnswer } from '../sync-ui-types';
+import type { GeneratorJobView, LibraryChoiceAnswer } from '../sync-ui-types';
 
 export interface GeneratorJobActions {
   onCancelJob: (jobKey: string) => void;
-  onAnswerVaultChoice: (answer: VaultChoiceAnswer) => void;
+  onAnswerLibraryChoice: (answer: LibraryChoiceAnswer) => void;
 }
 
 export const LIBRARY_SONG_QUESTION = 'Already in the library. Keep the library song, or the generated one?';
 
 /** Where one song stands: the generator's stage, the question about the library song, or how it ended. */
-export function GeneratorJobProgress({ job, onAnswerVaultChoice, isPercentOnStageLine = false }: { job: GeneratorJobView; isPercentOnStageLine?: boolean } & GeneratorJobActions): ReactElement {
+export function GeneratorJobProgress({ job, onAnswerLibraryChoice, isPercentOnStageLine = false }: { job: GeneratorJobView; isPercentOnStageLine?: boolean } & GeneratorJobActions): ReactElement {
   if (job.state === 'working') return <WorkingJob job={job} isPercentOnStageLine={isPercentOnStageLine} />;
-  if (job.state === 'needs-vault-choice') return <VaultChoice job={job} onAnswerVaultChoice={onAnswerVaultChoice} />;
+  if (job.state === 'needs-library-choice') return <LibraryChoice job={job} onAnswerLibraryChoice={onAnswerLibraryChoice} />;
   return <JobEnding job={job} />;
 }
 
@@ -49,13 +49,13 @@ export function CancelJobButton({ job, onCancelJob, isDanger = false }: { job: G
   return <button className={joinClassNames('sv-sync-button', isDanger ? 'sv-sync-button--danger' : 'sv-sync-button--ghost sv-sync-button--small')} type="button" onClick={() => { onCancelJob(job.jobKey); }} aria-label={`Cancel ${job.songTitle}`}>Cancel</button>;
 }
 
-function VaultChoice({ job, onAnswerVaultChoice }: { job: GeneratorJobView; onAnswerVaultChoice: (answer: VaultChoiceAnswer) => void }): ReactElement {
+function LibraryChoice({ job, onAnswerLibraryChoice }: { job: GeneratorJobView; onAnswerLibraryChoice: (answer: LibraryChoiceAnswer) => void }): ReactElement {
   return (
     <div className="sv-sync-job-question" role="group" aria-label={LIBRARY_SONG_QUESTION}>
-      <span>{job.vaultChoiceQuestion ?? LIBRARY_SONG_QUESTION}</span>
+      <span>{job.libraryChoiceQuestion ?? LIBRARY_SONG_QUESTION}</span>
       <span className="sv-sync-row sv-sync-wrap">
-        <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => { onAnswerVaultChoice({ jobKey: job.jobKey, choice: 'keep-vault-song' }); }}>Keep library song</button>
-        <button className="sv-sync-button sv-sync-button--small" type="button" onClick={() => { onAnswerVaultChoice({ jobKey: job.jobKey, choice: 'keep-generated-song' }); }}>Use generated</button>
+        <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => { onAnswerLibraryChoice({ jobKey: job.jobKey, choice: 'keep-library-song' }); }}>Keep library song</button>
+        <button className="sv-sync-button sv-sync-button--small" type="button" onClick={() => { onAnswerLibraryChoice({ jobKey: job.jobKey, choice: 'keep-generated-song' }); }}>Use generated</button>
       </span>
     </div>
   );
@@ -74,7 +74,7 @@ export function GeneratorJobList({ jobs, onDismissJob, ...actions }: GeneratorJo
       <h2 id="sv-sync-generator-jobs-heading" className="sv-sync-heading-2">Songs being made</h2>
       <ul className="sv-sync-generator-jobs">
         {jobs.map((job) => {
-          const hasEnded = job.state !== 'working' && job.state !== 'needs-vault-choice';
+          const hasEnded = job.state !== 'working' && job.state !== 'needs-library-choice';
           return (
             <li key={job.jobKey} className={joinClassNames('sv-sync-generator-job', hasEnded && 'sv-sync-generator-job--ended')} aria-label={job.songTitle}>
               <div className="sv-sync-row sv-sync-space-between">

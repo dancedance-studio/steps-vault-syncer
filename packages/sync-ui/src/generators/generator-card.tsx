@@ -5,7 +5,7 @@ import { LIBRARY_GENERATOR_NAME, SITE_NAME } from '../shared/brand-names';
 import { SegmentedControl } from '../shared/small-parts';
 import { SquareIconTile } from '../shared/square-icon-tile';
 import { getAddonInitials } from '../sources/addon-card';
-import type { GeneratorView, ServiceLocationView, StepsVaultGeneratorView } from '../sync-ui-types';
+import type { GeneratorView, ServiceLocationView, DancedanceGeneratorView } from '../sync-ui-types';
 
 export interface GeneratorCardProps {
   generator: GeneratorView;
@@ -65,13 +65,13 @@ export function GeneratorCard({ generator, onRemove, onSetOption }: GeneratorCar
 }
 
 /** The site's own generator, always first: its songs go to the library for everyone, for a token each. */
-export function StepsVaultGeneratorCard({ generator }: { generator: StepsVaultGeneratorView }): ReactElement {
+export function DancedanceGeneratorCard({ generator }: { generator: DancedanceGeneratorView }): ReactElement {
   return (
-    <section className="sv-sync-panel sv-sync-generator-main" aria-labelledby="sv-sync-stepsvault-generator-heading">
+    <section className="sv-sync-panel sv-sync-generator-main" aria-labelledby="sv-sync-dancedance-generator-heading">
       <SquareIconTile tone="neutral" size={52} className="sv-sync-generator-logo"><SiteLogo size={36} /></SquareIconTile>
       <div className="sv-sync-stack-small sv-sync-min-width-0">
         <div className="sv-sync-addon-name">
-          <h2 id="sv-sync-stepsvault-generator-heading" className="sv-sync-heading-2 sv-sync-heading-2--small">{LIBRARY_GENERATOR_NAME}</h2>
+          <h2 id="sv-sync-dancedance-generator-heading" className="sv-sync-heading-2 sv-sync-heading-2--small">{LIBRARY_GENERATOR_NAME}</h2>
           <span className="sv-sync-badge sv-sync-badge--default">Default</span>
           <PriceChip kind="token" />
         </div>

@@ -2,7 +2,7 @@ import type { InstalledSongsRecord } from '../ownership/installed-songs';
 import { isSamePath, type SongsPath } from '../songs-folder/songs-path';
 
 export interface SongFolderMove {
-  vaultSongId: string;
+  librarySongId: string;
   from: SongsPath;
   to: SongsPath;
 }
@@ -13,8 +13,8 @@ export interface SongFolderMove {
  */
 export function getSongFolderMoves({ record, targetPathsBySongId }: { record: InstalledSongsRecord; targetPathsBySongId: ReadonlyMap<string, SongsPath> }): SongFolderMove[] {
   return record.installedSongs.flatMap((installedSong) => {
-    const target = targetPathsBySongId.get(installedSong.vaultSongId);
+    const target = targetPathsBySongId.get(installedSong.librarySongId);
     if (!target || isSamePath({ first: installedSong.folderPath, second: target })) return [];
-    return [{ vaultSongId: installedSong.vaultSongId, from: installedSong.folderPath, to: target }];
+    return [{ librarySongId: installedSong.librarySongId, from: installedSong.folderPath, to: target }];
   });
 }

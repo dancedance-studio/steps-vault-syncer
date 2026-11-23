@@ -3,7 +3,7 @@ import http, { type IncomingMessage } from 'node:http';
 import https from 'node:https';
 import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { HttpRequestError } from '@stepsvault/sync-core';
+import { HttpRequestError } from '@dancedance/sync-core';
 
 /**
  * Streams one file to disk with Node's own http/https, not fetch: fetch's parser fails an internal check

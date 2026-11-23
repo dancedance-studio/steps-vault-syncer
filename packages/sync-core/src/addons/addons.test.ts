@@ -10,7 +10,7 @@ import { getCheckedSongSourceInputValue, getLinkSitesText, getSongSourceInputVal
 const MANIFEST: AddonManifest = { protocol: 1, kind: 'addon', id: 'indie.tapes', name: 'Indie Tapes', version: '0.6.1', author: 'hyperpad', description: 'Links to files on our own server.', provides: ['audio-links'], inputs: [], options: [] };
 const MEDIA_OPTION: AddonChoiceOption = { id: 'media', label: 'What to get', kind: 'choice', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], default: 'audio-and-video' };
 const MANIFEST_WITH_OPTIONS: AddonManifest = { ...MANIFEST, provides: ['audio-links', 'video-links'], options: [MEDIA_OPTION] };
-const SONG: AddonSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: 'Electronic', lengthSeconds: 201, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' };
+const SONG: AddonSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: 'Electronic', lengthSeconds: 201, videoId: 'abcdefghijk', videoUrl: 'https://clips.example/watch?v=abcdefghijk' };
 
 /** Answers each request with the next canned answer, and remembers what was sent. */
 class RecordedHttpClient implements HttpClient {
@@ -210,7 +210,7 @@ const CLIP_LINK_INPUT: SongSourceInput = { id: 'link', kind: 'link', label: 'Cli
 const SEARCH_INPUT: SongSourceInput = { id: 'search', kind: 'search', label: 'Title or artist', placeholder: null };
 const SONG_SOURCE_MANIFEST = { protocol: 1, kind: 'addon', id: 'clip.source', name: 'Clip Source', version: '1.0.0', author: 'hyperpad', description: 'Songs from video links.', provides: ['song-source'], inputs: [CLIP_LINK_INPUT] };
 const SONG_SOURCE_ADDON = buildInstalledAddon({ baseUrl: 'https://clips-addon.example.org', manifest: parseAddonManifest(SONG_SOURCE_MANIFEST), consentedAt: '2026-10-25T10:00:00Z' });
-const FOUND_SONG = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, youtubeId: 'Vid3o1d-x_Z' };
+const FOUND_SONG = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, videoId: 'Vid3o1d-x_Z' };
 const MUSIC_LINK = { kind: 'file-url', media: 'audio', url: 'https://files.clips-addon.example.org/a.ogg', label: 'Music', fileName: 'a.ogg' };
 const VIDEO_LINK = { kind: 'file-url', media: 'video', url: 'https://files.clips-addon.example.org/v.mp4', label: 'Video', fileName: 'v.mp4' };
 const PLAYER_LINK = { link: 'https://clips.example/watch?v=abc123' };
@@ -323,9 +323,9 @@ describe('fetchSongSource', () => {
   });
 
   it('keeps title and artist when the other facts are missing or broken', async () => {
-    const httpClient = new RecordedHttpClient([{ status: 200, body: { song: { title: ' Pulse Garden ', artist: 'Kairo Lights', lengthSeconds: -3, youtubeId: 'not an id' }, links: [{ ...MUSIC_LINK, media: undefined }] } }]);
+    const httpClient = new RecordedHttpClient([{ status: 200, body: { song: { title: ' Pulse Garden ', artist: 'Kairo Lights', lengthSeconds: -3, videoId: 'not an id' }, links: [{ ...MUSIC_LINK, media: undefined }] } }]);
     const result = await fetchSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: PLAYER_LINK });
-    expect(result).toMatchObject({ kind: 'found', choices: [{ song: { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: null, youtubeId: null }, videoLink: null }] });
+    expect(result).toMatchObject({ kind: 'found', choices: [{ song: { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: null, videoId: null }, videoLink: null }] });
   });
 
   it('sends the options, and drops the video when the player chose music only', async () => {

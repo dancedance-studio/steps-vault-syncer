@@ -1,5 +1,5 @@
 import type { MenuItemConstructorOptions } from 'electron';
-import type { TrayStatus } from '@stepsvault/sync-ui';
+import type { TrayStatus } from '@dancedance/sync-ui';
 import { APP_DISPLAY_NAME } from '../shared/app-name';
 
 export interface TrayActions {

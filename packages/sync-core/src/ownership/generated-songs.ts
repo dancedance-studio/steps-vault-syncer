@@ -3,7 +3,7 @@ import { loadSongMusicSourceOrNull, type SongMusicSource } from '../generators/s
 import type { SongsPath } from '../songs-folder/songs-path';
 import type { InstalledSongsRecord } from './installed-songs';
 
-/** A song folder Sync wrote from a community generator's files. It is the player's alone and never in the vault. */
+/** A song folder Sync wrote from a community generator's files. It is the player's alone and never in the library. */
 export interface GeneratedSong {
   /** getGeneratedSongKey(song): making the same song again replaces this one. */
   songKey: string;
@@ -18,8 +18,8 @@ export interface GeneratedSong {
   installId: string;
   /** `[group, song folder]` inside the Songs folder. */
   folderPath: SongsPath;
-  /** The vault song the player chose to replace with this one in the game; null when the vault has no such song. */
-  inPlaceOfVaultSongId: string | null;
+  /** The library song the player chose to replace with this one in the game; null when the library has no such song. */
+  inPlaceOfLibrarySongId: string | null;
   /** The addon that found the music and the link the player typed; null or missing for the player's own files. */
   source?: SongMusicSource | null;
   generatedAt: string;

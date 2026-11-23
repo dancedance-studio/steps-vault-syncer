@@ -4,7 +4,7 @@ import {
   AudioSourcesScreen,
   ConnectGameScreen,
   DesktopSignInScreen,
-  EmptyVaultState,
+  EmptyLibraryState,
   FolderLayoutScreen,
   GeneratorsScreen,
   SyncHomeScreen,
@@ -12,12 +12,12 @@ import {
   SyncShell,
   UpdateBanner,
   type SyncScreen,
-} from '@stepsvault/sync-ui';
+} from '@dancedance/sync-ui';
 import type { DesktopSyncBridge, DesktopSyncState } from '../../shared/bridge-types';
 
 declare global {
   interface Window {
-    stepsVaultSync: DesktopSyncBridge;
+    dancedanceSync: DesktopSyncBridge;
   }
 }
 
@@ -108,7 +108,7 @@ interface ScreenOptions {
   state: DesktopSyncState & { game: NonNullable<DesktopSyncState['game']> };
   bridge: DesktopSyncBridge;
   selectedSongId: string | null;
-  setSelectedSongId: (vaultSongId: string | null) => void;
+  setSelectedSongId: (librarySongId: string | null) => void;
   setCurrentScreen: (screen: SyncScreen) => void;
   wasActivityCopied: boolean;
   setWasActivityCopied: (wasCopied: boolean) => void;
@@ -168,7 +168,7 @@ function renderSongs({ state, bridge, selectedSongId, setSelectedSongId, setCurr
       songs={state.songs}
       partyFolders={state.partyFolders}
       partyListsHref={`${state.siteUrl}/library?tab=party-lists`}
-      emptyState={state.songs.length === 0 && !state.syncRun ? <EmptyVaultState vaultHref={state.siteUrl} /> : undefined}
+      emptyState={state.songs.length === 0 && !state.syncRun ? <EmptyLibraryState libraryHref={state.siteUrl} /> : undefined}
       selectedSongDetails={selectedSongId ? (state.songDetailsById[selectedSongId] ?? null) : null}
       onOpenSongDetails={setSelectedSongId}
       onCloseSongDetails={() => {
@@ -185,7 +185,7 @@ function renderAudioSources({ state, bridge, setCurrentScreen }: ScreenOptions):
       musicFolders={state.musicFolders}
       scan={state.scannedFileCount !== null && state.musicFolders.some((folder) => folder.scanState === 'scanning') ? { scannedFileCount: state.scannedFileCount, percent: 50 } : null}
       matchedSongCount={state.songs.filter((song) => song.audioSource.kind === 'music-folder').length}
-      vaultSongCount={state.songs.length}
+      librarySongCount={state.songs.length}
       pickedFiles={state.pickedFiles}
       addons={state.addons}
       onAddMusicFolder={() => void bridge.addMusicFolder()}
@@ -207,7 +207,7 @@ function renderAudioSources({ state, bridge, setCurrentScreen }: ScreenOptions):
 function renderGenerators({ state, bridge }: ScreenOptions): ReactNode {
   return (
     <GeneratorsScreen
-      stepsVaultGenerator={state.stepsVaultGenerator}
+      dancedanceGenerator={state.dancedanceGenerator}
       generators={state.generators}
       jobs={state.generatorJobs}
       generatedSongs={state.generatedSongs}
@@ -224,7 +224,7 @@ function renderGenerators({ state, bridge }: ScreenOptions): ReactNode {
       onStopFindingSong={() => void bridge.stopFindingSong()}
       onMakeSong={(request) => bridge.makeSong(request)}
       onCancelJob={(jobKey) => void bridge.cancelGeneratorJob(jobKey)}
-      onAnswerVaultChoice={(answer) => void bridge.answerVaultChoice(answer)}
+      onAnswerLibraryChoice={(answer) => void bridge.answerLibraryChoice(answer)}
       onDismissJob={(jobKey) => void bridge.dismissGeneratorJob(jobKey)}
       onFetchSongReport={(songKey) => bridge.fetchGeneratedSongReport(songKey)}
       mySongsHref={`${state.siteUrl}/my-songs`}

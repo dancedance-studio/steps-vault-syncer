@@ -1,11 +1,8 @@
 # Windows installer for dancedance.studio Sync. Everything the app runs is already bundled into dist/ (esbuild and Vite);
 # only electron-updater ships as a dependency.
-# appId, productName and artifactName keep the old names on purpose: the install folder, the player's data folder
-# and the update feed come from them, so changing them would split existing installs from their settings and updates.
-# Players see the name from shortcutName, uninstallDisplayName and the app's own windows.
-appId: com.stepsvault.sync
-productName: StepsVault Sync
-copyright: Copyright © StepsVault contributors. Apache-2.0.
+appId: studio.dancedance.sync
+productName: dancedance.studio Sync
+copyright: Copyright © dancedance.studio contributors. Apache-2.0.
 directories:
   output: release
   buildResources: build
@@ -23,7 +20,7 @@ win:
   target:
     - target: nsis
       arch: [x64]
-  artifactName: StepsVault-Sync-Setup-${version}.${ext}
+  artifactName: dancedance-studio-Sync-Setup-${version}.${ext}
 nsis:
   # Installs for the current user only: no admin rights, no UAC prompt.
   oneClick: false
@@ -37,6 +34,6 @@ nsis:
   include: build/installer.nsh
 publish:
   provider: github
-  owner: steps-vault
-  repo: steps-vault-syncer
+  owner: dancedance-studio
+  repo: sync
   releaseType: release

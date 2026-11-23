@@ -18,7 +18,7 @@ const NUMBER_FORMAT = new Intl.NumberFormat('en-US');
 const SCAN_STATE_DISPLAYS: Readonly<Record<MusicFolderScanState, { label: string; iconName: IconName; className: string }>> = {
   scanned: { label: 'Scanned', iconName: 'check', className: 'sv-sync-tone--synced' },
   scanning: { label: 'Scanning…', iconName: 'none', className: 'sv-sync-tone--syncing' },
-  waiting: { label: 'Waiting', iconName: 'none', className: 'sv-sync-tone--removed-from-vault' },
+  waiting: { label: 'Waiting', iconName: 'none', className: 'sv-sync-tone--removed-from-library' },
 };
 
 export interface MusicFolderScanView {
@@ -30,7 +30,7 @@ export interface AudioSourcesScreenProps {
   musicFolders: readonly MusicFolderView[];
   scan: MusicFolderScanView | null;
   matchedSongCount: number;
-  vaultSongCount: number;
+  librarySongCount: number;
   pickedFiles: readonly PickedFileView[];
   addons: readonly AddonView[];
   onAddMusicFolder: () => void;
@@ -105,7 +105,7 @@ function MusicFolderSource(props: AudioSourcesScreenProps): ReactElement {
           <span className="sv-sync-small sv-sync-muted">You can keep using Sync while we look.</span>
         </div>
       )}
-      <div className="sv-sync-big-stat"><b className="sv-sync-tabular">{props.matchedSongCount}</b><span>of {props.vaultSongCount} songs found</span></div>
+      <div className="sv-sync-big-stat"><b className="sv-sync-tabular">{props.matchedSongCount}</b><span>of {props.librarySongCount} songs found</span></div>
       <div className="sv-sync-row sv-sync-wrap">
         <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={props.onAddMusicFolder}><Icon name="plus" size={14} strokeWidth={2.6} />Add folder…</button>
         <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={props.onScanAgain} disabled={props.scan !== null}><Icon name="spin" size={14} />Scan again</button>
@@ -142,7 +142,7 @@ function PickFileSource({ pickedFiles, onGoToSongs }: { pickedFiles: readonly Pi
       {pickedFiles.length > 0 && <span className="sv-sync-small sv-sync-muted">Picked files</span>}
       <ul className="sv-sync-picked-files">
         {pickedFiles.map((pickedFile) => (
-          <li key={pickedFile.vaultSongId}>
+          <li key={pickedFile.librarySongId}>
             <span className="sv-sync-row" dir="auto"><span className="sv-sync-strong">{pickedFile.title}</span>{pickedFile.status !== 'synced' && <StatusChip status={pickedFile.status} isSmall />}</span>
             <span className="sv-sync-mono sv-sync-muted">{pickedFile.fileName}</span>
           </li>

@@ -3,8 +3,8 @@ import { buildInstalledAddon, type InstalledAddon } from '../addons/addon-client
 import type { AddonManifest } from '../addons/addon-protocol';
 import type { SongSourceFileLink, SongSourceSong } from '../addons/song-source-protocol';
 import type { FileUploadHttpClient, FileUploadHttpRequest, HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
-import { SignedOutError, StepsVaultApiError } from '../stepsvault-api/stepsvault-api-types';
-import { StepsVaultClient } from '../stepsvault-api/stepsvault-client';
+import { SignedOutError, DancedanceApiError } from '../dancedance-api/dancedance-api-types';
+import { DancedanceClient } from '../dancedance-api/dancedance-client';
 import { getLinkAudioContentTypeOrNull } from './link-audio-files';
 import { buildLinkFindResults, buildNotFoundAnswer, buildSyncPresence, findLinkAddon, isLinkJobExpired, parseLinkJobOrNull, parseLinkJobState, type SyncPresence } from './link-job-protocol';
 import { loadLinkSongSources, withLinkSongSource } from './link-song-sources';
@@ -16,7 +16,7 @@ const OPEN_AUDIO_LINKS: AddonManifest = {
   options: [{ id: 'media', label: 'What to get', kind: 'choice', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], default: 'audio-and-video' }],
   inputs: [{ id: 'link', kind: 'link', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }, { id: 'note', kind: 'search', label: 'Note', placeholder: null }],
 };
-const NIGHT_DRIVE: SongSourceSong = { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 220.6, youtubeId: 'Vid3o1d-x_Z' };
+const NIGHT_DRIVE: SongSourceSong = { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 220.6, videoId: 'Vid3o1d-x_Z' };
 const MUSIC_LINK: SongSourceFileLink = { kind: 'file-url', media: 'audio', url: 'http://127.0.0.1:7802/files/night-drive.ogg', label: 'Music', fileName: 'night-drive.ogg' };
 const VIDEO_LINK: SongSourceFileLink = { kind: 'file-url', media: 'video', url: 'http://127.0.0.1:7802/files/night-drive.mp4', label: 'Video', fileName: 'night-drive.mp4' };
 
@@ -64,10 +64,10 @@ describe('reading link jobs', () => {
     expect(parseLinkJobOrNull({ id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/night-drive', expiresAt: '2026-11-21T12:00:20.000Z' })).toEqual({ id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/night-drive', expiresAt: '2026-11-21T12:00:20.000Z' });
     expect(parseLinkJobOrNull({ id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' })).toEqual({ id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' });
     expect(parseLinkJobOrNull({ id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' })).toEqual({ id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' });
-    const vaultSong = { vaultSongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, youtubeId: null, chartVersion: 'v1' };
-    expect(parseLinkJobOrNull({ id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z', song: vaultSong })).toEqual({
-      id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z',
-      song: { vaultSongId: 'song_42', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221 },
+    const librarySong = { librarySongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, videoId: null, chartVersion: 'v1' };
+    expect(parseLinkJobOrNull({ id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z', song: librarySong })).toEqual({
+      id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', videoUrl: null, expiresAt: '2026-11-21T12:03:00.000Z',
+      song: { librarySongId: 'song_42', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221 },
     });
   });
 
@@ -102,7 +102,7 @@ describe('find answers', () => {
     const choices = [
       { song: NIGHT_DRIVE, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK },
       { song: { ...NIGHT_DRIVE, title: 'Night Drive (Live)' }, musicLink: MUSIC_LINK, videoLink: null },
-      { song: { ...NIGHT_DRIVE, title: 'Night Drive (Edit)', youtubeId: null }, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK },
+      { song: { ...NIGHT_DRIVE, title: 'Night Drive (Edit)', videoId: null }, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK },
       { song: { ...NIGHT_DRIVE, title: 'Night Drive (Demo)', lengthSeconds: null }, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK },
     ];
     const results = buildLinkFindResults({ choices, link: 'https://www.clips.example/v/night-drive', sites: ['clips.example', 'media.example.org'] });
@@ -169,7 +169,7 @@ class RecordedSite implements HttpClient, FileUploadHttpClient {
   }
 }
 
-describe('StepsVaultClient link jobs', () => {
+describe('DancedanceClient link jobs', () => {
   const presence = buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: OPEN_AUDIO_LINKS })], isLeaving: false });
   const job = { id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' };
 
@@ -181,7 +181,7 @@ describe('StepsVaultClient link jobs', () => {
       [`POST ${API_URL}/link-jobs/lj_2/answer`]: { status: 204, body: '' },
       [`PUT ${API_URL}/link-jobs/lj_2/audio`]: { status: 200, body: 'Stored.' },
     });
-    const client = new StepsVaultClient({ httpClient: site, fileUploadClient: site, siteUrl: `${SITE_URL}/`, deviceToken: 'device-token-1' });
+    const client = new DancedanceClient({ httpClient: site, fileUploadClient: site, siteUrl: `${SITE_URL}/`, deviceToken: 'device-token-1' });
     await client.reportPresence(presence);
     expect(await client.fetchNextLinkJob()).toEqual(job);
     expect(await client.fetchLinkJobState('lj_2')).toBe('open');
@@ -209,7 +209,7 @@ describe('StepsVaultClient link jobs', () => {
       [`POST ${API_URL}/link-jobs/lj_2/answer`]: { status: 410, body: { error: 'This job ended.' } },
       [`PUT ${API_URL}/link-jobs/lj_2/audio`]: { status: 410, body: { error: 'This job ended.' } },
     });
-    const client = new StepsVaultClient({ httpClient: site, fileUploadClient: site, siteUrl: SITE_URL, deviceToken: 'device-token-1' });
+    const client = new DancedanceClient({ httpClient: site, fileUploadClient: site, siteUrl: SITE_URL, deviceToken: 'device-token-1' });
     expect(await client.fetchNextLinkJob()).toBeNull();
     expect(await client.fetchLinkJobState('lj_2')).toBe('expired');
     expect(await client.fetchLinkJobState('lj_3')).toBe('cancelled');
@@ -224,15 +224,15 @@ describe('StepsVaultClient link jobs', () => {
       [`PUT ${API_URL}/link-jobs/lj_2/audio`]: { status: 413, body: { error: 'This file is bigger than 30 MB.' } },
       [`GET ${API_URL}/link-jobs/lj%2F..%2Fme`]: { status: 200, body: { status: 'open' } },
     });
-    const client = new StepsVaultClient({ httpClient: site, fileUploadClient: site, siteUrl: SITE_URL, deviceToken: 'device-token-1' });
+    const client = new DancedanceClient({ httpClient: site, fileUploadClient: site, siteUrl: SITE_URL, deviceToken: 'device-token-1' });
     await expect(client.fetchNextLinkJob()).rejects.toBeInstanceOf(SignedOutError);
     await expect(client.reportPresence(presence)).rejects.toBeInstanceOf(SignedOutError);
-    await expect(client.uploadLinkJobAudio({ jobId: 'lj_2', audio: { sourceId: 'file:abc', contentType: 'audio/ogg' } })).rejects.toThrow(new StepsVaultApiError({ status: 413, message: 'This file is bigger than 30 MB.' }));
+    await expect(client.uploadLinkJobAudio({ jobId: 'lj_2', audio: { sourceId: 'file:abc', contentType: 'audio/ogg' } })).rejects.toThrow(new DancedanceApiError({ status: 413, message: 'This file is bigger than 30 MB.' }));
     expect(await client.fetchLinkJobState('lj/../me')).toBe('open');
   });
 
   it('sends no file without an upload client: only the app uploads', async () => {
-    const client = new StepsVaultClient({ httpClient: new RecordedSite({}), siteUrl: SITE_URL, deviceToken: null });
+    const client = new DancedanceClient({ httpClient: new RecordedSite({}), siteUrl: SITE_URL, deviceToken: null });
     await expect(client.uploadLinkJobAudio({ jobId: 'lj_2', audio: { sourceId: 'file:abc', contentType: 'audio/ogg' } })).rejects.toThrow('can’t send files');
   });
 });

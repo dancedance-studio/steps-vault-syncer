@@ -11,7 +11,7 @@ import {
   type LinkJobAnswer,
   type VerifyLinkJob,
   type VideoAudioComparison,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 
 const ADDON_OFF_REASON = 'Your link addon is off in Sync, so it can’t get that video’s music.';
 const NOT_ANSWERING_REASON = 'Your link addon isn’t answering. Check that it is running, then try again.';
@@ -30,7 +30,7 @@ export interface SiteVideoCheckPorts {
   addonHttpClient: HttpClient;
   /** Into the folder where Sync already keeps addons' files, so a verify adds no storage of its own. A sourceId. */
   downloadAddonFile(options: { url: string; fileName: string | null; addonName: string }): Promise<string>;
-  fetchFingerprint(vaultSongId: string): Promise<AudioFingerprint>;
+  fetchFingerprint(librarySongId: string): Promise<AudioFingerprint>;
   /** Off the main thread: the file decoded, then compared with the fingerprint. */
   compareVideoAudio(options: { sourceId: string; fingerprint: AudioFingerprint }): Promise<VideoAudioComparison>;
 }
@@ -65,7 +65,7 @@ export async function checkVideoForSite({ ports, job, wait }: { ports: SiteVideo
 
 /** Asks again as often as the addon says while it is still working, until it answers or the job's time is up. */
 async function fetchVideoAudioLinks({ ports, addon, job, wait }: { ports: SiteVideoCheckPorts; addon: InstalledAddon; job: VerifyLinkJob; wait: AddonWait }): Promise<{ kind: 'links'; links: AudioLink[]; addonError: string | null } | { kind: 'failed'; reason: string }> {
-  const song = buildAddonSongFacts({ ...job.song, youtubeId: job.videoId });
+  const song = buildAddonSongFacts({ ...job.song, videoId: job.videoId, videoUrl: job.videoUrl });
   for (;;) {
     const answer = await fetchAudioLinks({ httpClient: ports.addonHttpClient, addon, song });
     if (answer.kind === 'links') return answer;

@@ -1,14 +1,16 @@
-import type { PartyListToSync, VaultSong } from '../planner/sync-plan-types';
+import type { PartyListToSync, LibrarySong } from '../planner/sync-plan-types';
 
-/** A song in the player's vault, as GET /api/sync/vault describes it. */
-export interface VaultSongDetails extends VaultSong {
+/** A song in the player's library, as GET /api/sync/library describes it. */
+export interface LibrarySongDetails extends LibrarySong {
   slug: string;
   album: string | null;
   lengthSeconds: number;
   /** Beginner to Challenge; null where the site sent no level. */
   levels: (number | null)[];
   bpm: number | null;
-  youtubeId: string | null;
+  videoId: string | null;
+  /** The video's web address, when the site sends one. */
+  videoUrl?: string | null;
   imageKinds: string[];
   hasFingerprint: boolean;
   /** The colour of the player's group on the site (green, pink, cyan, yellow, orange or purple; null: in no group), so
@@ -21,13 +23,13 @@ export interface SyncPartyList extends PartyListToSync {
   slug: string;
   /** When the list ends and its folder goes; null: no end. */
   endsAt: string | null;
-  /** Its ready songs, described like vault songs; their files come from the same song routes. */
-  songs: VaultSongDetails[];
+  /** Its ready songs, described like library songs; their files come from the same song routes. */
+  songs: LibrarySongDetails[];
 }
 
 /** The signed-in player as GET /api/sync/me describes them. */
 export interface SyncAccount {
-  /** Each song made with StepsVault's generator spends one. */
+  /** Each song made with dancedance.studio's generator spends one. */
   tokenBalance: number;
   player: { handle: string; initial: string; avatarColor: string };
 }
@@ -60,12 +62,12 @@ export class SignedOutError extends Error {
   }
 }
 
-export class StepsVaultApiError extends Error {
+export class DancedanceApiError extends Error {
   readonly status: number;
 
   constructor({ status, message }: { status: number; message: string }) {
     super(message);
-    this.name = 'StepsVaultApiError';
+    this.name = 'DancedanceApiError';
     this.status = status;
   }
 }

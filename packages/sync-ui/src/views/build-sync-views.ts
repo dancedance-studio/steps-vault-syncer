@@ -14,8 +14,8 @@ import {
   type FolderLayout,
   type InstalledSongsRecord,
   type SongPlan,
-  type VaultSongDetails,
-} from '@stepsvault/sync-core';
+  type LibrarySongDetails,
+} from '@dancedance/sync-core';
 import type { ActivityEntryView, ActivityKind, DifficultyLevels, LayoutPreview, LayoutPreviewGroup, LayoutPreviewsByLayout, SongAudioSource, SongDetailsView, SongRowView, TrayStatus } from '../sync-ui-types';
 import { getGroupColorHex } from './group-colors';
 
@@ -34,8 +34,8 @@ const GENERATED_SONG_TEXTS_BY_STEP: Readonly<Record<GeneratedSongActivityStep, {
   'resumed': { kind: 'generating', textBefore: 'Went on making ', getTextAfter: (event) => ` with ${event.generatorName}` },
   'not-cancelled': { kind: 'generating', textBefore: 'Couldn’t cancel ', getTextAfter: () => '' },
   'written': { kind: 'generated', textBefore: 'Made ', getTextAfter: (event) => ` with ${event.generatorName}` },
-  'added-to-vault': { kind: 'generated', textBefore: 'Made ', getTextAfter: () => ' for the library' },
-  'kept-vault-song': { kind: 'generated', textBefore: 'Kept the library song of ', getTextAfter: () => '' },
+  'added-to-library': { kind: 'generated', textBefore: 'Made ', getTextAfter: () => ' for the library' },
+  'kept-library-song': { kind: 'generated', textBefore: 'Kept the library song of ', getTextAfter: () => '' },
   'failed': { kind: 'generate-failed', textBefore: 'Couldn’t make ', getTextAfter: (event) => ` with ${event.generatorName}` },
   'cancelled': { kind: 'generate-cancelled', textBefore: 'Cancelled ', getTextAfter: () => '' },
 };
@@ -44,7 +44,7 @@ const DAY_WITH_YEAR_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'short', 
 const TIME_FORMAT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 export interface SongViewInput {
-  vaultSongs: readonly VaultSongDetails[];
+  librarySongs: readonly LibrarySongDetails[];
   songPlans: readonly SongPlan[];
   audioResultsBySongId: ReadonlyMap<string, AudioSearchResult>;
   record: InstalledSongsRecord;
@@ -54,32 +54,32 @@ export interface SongViewInput {
 }
 
 export function buildSongRows(input: SongViewInput): SongRowView[] {
-  const plansBySongId = new Map(input.songPlans.map((songPlan) => [songPlan.vaultSongId, songPlan]));
-  return input.vaultSongs.map((song) => ({
-    vaultSongId: song.vaultSongId,
+  const plansBySongId = new Map(input.songPlans.map((songPlan) => [songPlan.librarySongId, songPlan]));
+  return input.librarySongs.map((song) => ({
+    librarySongId: song.librarySongId,
     title: song.title,
     artist: song.artist,
     genre: song.genre,
     coverArtUrl: null,
     levels: getDifficultyLevels(song.levels),
-    status: plansBySongId.get(song.vaultSongId)?.status ?? 'needs-audio',
-    audioSource: getAudioSource({ input, vaultSongId: song.vaultSongId }),
+    status: plansBySongId.get(song.librarySongId)?.status ?? 'needs-audio',
+    audioSource: getAudioSource({ input, librarySongId: song.librarySongId }),
     addedAt: 0,
-    note: getSongNote({ input, vaultSongId: song.vaultSongId }),
+    note: getSongNote({ input, librarySongId: song.librarySongId }),
   }));
 }
 
 export function buildSongDetailsById(input: SongViewInput): Record<string, SongDetailsView> {
-  const rowsById = new Map(buildSongRows(input).map((row) => [row.vaultSongId, row]));
-  return Object.fromEntries(input.vaultSongs.flatMap((song) => {
-    const row = rowsById.get(song.vaultSongId);
-    return row ? [[song.vaultSongId, buildSongDetails({ input, song, row })]] : [];
+  const rowsById = new Map(buildSongRows(input).map((row) => [row.librarySongId, row]));
+  return Object.fromEntries(input.librarySongs.flatMap((song) => {
+    const row = rowsById.get(song.librarySongId);
+    return row ? [[song.librarySongId, buildSongDetails({ input, song, row })]] : [];
   }));
 }
 
-function buildSongDetails({ input, song, row }: { input: SongViewInput; song: VaultSongDetails; row: SongRowView }): SongDetailsView {
-  const installedSong = findInstalledSong({ record: input.record, vaultSongId: song.vaultSongId });
-  const match = input.audioResultsBySongId.get(song.vaultSongId)?.match;
+function buildSongDetails({ input, song, row }: { input: SongViewInput; song: LibrarySongDetails; row: SongRowView }): SongDetailsView {
+  const installedSong = findInstalledSong({ record: input.record, librarySongId: song.librarySongId });
+  const match = input.audioResultsBySongId.get(song.librarySongId)?.match;
   const shiftSeconds = installedSong?.music.shiftSeconds ?? (match?.kind === 'matched' ? match.shiftSeconds : null);
   return {
     song: row,
@@ -99,18 +99,18 @@ function buildSongDetails({ input, song, row }: { input: SongViewInput; song: Va
   };
 }
 
-function getAudioSource({ input, vaultSongId }: { input: SongViewInput; vaultSongId: string }): SongAudioSource {
-  if (input.pickedSongIds.has(vaultSongId)) return { kind: 'picked-file' };
-  const match = input.audioResultsBySongId.get(vaultSongId)?.match;
+function getAudioSource({ input, librarySongId }: { input: SongViewInput; librarySongId: string }): SongAudioSource {
+  if (input.pickedSongIds.has(librarySongId)) return { kind: 'picked-file' };
+  const match = input.audioResultsBySongId.get(librarySongId)?.match;
   const sourceId = match && match.kind !== 'not-found' ? match.sourceId : null;
   const addonName = sourceId ? input.addonNamesBySourceId.get(sourceId) : undefined;
   if (addonName) return { kind: 'addon', addonName };
-  if (findInstalledSong({ record: input.record, vaultSongId }) || match?.kind === 'matched') return { kind: 'music-folder' };
+  if (findInstalledSong({ record: input.record, librarySongId }) || match?.kind === 'matched') return { kind: 'music-folder' };
   return { kind: 'none' };
 }
 
-function getSongNote({ input, vaultSongId }: { input: SongViewInput; vaultSongId: string }): string | null {
-  const result = input.audioResultsBySongId.get(vaultSongId);
+function getSongNote({ input, librarySongId }: { input: SongViewInput; librarySongId: string }): string | null {
+  const result = input.audioResultsBySongId.get(librarySongId);
   if (!result) return null;
   if (result.match.kind === 'not-found' && result.match.isWaitingForAddon) return result.addonMessages[0] ?? 'Waiting for an addon · we’ll try again';
   return result.match.kind === 'matched' ? null : (result.addonMessages[0] ?? null);
@@ -133,8 +133,8 @@ function formatLength(seconds: number): string {
 }
 
 /** Newest first: a sync's events and the steps of making songs with generators. */
-export function buildActivityEntries({ events, vaultSongs }: { events: readonly ActivityLogEvent[]; vaultSongs: readonly VaultSongDetails[] }): ActivityEntryView[] {
-  const titlesById = new Map(vaultSongs.map((song) => [song.vaultSongId, song.title]));
+export function buildActivityEntries({ events, librarySongs }: { events: readonly ActivityLogEvent[]; librarySongs: readonly LibrarySongDetails[] }): ActivityEntryView[] {
+  const titlesById = new Map(librarySongs.map((song) => [song.librarySongId, song.title]));
   return [...events].reverse().map((event, index) => {
     const entryId = `${event.at}-${String(index)}`;
     return isGeneratedSongActivityEvent(event) ? buildGeneratedSongEntry({ event, entryId }) : buildSyncEntry({ event, entryId, titlesById });
@@ -148,7 +148,7 @@ function buildSyncEntry({ event, entryId, titlesById }: { event: ActivityEvent; 
     kind: ACTIVITY_KINDS_BY_EVENT_KIND[event.kind],
     ...formatEntryTime(event.at),
     textBefore: ACTIVITY_VERBS_BY_EVENT_KIND[event.kind],
-    highlightedText: titlesById.get(event.vaultSongId) ?? event.folderPath.at(-1) ?? 'a song',
+    highlightedText: titlesById.get(event.librarySongId) ?? event.folderPath.at(-1) ?? 'a song',
     textAfter: getSyncEntryTextAfter({ event, groupName }),
     summaryText: event.message ?? (event.kind === 'removed' ? `Deleted only Songs/${event.folderPath.join('/')}` : `Songs/${event.folderPath.join('/')}`),
     details: [{ label: 'Folder', value: `Songs/${event.folderPath.join('/')}` }, ...(event.failure ? [{ label: 'Problem', value: event.failure }] : [])],
@@ -190,10 +190,10 @@ export function getDayText({ at, now }: { at: Date; now: Date }): string {
   return at.getFullYear() === now.getFullYear() ? DAY_FORMAT.format(at) : DAY_WITH_YEAR_FORMAT.format(at);
 }
 
-export function buildLayoutViews({ vaultSongs, record, playerGroupNames }: { vaultSongs: readonly VaultSongDetails[]; record: InstalledSongsRecord; playerGroupNames: readonly string[] }): { previewsByLayout: LayoutPreviewsByLayout; movingSongCountsByLayout: Record<FolderLayout, number> } {
+export function buildLayoutViews({ librarySongs, record, playerGroupNames }: { librarySongs: readonly LibrarySongDetails[]; record: InstalledSongsRecord; playerGroupNames: readonly string[] }): { previewsByLayout: LayoutPreviewsByLayout; movingSongCountsByLayout: Record<FolderLayout, number> } {
   const entries = FOLDER_LAYOUTS.map((layout) => {
-    const targetPathsBySongId = getTargetFolderPaths({ songs: vaultSongs, layout, playerGroupNames, record });
-    return { layout, preview: buildLayoutPreview({ layout, targetPathsBySongId, vaultSongs }), movingCount: getSongFolderMoves({ record, targetPathsBySongId }).length };
+    const targetPathsBySongId = getTargetFolderPaths({ songs: librarySongs, layout, playerGroupNames, record });
+    return { layout, preview: buildLayoutPreview({ layout, targetPathsBySongId, librarySongs }), movingCount: getSongFolderMoves({ record, targetPathsBySongId }).length };
   });
   return {
     previewsByLayout: Object.fromEntries(entries.map((entry) => [entry.layout, entry.preview])) as LayoutPreviewsByLayout,
@@ -202,9 +202,9 @@ export function buildLayoutViews({ vaultSongs, record, playerGroupNames }: { vau
 }
 
 /** The one group shows its song count; genres and artists show a few groups and how many more there are. */
-function buildLayoutPreview({ layout, targetPathsBySongId, vaultSongs }: { layout: FolderLayout; targetPathsBySongId: ReadonlyMap<string, readonly string[]>; vaultSongs: readonly VaultSongDetails[] }): LayoutPreview {
-  if (layout === 'my-groups') return buildMyGroupsPreview({ targetPathsBySongId, vaultSongs });
-  const titlesByGroup = getSongTitlesByGroup({ targetPathsBySongId, vaultSongs });
+function buildLayoutPreview({ layout, targetPathsBySongId, librarySongs }: { layout: FolderLayout; targetPathsBySongId: ReadonlyMap<string, readonly string[]>; librarySongs: readonly LibrarySongDetails[] }): LayoutPreview {
+  if (layout === 'my-groups') return buildMyGroupsPreview({ targetPathsBySongId, librarySongs });
+  const titlesByGroup = getSongTitlesByGroup({ targetPathsBySongId, librarySongs });
   const groups = [...titlesByGroup].slice(0, PREVIEW_GROUP_COUNT).map(([groupName, titles]) => ({
     groupName,
     ...(layout === 'one-group' ? { tagText: `${String(titles.length)} ${titles.length === 1 ? 'song' : 'songs'}` } : {}),
@@ -218,13 +218,13 @@ function buildLayoutPreview({ layout, targetPathsBySongId, vaultSongs }: { layou
  * The player's biggest groups with their song counts, then Ungrouped, which shows while it has songs. Every one of these
  * folders starts with the same "dancedance.studio - ", so the small tree leaves it off and names the groups as the site does.
  */
-function buildMyGroupsPreview({ targetPathsBySongId, vaultSongs }: { targetPathsBySongId: ReadonlyMap<string, readonly string[]>; vaultSongs: readonly VaultSongDetails[] }): LayoutPreview {
-  const groupedSongs = vaultSongs.filter((song) => (song.groupFolderName ?? null) !== null);
-  const ungroupedSongs = vaultSongs.filter((song) => (song.groupFolderName ?? null) === null);
-  const titlesByGroup = getSongTitlesByGroup({ targetPathsBySongId, vaultSongs: groupedSongs });
-  const colorHexesByGroup = getColorHexesByGroup({ targetPathsBySongId, vaultSongs: groupedSongs });
+function buildMyGroupsPreview({ targetPathsBySongId, librarySongs }: { targetPathsBySongId: ReadonlyMap<string, readonly string[]>; librarySongs: readonly LibrarySongDetails[] }): LayoutPreview {
+  const groupedSongs = librarySongs.filter((song) => (song.groupFolderName ?? null) !== null);
+  const ungroupedSongs = librarySongs.filter((song) => (song.groupFolderName ?? null) === null);
+  const titlesByGroup = getSongTitlesByGroup({ targetPathsBySongId, librarySongs: groupedSongs });
+  const colorHexesByGroup = getColorHexesByGroup({ targetPathsBySongId, librarySongs: groupedSongs });
   const biggestGroups = [...titlesByGroup].sort(([firstName, firstTitles], [secondName, secondTitles]) => secondTitles.length - firstTitles.length || firstName.localeCompare(secondName)).slice(0, PREVIEW_GROUP_COUNT);
-  const ungroupedName = ungroupedSongs[0] ? targetPathsBySongId.get(ungroupedSongs[0].vaultSongId)?.[0] : undefined;
+  const ungroupedName = ungroupedSongs[0] ? targetPathsBySongId.get(ungroupedSongs[0].librarySongId)?.[0] : undefined;
   const groups = [
     ...biggestGroups.map(([groupName, titles]) => buildMyGroupPreviewGroup({ groupName, songCount: titles.length, folderColorHex: colorHexesByGroup.get(groupName) })),
     ...(ungroupedName === undefined ? [] : [{ groupName: getNameWithoutPrefix(ungroupedName), tagText: String(ungroupedSongs.length), songTitles: [], isUngrouped: true }]),
@@ -237,10 +237,10 @@ function buildMyGroupPreviewGroup({ groupName, songCount, folderColorHex }: { gr
 }
 
 /** Every song in a group carries the same colour, so the first one with a colour Sync knows names the folder's. */
-function getColorHexesByGroup({ targetPathsBySongId, vaultSongs }: { targetPathsBySongId: ReadonlyMap<string, readonly string[]>; vaultSongs: readonly VaultSongDetails[] }): Map<string, string> {
+function getColorHexesByGroup({ targetPathsBySongId, librarySongs }: { targetPathsBySongId: ReadonlyMap<string, readonly string[]>; librarySongs: readonly LibrarySongDetails[] }): Map<string, string> {
   const colorHexesByGroup = new Map<string, string>();
-  for (const song of vaultSongs) {
-    const groupName = targetPathsBySongId.get(song.vaultSongId)?.[0];
+  for (const song of librarySongs) {
+    const groupName = targetPathsBySongId.get(song.librarySongId)?.[0];
     const colorHex = getGroupColorHex(song.groupColorKey);
     if (groupName && colorHex && !colorHexesByGroup.has(groupName)) colorHexesByGroup.set(groupName, colorHex);
   }
@@ -251,10 +251,10 @@ function getNameWithoutPrefix(groupName: string): string {
   return groupName.startsWith(CLASH_PREFIX) ? groupName.slice(CLASH_PREFIX.length) : groupName;
 }
 
-function getSongTitlesByGroup({ targetPathsBySongId, vaultSongs }: { targetPathsBySongId: ReadonlyMap<string, readonly string[]>; vaultSongs: readonly VaultSongDetails[] }): Map<string, string[]> {
+function getSongTitlesByGroup({ targetPathsBySongId, librarySongs }: { targetPathsBySongId: ReadonlyMap<string, readonly string[]>; librarySongs: readonly LibrarySongDetails[] }): Map<string, string[]> {
   const titlesByGroup = new Map<string, string[]>();
-  for (const song of vaultSongs) {
-    const groupName = targetPathsBySongId.get(song.vaultSongId)?.[0];
+  for (const song of librarySongs) {
+    const groupName = targetPathsBySongId.get(song.librarySongId)?.[0];
     if (groupName) titlesByGroup.set(groupName, [...(titlesByGroup.get(groupName) ?? []), song.title]);
   }
   return titlesByGroup;

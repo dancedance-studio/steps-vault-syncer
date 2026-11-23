@@ -1,16 +1,16 @@
 /** Builds what the Generators screens show; shared by the website and the desktop app. */
-import { GENERATOR_DIFFICULTIES, getGeneratedSongMusicSource, getMusicUploadWarningOrNull, isOnThisComputer, type GeneratedSong, type GeneratorManifest, type InstalledGenerator, type SavedGeneratorJob, type SongMusicSource } from '@stepsvault/sync-core';
+import { GENERATOR_DIFFICULTIES, getGeneratedSongMusicSource, getMusicUploadWarningOrNull, isOnThisComputer, type GeneratedSong, type GeneratorManifest, type InstalledGenerator, type SavedGeneratorJob, type SongMusicSource } from '@dancedance/sync-core';
 import type { DifficultyLevels, GeneratedSongView, GeneratorInstallPreview, GeneratorJobStateView, GeneratorJobView, GeneratorView, ServiceLocationView } from '../sync-ui-types';
 import { buildAddonOptionViews } from './build-addon-views';
 
 /** The id Sync gives the site's own generator; a manifest id can't contain ':', so no generator can take it. */
-export const STEPSVAULT_GENERATOR_ID = 'stepsvault:default';
+export const DANCEDANCE_GENERATOR_ID = 'dancedance:default';
 
 const DONE_TEXTS_BY_RESULT: Readonly<Record<NonNullable<SavedGeneratorJob['result']>, string>> = {
   'written': 'Done. It’s in My generated songs.',
-  'added-to-vault': 'Added to the library. It comes to your game, with your music, on your next sync.',
-  'kept-vault-song': 'You kept the library song, so your game didn’t change.',
-  'already-in-vault': 'This song is already in the library, so no token was spent.',
+  'added-to-library': 'Added to the library. It comes to your game, with your music, on your next sync.',
+  'kept-library-song': 'You kept the library song, so your game didn’t change.',
+  'already-in-library': 'This song is already in the library, so no token was spent.',
 };
 const MADE_AT_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const LIST_FORMAT = new Intl.ListFormat('en', { type: 'conjunction' });
@@ -56,12 +56,12 @@ export function buildGeneratorJobView(job: SavedGeneratorJob): GeneratorJobView 
     songTitle: job.song.title,
     songArtist: job.song.artist,
     generatorName: job.generatorName,
-    isStepsVault: job.isStepsVault,
+    isDancedance: job.isDancedance,
     state: getJobStateView(job),
     stageText: getStageText(job),
     progressPercent: job.state === 'waiting' && job.progress !== null ? Math.round(job.progress * 100) : null,
     message: job.message,
-    vaultChoiceQuestion: job.state === 'needs-vault-choice' ? (job.vaultChoice?.question ?? null) : null,
+    libraryChoiceQuestion: job.state === 'needs-library-choice' ? (job.libraryChoice?.question ?? null) : null,
     doneText: job.state === 'done' && job.result !== null ? DONE_TEXTS_BY_RESULT[job.result] : null,
   };
 }
@@ -97,7 +97,7 @@ function getJobStateView(job: SavedGeneratorJob): GeneratorJobStateView {
 function getStageText(job: SavedGeneratorJob): string {
   if (job.state === 'sending') return 'Sending the music';
   if (job.state === 'waiting') return job.stage ?? `Waiting for ${job.generatorName}`;
-  if (job.state === 'needs-vault-choice') return 'Waiting for your answer';
+  if (job.state === 'needs-library-choice') return 'Waiting for your answer';
   if (job.state === 'done') return 'Done';
   return job.state === 'failed' ? 'Not made' : 'Cancelled';
 }

@@ -4,7 +4,7 @@ import type { GeneratedSong } from '../ownership/generated-songs';
 import { buildEmptyInstalledSongsRecord, type InstalledSongsRecord } from '../ownership/installed-songs';
 import { MemorySongsFolder } from '../songs-folder/memory-songs-folder';
 import { encodeBase64Url, isSameSecret, LocalBridgePairing, MAX_PAIRING_TRIES_PER_MINUTE, MAX_WRONG_CODES_PER_PAIRING, PAIRING_CODE_LIFETIME_MILLISECONDS, type PairedBrowser } from './local-bridge-pairing';
-import { STEPSVAULT_SITE_ORIGIN } from './local-bridge-protocol';
+import { DANCEDANCE_SITE_ORIGIN } from './local-bridge-protocol';
 import { handleLocalBridgeRequest, type LocalBridgeRequest, type LocalBridgeResponse } from './local-bridge-requests';
 
 const PORT = 47821;
@@ -14,9 +14,9 @@ const GROUP_NAME = 'My generated songs';
 function buildGeneratedSong(overrides: Partial<GeneratedSong> = {}): GeneratedSong {
   return {
     songKey: 'song:night drive\nlumen park',
-    song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null },
+    song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, videoId: null },
     generatorId: 'stepcat.tap-forge', generatorVersion: '1.2.0', generatorName: 'Tap Forge', difficulties: ['Easy', 'Hard'], levelsByDifficulty: { Easy: 3, Hard: 9 },
-    installId: 'install-1', folderPath: [GROUP_NAME, 'Night Drive'], inPlaceOfVaultSongId: null, generatedAt: '2026-10-30T10:00:00.000Z',
+    installId: 'install-1', folderPath: [GROUP_NAME, 'Night Drive'], inPlaceOfLibrarySongId: null, generatedAt: '2026-10-30T10:00:00.000Z',
     ...overrides,
   };
 }
@@ -26,7 +26,7 @@ async function writeSongFolder({ songsFolder, generatedSong }: { songsFolder: Me
   await songsFolder.writeText({ path: [...folder, 'Night Drive.ssc'], text: '#TITLE:Night Drive;\n#MUSIC:music.ogg;\n' });
   await songsFolder.writeBytes({ path: [...folder, 'music.ogg'], bytes: new Uint8Array([79, 103, 103, 83]) });
   await songsFolder.writeBytes({ path: [...folder, 'banner.png'], bytes: new Uint8Array([137, 80, 78, 71]) });
-  await songsFolder.writeText({ path: [...folder, '.stepsvault.json'], text: buildGeneratedSongMarkerText(generatedSong) });
+  await songsFolder.writeText({ path: [...folder, '.dancedance.json'], text: buildGeneratedSongMarkerText(generatedSong) });
 }
 
 class MemoryPairedBrowserStore {
@@ -55,9 +55,9 @@ async function buildBridge({ record, songsFolder = new MemorySongsFolder() }: { 
     getNowMilliseconds: () => clock.nowMilliseconds,
   });
   await pairing.initialize();
-  const dependencies = { pairing, getRecord: () => bridgeRecord, getSongsFolder: () => songsFolder, allowedOrigins: [STEPSVAULT_SITE_ORIGIN], port: PORT };
+  const dependencies = { pairing, getRecord: () => bridgeRecord, getSongsFolder: () => songsFolder, allowedOrigins: [DANCEDANCE_SITE_ORIGIN], port: PORT };
   const send = (request: Partial<LocalBridgeRequest>): Promise<LocalBridgeResponse> =>
-    handleLocalBridgeRequest({ request: { method: 'GET', target: '/v1/songs', origin: STEPSVAULT_SITE_ORIGIN, host: HOST, authorization: null, isPrivateNetworkPreflight: false, bodyText: null, ...request }, dependencies });
+    handleLocalBridgeRequest({ request: { method: 'GET', target: '/v1/songs', origin: DANCEDANCE_SITE_ORIGIN, host: HOST, authorization: null, isPrivateNetworkPreflight: false, bodyText: null, ...request }, dependencies });
   const pairBrowser = async (): Promise<string> => {
     const { code } = pairing.startPairing();
     const response = await send({ method: 'POST', target: '/v1/pairing', bodyText: JSON.stringify({ code }) });
@@ -71,7 +71,7 @@ function getJson(response: LocalBridgeResponse): Record<string, unknown> {
   return response.body.value as Record<string, unknown>;
 }
 
-describe('the local bridge refuses everyone but the paired StepsVault site', () => {
+describe('the local bridge refuses everyone but the paired dancedance.studio site', () => {
   it('refuses another website, without the CORS headers its page would need to read the answer', async () => {
     const { send, pairBrowser } = await buildBridge();
     const token = await pairBrowser();
@@ -115,7 +115,7 @@ describe('the local bridge refuses everyone but the paired StepsVault site', () 
     const { send } = await buildBridge();
     const preflight = await send({ method: 'OPTIONS', isPrivateNetworkPreflight: true });
     expect(preflight.status).toBe(204);
-    expect(preflight.headers).toMatchObject({ 'Access-Control-Allow-Origin': STEPSVAULT_SITE_ORIGIN, 'Access-Control-Allow-Private-Network': 'true', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' });
+    expect(preflight.headers).toMatchObject({ 'Access-Control-Allow-Origin': DANCEDANCE_SITE_ORIGIN, 'Access-Control-Allow-Private-Network': 'true', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' });
   });
 
   it('is read only: anything but GET is refused once paired', async () => {
@@ -215,7 +215,7 @@ describe('the songs it serves', () => {
   it('never follows a path in the request out of the song’s folder', async () => {
     const { send, pairBrowser } = await buildBridge();
     const authorization = `Bearer ${await pairBrowser()}`;
-    const traversals = ['/v1/songs/..%2F..%2F..%2FWindows%2Fwin.ini/chart', '/v1/songs/../../secret.txt', '/v1/songs/%2E%2E/chart', '/v1/songs/song%3Anight%20drive/..%2F.stepsvault.json', '/v1/songs/a/b/chart', '/v1/songs/%E0%A4%A/chart'];
+    const traversals = ['/v1/songs/..%2F..%2F..%2FWindows%2Fwin.ini/chart', '/v1/songs/../../secret.txt', '/v1/songs/%2E%2E/chart', '/v1/songs/song%3Anight%20drive/..%2F.dancedance.json', '/v1/songs/a/b/chart', '/v1/songs/%E0%A4%A/chart'];
     const responses = await Promise.all(traversals.map((target) => send({ target, authorization })));
     expect(responses.map((response) => response.status)).toEqual([404, 404, 404, 404, 404, 400]);
     expect(responses.every((response) => response.body.kind !== 'file')).toBe(true);

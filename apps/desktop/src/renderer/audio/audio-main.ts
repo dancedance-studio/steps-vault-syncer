@@ -1,4 +1,4 @@
-import { compareVideoAudio, getAudioMatch } from '@stepsvault/sync-core';
+import { compareVideoAudio, getAudioMatch } from '@dancedance/sync-core';
 import type { AudioJob, AudioJobResult } from '../../shared/bridge-types';
 import { encodeWav } from './wav-encoder';
 
@@ -19,7 +19,7 @@ interface AudioHost {
 
 declare global {
   interface Window {
-    stepsVaultAudio: AudioHost;
+    dancedanceAudio: AudioHost;
   }
 }
 
@@ -86,13 +86,13 @@ async function runJob(job: AudioJob): Promise<AudioJobResult> {
   return { jobId: job.jobId, kind: 'check', match };
 }
 
-window.stepsVaultAudio.onJob((job) => {
+window.dancedanceAudio.onJob((job) => {
   runJob(job).then(
     (result) => {
-      window.stepsVaultAudio.sendResult(result);
+      window.dancedanceAudio.sendResult(result);
     },
     (error: unknown) => {
-      window.stepsVaultAudio.sendResult({ jobId: job.jobId, kind: 'failed', message: error instanceof Error ? error.message : 'This file can’t be read as audio.' });
+      window.dancedanceAudio.sendResult({ jobId: job.jobId, kind: 'failed', message: error instanceof Error ? error.message : 'This file can’t be read as audio.' });
     },
   );
 });

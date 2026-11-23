@@ -1,5 +1,5 @@
 {
-  "name": "@stepsvault/sync-ui",
+  "name": "@dancedance/sync-ui",
   "version": "0.1.0",
   "description": "The dancedance.studio Sync screens as React components, shared by the website and the desktop app.",
   "license": "Apache-2.0",
@@ -18,12 +18,12 @@
     "preview": "vite"
   },
   "peerDependencies": {
-    "@stepsvault/sync-core": "^0.1.0",
+    "@dancedance/sync-core": "^0.1.0",
     "react": "^18.3.1 || ^19.0.0",
     "react-dom": "^18.3.1 || ^19.0.0"
   },
   "devDependencies": {
-    "@stepsvault/sync-core": "workspace:*",
+    "@dancedance/sync-core": "workspace:*",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.3.0",

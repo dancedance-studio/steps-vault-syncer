@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { HttpRequestError, type HttpResponse, type MultipartHttpClient, type MultipartHttpRequest, type MultipartPart } from '@stepsvault/sync-core';
+import { HttpRequestError, type HttpResponse, type MultipartHttpClient, type MultipartHttpRequest, type MultipartPart } from '@dancedance/sync-core';
 import { fetchWithLimits, getUserAgentHeader, parseJsonAnswer } from './node-http-client';
 
 const LINE_BREAK = '\r\n';
@@ -26,7 +26,7 @@ export class NodeMultipartHttpClient implements MultipartHttpClient {
   }
 
   async requestJsonWithFiles(request: MultipartHttpRequest): Promise<HttpResponse<unknown>> {
-    const boundary = `StepsVaultSync-${randomUUID()}`;
+    const boundary = `DancedanceSync-${randomUUID()}`;
     const pieces = await this.buildBodyPieces({ parts: request.parts, boundary });
     const contentLength = pieces.reduce((total, piece) => total + (piece.kind === 'bytes' ? piece.bytes.byteLength : piece.byteCount), 0);
     const headers = { ...getUserAgentHeader(this.appVersion), ...request.headers, 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': String(contentLength) };

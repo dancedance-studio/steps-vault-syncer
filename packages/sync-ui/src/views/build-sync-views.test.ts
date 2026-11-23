@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { buildEmptyInstalledSongsRecord, buildSongsPath, withInstalledSong, type VaultSongDetails } from '@stepsvault/sync-core';
+import { buildEmptyInstalledSongsRecord, buildSongsPath, withInstalledSong, type LibrarySongDetails } from '@dancedance/sync-core';
 import { buildActivityEntries, buildLayoutViews, buildSongDetailsById, buildSongRows, describeShift, getDayText, getTrayStatus, type SongViewInput } from './build-sync-views';
 
-const CHEAP_THRILLS: VaultSongDetails = { vaultSongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, youtubeId: null, chartVersion: 'v1', imageKinds: [], hasFingerprint: true };
-const BUNNY: VaultSongDetails = { ...CHEAP_THRILLS, vaultSongId: 'b', slug: 'bunny', title: 'Big Buck Bunny', artist: 'Blender', genre: 'Electronic' };
-const RECORD = withInstalledSong({ record: buildEmptyInstalledSongsRecord(), installedSong: { vaultSongId: 'a', chartVersion: 'v1', installId: 'i', folderPath: buildSongsPath('dancedance.studio', 'Cheap Thrills'), chartHashesByFileName: {}, music: { fileName: 'music.ogg', shiftSeconds: 0.5 }, installedAt: '2026-10-24T10:00:00Z' } });
+const CHEAP_THRILLS: LibrarySongDetails = { librarySongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, videoId: null, chartVersion: 'v1', imageKinds: [], hasFingerprint: true };
+const BUNNY: LibrarySongDetails = { ...CHEAP_THRILLS, librarySongId: 'b', slug: 'bunny', title: 'Big Buck Bunny', artist: 'Blender', genre: 'Electronic' };
+const RECORD = withInstalledSong({ record: buildEmptyInstalledSongsRecord(), installedSong: { librarySongId: 'a', chartVersion: 'v1', installId: 'i', folderPath: buildSongsPath('dancedance.studio', 'Cheap Thrills'), chartHashesByFileName: {}, music: { fileName: 'music.ogg', shiftSeconds: 0.5 }, installedAt: '2026-10-24T10:00:00Z' } });
 
 function buildInput(overrides: Partial<SongViewInput> = {}): SongViewInput {
   return {
-    vaultSongs: [CHEAP_THRILLS, BUNNY],
-    songPlans: [{ vaultSongId: 'a', status: 'synced', actions: [], isWaitingForAddon: false }, { vaultSongId: 'b', status: 'needs-audio', actions: [], isWaitingForAddon: true }],
+    librarySongs: [CHEAP_THRILLS, BUNNY],
+    songPlans: [{ librarySongId: 'a', status: 'synced', actions: [], isWaitingForAddon: false }, { librarySongId: 'b', status: 'needs-audio', actions: [], isWaitingForAddon: true }],
     audioResultsBySongId: new Map([['b', { match: { kind: 'not-found', isWaitingForAddon: true }, addonMessages: ['Indie Tapes isn’t answering. We’ll try again later.'], pageLinks: [] }]]),
     record: RECORD,
     pickedSongIds: new Set(),
@@ -47,10 +47,10 @@ describe('activity and layout views', () => {
   it('writes activity lines newest first, with the problem for a failed song', () => {
     const entries = buildActivityEntries({
       events: [
-        { vaultSongId: 'a', kind: 'added', at: '2026-10-24T10:00:00Z', folderPath: ['dancedance.studio', 'Cheap Thrills'] },
-        { vaultSongId: 'b', kind: 'failed', at: '2026-10-24T10:05:00Z', folderPath: ['dancedance.studio', 'Big Buck Bunny'], failure: 'disk-full', message: 'Your disk is full.' },
+        { librarySongId: 'a', kind: 'added', at: '2026-10-24T10:00:00Z', folderPath: ['dancedance.studio', 'Cheap Thrills'] },
+        { librarySongId: 'b', kind: 'failed', at: '2026-10-24T10:05:00Z', folderPath: ['dancedance.studio', 'Big Buck Bunny'], failure: 'disk-full', message: 'Your disk is full.' },
       ],
-      vaultSongs: [CHEAP_THRILLS, BUNNY],
+      librarySongs: [CHEAP_THRILLS, BUNNY],
     });
     expect(entries.map((entry) => `${entry.textBefore}${entry.highlightedText}${entry.textAfter}`)).toEqual(['Couldn’t save Big Buck Bunny', 'Added Cheap Thrills to dancedance.studio']);
     expect(entries[0]?.kind).toBe('write-failed');
@@ -58,7 +58,7 @@ describe('activity and layout views', () => {
   });
 
   it('counts the songs each layout would move, with "song" for one', () => {
-    const views = buildLayoutViews({ vaultSongs: [CHEAP_THRILLS], record: RECORD, playerGroupNames: ['Pop'] });
+    const views = buildLayoutViews({ librarySongs: [CHEAP_THRILLS], record: RECORD, playerGroupNames: ['Pop'] });
     expect(views.movingSongCountsByLayout).toEqual({ 'one-group': 0, 'by-genre': 1, 'by-artist': 1, 'my-groups': 1 });
     expect(views.previewsByLayout['by-genre'].groups[0]).toMatchObject({ groupName: 'dancedance.studio - Pop' });
     expect(views.previewsByLayout['by-genre'].groups[0]?.tagText).toBeUndefined();
@@ -66,15 +66,15 @@ describe('activity and layout views', () => {
   });
 
   it('previews My groups: the biggest groups with their counts, then Ungrouped', () => {
-    const songs: VaultSongDetails[] = [
+    const songs: LibrarySongDetails[] = [
       { ...CHEAP_THRILLS, groupFolderName: 'Warm-up' },
       { ...BUNNY, groupFolderName: 'Warm-up' },
-      { ...BUNNY, vaultSongId: 'c', groupFolderName: 'Marathon night' },
-      { ...BUNNY, vaultSongId: 'd', groupFolderName: 'J-Pop faves' },
-      { ...BUNNY, vaultSongId: 'e', groupFolderName: 'Chill' },
-      { ...BUNNY, vaultSongId: 'f', groupFolderName: null },
+      { ...BUNNY, librarySongId: 'c', groupFolderName: 'Marathon night' },
+      { ...BUNNY, librarySongId: 'd', groupFolderName: 'J-Pop faves' },
+      { ...BUNNY, librarySongId: 'e', groupFolderName: 'Chill' },
+      { ...BUNNY, librarySongId: 'f', groupFolderName: null },
     ];
-    const preview = buildLayoutViews({ vaultSongs: songs, record: RECORD, playerGroupNames: [] }).previewsByLayout['my-groups'];
+    const preview = buildLayoutViews({ librarySongs: songs, record: RECORD, playerGroupNames: [] }).previewsByLayout['my-groups'];
     expect(preview.groups.map((group) => [group.groupName, group.tagText, group.isUngrouped ?? false])).toEqual([
       ['Warm-up', '2', false],
       ['Chill', '1', false],
@@ -85,13 +85,13 @@ describe('activity and layout views', () => {
   });
 
   it('colours each of My groups like the site, cyan for a colour it doesn’t know, and never Ungrouped', () => {
-    const songs: VaultSongDetails[] = [
+    const songs: LibrarySongDetails[] = [
       { ...CHEAP_THRILLS, groupFolderName: 'Warm-up', groupColorKey: 'green' },
-      { ...BUNNY, vaultSongId: 'c', groupFolderName: 'Marathon night', groupColorKey: 'pink' },
-      { ...BUNNY, vaultSongId: 'd', groupFolderName: 'J-Pop faves', groupColorKey: 'teal' },
-      { ...BUNNY, vaultSongId: 'e', groupFolderName: null, groupColorKey: null },
+      { ...BUNNY, librarySongId: 'c', groupFolderName: 'Marathon night', groupColorKey: 'pink' },
+      { ...BUNNY, librarySongId: 'd', groupFolderName: 'J-Pop faves', groupColorKey: 'teal' },
+      { ...BUNNY, librarySongId: 'e', groupFolderName: null, groupColorKey: null },
     ];
-    const preview = buildLayoutViews({ vaultSongs: songs, record: RECORD, playerGroupNames: [] }).previewsByLayout['my-groups'];
+    const preview = buildLayoutViews({ librarySongs: songs, record: RECORD, playerGroupNames: [] }).previewsByLayout['my-groups'];
     expect(Object.fromEntries(preview.groups.map((group) => [group.groupName, group.folderColorHex ?? null]))).toEqual({
       'Warm-up': '#2cff00',
       'Marathon night': '#ff32f8',

@@ -1,5 +1,5 @@
 /** Builds what the screens show about party lists' folders; shared by the website and the desktop app. */
-import { getPartyFolders, type InstalledSongsRecord, type PartyFolder, type PartyFolderPlan, type SongSyncStatus, type SyncPartyList } from '@stepsvault/sync-core';
+import { getPartyFolders, type InstalledSongsRecord, type PartyFolder, type PartyFolderPlan, type SongSyncStatus, type SyncPartyList } from '@dancedance/sync-core';
 import type { LayoutPreview, PartyFolderView } from '../sync-ui-types';
 
 const IN_GAME_STATUSES: ReadonlySet<SongSyncStatus> = new Set(['synced', 'update-available', 'you-edited-this']);

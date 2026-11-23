@@ -1,4 +1,4 @@
-import { buildInstalledAddon, type AddonManifest, type InstalledAddon } from '@stepsvault/sync-core';
+import { buildInstalledAddon, type AddonManifest, type InstalledAddon } from '@dancedance/sync-core';
 import { describe, expect, it } from 'vitest';
 import { buildAddonInstallPreview, buildAddonView, buildLinksTab, buildSongSourceTabs, findLinkFieldForLink, getAddonOptionValuesFromViews } from './build-addon-views';
 

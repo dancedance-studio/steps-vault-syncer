@@ -3,13 +3,13 @@ import { loadSongMusicSourceOrNull, type SongMusicSource } from './song-music-so
 
 // Finished jobs stay listed for a while so the player sees how they ended; older ones are dropped.
 const MAX_FINISHED_JOBS = 20;
-const SAVED_JOB_STATES = ['sending', 'waiting', 'needs-vault-choice', 'done', 'failed', 'cancelled'] as const;
-const JOB_RESULTS = ['written', 'added-to-vault', 'kept-vault-song', 'already-in-vault'] as const;
+const SAVED_JOB_STATES = ['sending', 'waiting', 'needs-library-choice', 'done', 'failed', 'cancelled'] as const;
+const JOB_RESULTS = ['written', 'added-to-library', 'kept-library-song', 'already-in-library'] as const;
 
 /**
  * - sending: the music is being uploaded; a job interrupted here can't be resumed, since Sync never got a job id.
  * - waiting: the generator took it; Sync asks how it goes, and again after a restart.
- * - needs-vault-choice: the files are downloaded and the player must pick the vault song or the generated one.
+ * - needs-library-choice: the files are downloaded and the player must pick the library song or the generated one.
  */
 export type SavedGeneratorJobState = (typeof SAVED_JOB_STATES)[number];
 
@@ -35,7 +35,7 @@ export interface SavedGeneratorJob {
   generatorId: string;
   generatorName: string;
   generatorVersion: string;
-  isStepsVault: boolean;
+  isDancedance: boolean;
   /** The generator's job id; null while the music is being sent. */
   jobId: string | null;
   song: GeneratorSongFacts;
@@ -47,7 +47,7 @@ export interface SavedGeneratorJob {
   retryAfterSeconds: number;
   /** A sentence for the player: why it failed, or why it couldn't be cancelled. */
   message: string | null;
-  vaultChoice: { vaultSongId: string; question: string } | null;
+  libraryChoice: { librarySongId: string; question: string } | null;
   result: GeneratorJobResult | null;
   /** Where the platform finds the player's music and video again after a restart; opaque to the core. */
   playerMusicLocation: string;
@@ -63,7 +63,7 @@ export interface SavedGeneratorJob {
 
 /** True while Sync still has something to do for the job. */
 export function isGeneratorJobOpen(job: Pick<SavedGeneratorJob, 'state'>): boolean {
-  return job.state === 'sending' || job.state === 'waiting' || job.state === 'needs-vault-choice';
+  return job.state === 'sending' || job.state === 'waiting' || job.state === 'needs-library-choice';
 }
 
 /** Adds the job, or replaces the saved one with the same key, and drops the oldest finished jobs. */
@@ -95,14 +95,14 @@ function loadSavedGeneratorJobOrNull(value: unknown): SavedGeneratorJob | null {
   const state = getOneOfOrNull({ value: value.state, values: SAVED_JOB_STATES });
   if (!song || difficulties.length === 0 || state === null) return null;
   const texts = [value.jobKey, value.generatorBaseUrl, value.generatorId, value.generatorName, value.generatorVersion, value.playerMusicLocation, value.startedAt, value.updatedAt];
-  if (!texts.every((text) => typeof text === 'string') || typeof value.isStepsVault !== 'boolean') return null;
+  if (!texts.every((text) => typeof text === 'string') || typeof value.isDancedance !== 'boolean') return null;
   return {
     jobKey: value.jobKey as string,
     generatorBaseUrl: value.generatorBaseUrl as string,
     generatorId: value.generatorId as string,
     generatorName: value.generatorName as string,
     generatorVersion: value.generatorVersion as string,
-    isStepsVault: value.isStepsVault,
+    isDancedance: value.isDancedance,
     jobId: getTextOrNull(value.jobId),
     song,
     difficulties,
@@ -111,7 +111,7 @@ function loadSavedGeneratorJobOrNull(value: unknown): SavedGeneratorJob | null {
     stage: getTextOrNull(value.stage),
     retryAfterSeconds: typeof value.retryAfterSeconds === 'number' && value.retryAfterSeconds > 0 ? value.retryAfterSeconds : 10,
     message: getTextOrNull(value.message),
-    vaultChoice: loadVaultChoiceOrNull(value.vaultChoice),
+    libraryChoice: loadLibraryChoiceOrNull(value.libraryChoice),
     result: getOneOfOrNull({ value: value.result, values: JOB_RESULTS }),
     playerMusicLocation: value.playerMusicLocation as string,
     playerVideoLocation: getTextOrNull(value.playerVideoLocation),
@@ -125,12 +125,12 @@ function loadSavedGeneratorJobOrNull(value: unknown): SavedGeneratorJob | null {
 
 function loadSongFactsOrNull(value: unknown): GeneratorSongFacts | null {
   if (!isRecord(value) || typeof value.title !== 'string' || typeof value.artist !== 'string' || typeof value.lengthSeconds !== 'number') return null;
-  return { title: value.title, artist: value.artist, album: getTextOrNull(value.album), genre: getTextOrNull(value.genre), lengthSeconds: value.lengthSeconds, youtubeId: getTextOrNull(value.youtubeId) };
+  return { title: value.title, artist: value.artist, album: getTextOrNull(value.album), genre: getTextOrNull(value.genre), lengthSeconds: value.lengthSeconds, videoId: getTextOrNull(value.videoId) };
 }
 
-function loadVaultChoiceOrNull(value: unknown): SavedGeneratorJob['vaultChoice'] {
-  if (!isRecord(value) || typeof value.vaultSongId !== 'string' || typeof value.question !== 'string') return null;
-  return { vaultSongId: value.vaultSongId, question: value.question };
+function loadLibraryChoiceOrNull(value: unknown): SavedGeneratorJob['libraryChoice'] {
+  if (!isRecord(value) || typeof value.librarySongId !== 'string' || typeof value.question !== 'string') return null;
+  return { librarySongId: value.librarySongId, question: value.question };
 }
 
 function loadSiteSongRequestOrNull(value: unknown): SiteSongRequest | null {

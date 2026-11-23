@@ -1,4 +1,4 @@
-import type { FolderLayout, VideoAudioComparison } from '@stepsvault/sync-core';
+import type { FolderLayout, VideoAudioComparison } from '@dancedance/sync-core';
 import type {
   ActivityEntryView,
   AddonInstallPreview,
@@ -29,11 +29,11 @@ import type {
   SongSourceSearchRequest,
   SongSourceSearchResult,
   SongSourceTabView,
-  StepsVaultGeneratorView,
+  DancedanceGeneratorView,
   SyncRunView,
   TrayStatus,
-  VaultChoiceAnswer,
-} from '@stepsvault/sync-ui';
+  LibraryChoiceAnswer,
+} from '@dancedance/sync-ui';
 
 export type DesktopSignIn =
   | { kind: 'signed-out' }
@@ -43,7 +43,7 @@ export type DesktopSignIn =
 /** Everything the window shows. The main process builds it; the window only renders it. */
 export interface DesktopSyncState {
   appVersion: string;
-  /** The StepsVault site this app syncs with, for links that open in the player's browser. */
+  /** The dancedance.studio site this app syncs with, for links that open in the player's browser. */
   siteUrl: string;
   signIn: DesktopSignIn;
   game: { gameName: string; songsFolderPath: string } | null;
@@ -53,7 +53,7 @@ export interface DesktopSyncState {
   scannedFileCount: number | null;
   pickedFiles: PickedFileView[];
   addons: AddonView[];
-  stepsVaultGenerator: StepsVaultGeneratorView;
+  dancedanceGenerator: DancedanceGeneratorView;
   generators: GeneratorView[];
   /** The Links tab on the Make a song page, for every link addon that is on; null when none is. */
   linksTab: LinksTabView | null;
@@ -100,7 +100,7 @@ export interface DesktopSyncBridge {
   syncNow(): Promise<void>;
   dismissFinishedSync(): Promise<void>;
   setBackgroundSync(isOn: boolean): Promise<void>;
-  runSongAction(request: { vaultSongId: string; action: SongAction }): Promise<void>;
+  runSongAction(request: { librarySongId: string; action: SongAction }): Promise<void>;
   /** A start command is confirmed by the player in the app's own dialog before Sync ever runs it. */
   lookUpAddon(request: ServiceLookupRequest): Promise<AddonLookupResult>;
   installAddon(preview: AddonInstallPreview): Promise<void>;
@@ -119,7 +119,7 @@ export interface DesktopSyncBridge {
   makeSong(request: MakeSongRequest): Promise<MakeSongResult>;
   dismissPreselectedSong(preselectionKey: string): Promise<void>;
   cancelGeneratorJob(jobKey: string): Promise<void>;
-  answerVaultChoice(answer: VaultChoiceAnswer): Promise<void>;
+  answerLibraryChoice(answer: LibraryChoiceAnswer): Promise<void>;
   dismissGeneratorJob(jobKey: string): Promise<void>;
   fetchGeneratedSongReport(songKey: string): Promise<string | null>;
   /** Shows a new pairing code; the website trades it for its own token straight with Sync, never through a server. */
@@ -152,10 +152,10 @@ export type AudioJobResult =
   | { jobId: number; kind: 'make-picture'; bytes: Uint8Array }
   | { jobId: number; kind: 'failed'; message: string };
 
-export const BRIDGE_CHANNEL_PREFIX = 'stepsvault-sync:';
+export const BRIDGE_CHANNEL_PREFIX = 'dancedance-sync:';
 export const STATE_CHANNEL = `${BRIDGE_CHANNEL_PREFIX}state`;
-export const AUDIO_JOB_CHANNEL = 'stepsvault-audio:job';
-export const AUDIO_RESULT_CHANNEL = 'stepsvault-audio:result';
+export const AUDIO_JOB_CHANNEL = 'dancedance-audio:job';
+export const AUDIO_RESULT_CHANNEL = 'dancedance-audio:result';
 /** The bridge methods the window may call, by name; the preload exposes exactly these. */
 export const BRIDGE_METHOD_NAMES = [
   'getState',
@@ -186,7 +186,7 @@ export const BRIDGE_METHOD_NAMES = [
   'makeSong',
   'dismissPreselectedSong',
   'cancelGeneratorJob',
-  'answerVaultChoice',
+  'answerLibraryChoice',
   'dismissGeneratorJob',
   'fetchGeneratedSongReport',
   'startBrowserPairing',

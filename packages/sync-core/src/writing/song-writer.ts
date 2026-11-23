@@ -12,24 +12,24 @@ import { SongWriteError, toSongWriteError } from './song-write-error';
 export const MUSIC_BASE_NAME = 'music';
 export const VIDEO_BASE_NAME = 'video';
 /** Hidden from StepMania and most file browsers by the leading dot, while a song is being written. */
-export const TEMPORARY_FOLDER_PREFIX = '.stepsvault-new-';
-const NEW_FILE_SUFFIX = '.stepsvault-new';
+export const TEMPORARY_FOLDER_PREFIX = '.dancedance-new-';
+const NEW_FILE_SUFFIX = '.dancedance-new';
 
-/** A song's files on StepsVault, for one chart version. */
+/** A song's files on dancedance.studio, for one chart version. */
 export interface SongFiles {
   sscText: string;
   /** Banner, background, jacket: the names the song file refers to. */
   images: readonly { fileName: string; bytes: Uint8Array }[];
 }
 
-/** Where song files come from: the StepsVault API client (task 9) implements this. */
-export interface VaultFiles {
-  fetchSongFiles(options: { vaultSongId: string; chartVersion: string }): Promise<SongFiles>;
+/** Where song files come from: the dancedance.studio API client (task 9) implements this. */
+export interface LibraryFiles {
+  fetchSongFiles(options: { librarySongId: string; chartVersion: string }): Promise<SongFiles>;
 }
 
 export interface SongWriterDependencies {
   songsFolder: SongsFolder;
-  vaultFiles: VaultFiles;
+  libraryFiles: LibraryFiles;
   createId: () => string;
   getNow: () => string;
 }
@@ -48,7 +48,7 @@ export async function addSong({ dependencies, action }: { dependencies: SongWrit
   if (groupName === undefined || folderName === undefined) throw new SongWriteError({ failure: 'other', message: 'A song can only be added as a group and a song folder. This is a bug in Sync; please report it.' });
   const temporaryPath = buildSongsPath(groupName, `${TEMPORARY_FOLDER_PREFIX}${installId}`);
   try {
-    const files = await fetchFiles({ dependencies, vaultSongId: action.vaultSongId, chartVersion: action.chartVersion });
+    const files = await fetchFiles({ dependencies, librarySongId: action.librarySongId, chartVersion: action.chartVersion });
     const musicFileName = await songsFolder.copyMusic({ sourceId: action.audio.sourceId, folder: temporaryPath, baseName: MUSIC_BASE_NAME });
     const videoFileName = action.audio.videoSourceId === null ? null : await songsFolder.copyVideo({ sourceId: action.audio.videoSourceId, folder: temporaryPath, baseName: VIDEO_BASE_NAME });
     const music = { fileName: musicFileName, shiftSeconds: action.audio.shiftSeconds, videoFileName };
@@ -56,7 +56,7 @@ export async function addSong({ dependencies, action }: { dependencies: SongWrit
     const sscText = buildPlayerSsc({ sscText: files.sscText, musicFileName, shiftSeconds: music.shiftSeconds, videoFileName });
     await writeImages({ songsFolder, folder: temporaryPath, files });
     await songsFolder.writeText({ path: [...temporaryPath, sscFileName], text: sscText });
-    const installedSong: InstalledSong = { vaultSongId: action.vaultSongId, chartVersion: action.chartVersion, installId, folderPath: action.to, chartHashesByFileName: { [sscFileName]: getChartHash(sscText) }, music, installedAt: dependencies.getNow() };
+    const installedSong: InstalledSong = { librarySongId: action.librarySongId, chartVersion: action.chartVersion, installId, folderPath: action.to, chartHashesByFileName: { [sscFileName]: getChartHash(sscText) }, music, installedAt: dependencies.getNow() };
     await songsFolder.writeText({ path: [...temporaryPath, SONG_FOLDER_MARKER_FILE_NAME], text: buildSongFolderMarkerText(installedSong) });
     await songsFolder.rename({ from: temporaryPath, to: action.to });
     return installedSong;
@@ -71,7 +71,7 @@ export async function updateSong({ dependencies, action, installedSong }: { depe
   const { songsFolder } = dependencies;
   await assertStillOurs({ songsFolder, installedSong });
   try {
-    const files = await fetchFiles({ dependencies, vaultSongId: action.vaultSongId, chartVersion: action.chartVersion });
+    const files = await fetchFiles({ dependencies, librarySongId: action.librarySongId, chartVersion: action.chartVersion });
     const sscFileName = `${action.at.at(-1) ?? 'song'}.ssc`;
     const sscText = buildPlayerSsc({ sscText: files.sscText, musicFileName: installedSong.music.fileName, shiftSeconds: installedSong.music.shiftSeconds, videoFileName: installedSong.music.videoFileName ?? null });
     await writeImages({ songsFolder, folder: action.at, files });
@@ -109,9 +109,9 @@ async function assertStillOurs({ songsFolder, installedSong }: { songsFolder: So
   throw new SongWriteError({ failure: 'not-ours', message: `${installedSong.folderPath.join(' / ')} changed while syncing, so Sync left it alone. Sync again to see what to do.` });
 }
 
-async function fetchFiles({ dependencies, vaultSongId, chartVersion }: { dependencies: SongWriterDependencies; vaultSongId: string; chartVersion: string }): Promise<SongFiles> {
+async function fetchFiles({ dependencies, librarySongId, chartVersion }: { dependencies: SongWriterDependencies; librarySongId: string; chartVersion: string }): Promise<SongFiles> {
   try {
-    return await dependencies.vaultFiles.fetchSongFiles({ vaultSongId, chartVersion });
+    return await dependencies.libraryFiles.fetchSongFiles({ librarySongId, chartVersion });
   } catch (error) {
     throw new SongWriteError({ failure: 'download-failed', message: 'The steps couldn’t be downloaded from dancedance.studio. Check your internet connection and sync again.', cause: error });
   }

@@ -7,12 +7,12 @@ import { getSongFolderMoves } from './layout-change';
 import { getPlayerGroupNames } from './player-groups';
 import { getSafeFolderName, MAX_FOLDER_NAME_LENGTH } from './safe-folder-name';
 
-const CHEAP_THRILLS: SongFolderFacts = { vaultSongId: 'a', title: 'Cheap Thrills', artist: 'Sia', genre: 'Pop' };
-const BIEBER_SORRY: SongFolderFacts = { vaultSongId: 'b', title: 'Sorry', artist: 'Justin Bieber', genre: 'Pop' };
-const BEYONCE_SORRY: SongFolderFacts = { vaultSongId: 'c', title: 'Sorry', artist: 'Beyoncé', genre: 'R&B' };
+const CHEAP_THRILLS: SongFolderFacts = { librarySongId: 'a', title: 'Cheap Thrills', artist: 'Sia', genre: 'Pop' };
+const BIEBER_SORRY: SongFolderFacts = { librarySongId: 'b', title: 'Sorry', artist: 'Justin Bieber', genre: 'Pop' };
+const BEYONCE_SORRY: SongFolderFacts = { librarySongId: 'c', title: 'Sorry', artist: 'Beyoncé', genre: 'R&B' };
 
-function recordWithInstalled({ vaultSongId, folderPath }: { vaultSongId: string; folderPath: SongsPath }, record = buildEmptyInstalledSongsRecord()): InstalledSongsRecord {
-  return withInstalledSong({ record, installedSong: { vaultSongId, folderPath, chartVersion: 'v1', installId: `install-${vaultSongId}`, chartHashesByFileName: {}, music: { fileName: 'song.ogg', shiftSeconds: 0 }, installedAt: '2026-10-24T10:00:00Z' } });
+function recordWithInstalled({ librarySongId, folderPath }: { librarySongId: string; folderPath: SongsPath }, record = buildEmptyInstalledSongsRecord()): InstalledSongsRecord {
+  return withInstalledSong({ record, installedSong: { librarySongId, folderPath, chartVersion: 'v1', installId: `install-${librarySongId}`, chartHashesByFileName: {}, music: { fileName: 'song.ogg', shiftSeconds: 0 }, installedAt: '2026-10-24T10:00:00Z' } });
 }
 
 describe('getGroupName', () => {
@@ -39,7 +39,7 @@ describe('getSafeFolderName', () => {
     ['???', 'Untitled'],
     ['Beyoncé', 'Beyonce'],
     ['הזוג הזה', 'הזוג הזה'],
-    ['StepsVault · Pop', 'StepsVault Pop'],
+    ['dancedance.studio · Pop', 'dancedance.studio Pop'],
   ])('%j becomes %j', (name, expected) => {
     expect(getSafeFolderName({ name, fallback: 'Untitled' })).toBe(expected);
   });
@@ -58,7 +58,7 @@ describe('getTargetFolderPaths', () => {
   });
 
   it('gives a second song with the same title its artist, and never renames the installed one', () => {
-    const record = recordWithInstalled({ vaultSongId: 'c', folderPath: buildSongsPath('dancedance.studio', 'Sorry') });
+    const record = recordWithInstalled({ librarySongId: 'c', folderPath: buildSongsPath('dancedance.studio', 'Sorry') });
     const targets = getTargetFolderPaths({ songs: [BIEBER_SORRY, BEYONCE_SORRY], layout: 'one-group', playerGroupNames: [], record });
     expect(targets.get('c')).toEqual(['dancedance.studio', 'Sorry']);
     expect(targets.get('b')).toEqual(['dancedance.studio', 'Sorry (Justin Bieber)']);
@@ -77,7 +77,7 @@ describe('getTargetFolderPaths', () => {
 });
 
 describe('songs written in another script', () => {
-  const MERGUI: SongFolderFacts = { vaultSongId: 'd', title: 'הזוג הזה', artist: 'מרגי', titleTransliteration: 'HaZug HaZe', artistTransliteration: 'Mergui', genre: 'Pop' };
+  const MERGUI: SongFolderFacts = { librarySongId: 'd', title: 'הזוג הזה', artist: 'מרגי', titleTransliteration: 'HaZug HaZe', artistTransliteration: 'Mergui', genre: 'Pop' };
 
   it('are named by their English-letter spelling', () => {
     const record = buildEmptyInstalledSongsRecord();
@@ -88,12 +88,12 @@ describe('songs written in another script', () => {
 
 describe('a layout change', () => {
   it('moves only installed songs whose group changes', () => {
-    let record = recordWithInstalled({ vaultSongId: 'a', folderPath: buildSongsPath('dancedance.studio', 'Cheap Thrills') });
-    record = recordWithInstalled({ vaultSongId: 'c', folderPath: buildSongsPath('dancedance.studio', 'Sorry') }, record);
+    let record = recordWithInstalled({ librarySongId: 'a', folderPath: buildSongsPath('dancedance.studio', 'Cheap Thrills') });
+    record = recordWithInstalled({ librarySongId: 'c', folderPath: buildSongsPath('dancedance.studio', 'Sorry') }, record);
     const targets = getTargetFolderPaths({ songs: [CHEAP_THRILLS, BEYONCE_SORRY], layout: 'by-artist', playerGroupNames: ['Sia'], record });
     expect(getSongFolderMoves({ record, targetPathsBySongId: targets })).toEqual([
-      { vaultSongId: 'a', from: ['dancedance.studio', 'Cheap Thrills'], to: ['dancedance.studio - Sia', 'Cheap Thrills'] },
-      { vaultSongId: 'c', from: ['dancedance.studio', 'Sorry'], to: ['Beyonce', 'Sorry'] },
+      { librarySongId: 'a', from: ['dancedance.studio', 'Cheap Thrills'], to: ['dancedance.studio - Sia', 'Cheap Thrills'] },
+      { librarySongId: 'c', from: ['dancedance.studio', 'Sorry'], to: ['Beyonce', 'Sorry'] },
     ]);
   });
 });
@@ -120,13 +120,13 @@ describe('the My groups layout', () => {
   });
 
   it('moves the installed songs when switching to it', () => {
-    const record = recordWithInstalled({ vaultSongId: 'a', folderPath: buildSongsPath('Pop', 'Cheap Thrills') });
+    const record = recordWithInstalled({ librarySongId: 'a', folderPath: buildSongsPath('Pop', 'Cheap Thrills') });
     const targets = getTargetFolderPaths({ songs: [WARM_UP_THRILLS], layout: 'my-groups', playerGroupNames: [], record });
-    expect(getSongFolderMoves({ record, targetPathsBySongId: targets })).toEqual([{ vaultSongId: 'a', from: ['Pop', 'Cheap Thrills'], to: ['dancedance.studio - Warm-up', 'Cheap Thrills'] }]);
+    expect(getSongFolderMoves({ record, targetPathsBySongId: targets })).toEqual([{ librarySongId: 'a', from: ['Pop', 'Cheap Thrills'], to: ['dancedance.studio - Warm-up', 'Cheap Thrills'] }]);
   });
 
   it('moves a song whose group changed on the site, keeping its folder name', () => {
-    const record = recordWithInstalled({ vaultSongId: 'a', folderPath: buildSongsPath('dancedance.studio - Warm-up', 'Cheap Thrills') });
+    const record = recordWithInstalled({ librarySongId: 'a', folderPath: buildSongsPath('dancedance.studio - Warm-up', 'Cheap Thrills') });
     const regrouped: SongFolderFacts = { ...WARM_UP_THRILLS, groupFolderName: 'Marathon night' };
     const unchanged = getTargetFolderPaths({ songs: [WARM_UP_THRILLS], layout: 'my-groups', playerGroupNames: [], record });
     expect(getSongFolderMoves({ record, targetPathsBySongId: unchanged })).toEqual([]);

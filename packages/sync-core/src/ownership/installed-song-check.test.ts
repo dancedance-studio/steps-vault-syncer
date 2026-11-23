@@ -10,7 +10,7 @@ const CHART_TEXT = '#TITLE:Cheap Thrills;\n#OFFSET:-0.120;\n';
 
 function buildInstalledSong(overrides: Partial<InstalledSong> = {}): InstalledSong {
   return {
-    vaultSongId: 'song-1',
+    librarySongId: 'song-1',
     chartVersion: 'v3',
     installId: 'install-a',
     folderPath: buildSongsPath('dancedance.studio', 'Cheap Thrills'),
@@ -63,7 +63,7 @@ describe('checkInstalledSong', () => {
   it('never claims a folder with a broken marker', async () => {
     const songsFolder = new MemorySongsFolder();
     const installedSong = buildInstalledSong();
-    await writeSongFolder({ songsFolder, installedSong, markerText: '{"format": "stepsvault-song", "version": 1' });
+    await writeSongFolder({ songsFolder, installedSong, markerText: '{"format": "dancedance-song", "version": 1' });
     expect((await checkInstalledSong({ songsFolder, installedSong })).state).toBe('not-ours');
   });
 

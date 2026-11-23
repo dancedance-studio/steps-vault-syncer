@@ -1,7 +1,7 @@
 import type { GeneratorDifficulty } from '../generators/generator-protocol';
 
 /**
- * The local bridge (protocol 1): Sync on the player's computer answers the StepsVault website, in the player's own
+ * The local bridge (protocol 1): Sync on the player's computer answers the dancedance.studio website, in the player's own
  * browser, at http://127.0.0.1:<port>, so the site can list and play the songs the player's own generators made
  * without them ever leaving the computer. Read only, apart from the one-time pairing.
  *
@@ -21,7 +21,7 @@ export const LOCAL_BRIDGE_HOST = '127.0.0.1';
 export const LOCAL_BRIDGE_PAIRING_PATH = '/v1/pairing';
 export const LOCAL_BRIDGE_SONGS_PATH = '/v1/songs';
 /** The site's address; a development build of Sync may add the address of a site running on this computer. */
-export const STEPSVAULT_SITE_ORIGIN = 'https://dancedance.studio';
+export const DANCEDANCE_SITE_ORIGIN = 'https://dancedance.studio';
 
 /** The only files the bridge serves. A request names one of these, never a file or a path. */
 export const LOCAL_BRIDGE_FILE_KINDS = ['chart', 'music', 'video', 'banner', 'background', 'jacket'] as const;

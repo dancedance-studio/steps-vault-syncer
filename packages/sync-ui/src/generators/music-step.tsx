@@ -1,4 +1,4 @@
-import { getCheckedSongSourceInputValue, getLinkSitesText, getLinkSourceSite, getSongSourceInputValues, InvalidSongSourceInputError, type SongSourceInput } from '@stepsvault/sync-core';
+import { getCheckedSongSourceInputValue, getLinkSitesText, getLinkSourceSite, getSongSourceInputValues, InvalidSongSourceInputError, type SongSourceInput } from '@dancedance/sync-core';
 import { useEffect, useRef, useState, type SubmitEvent, type KeyboardEvent, type ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';

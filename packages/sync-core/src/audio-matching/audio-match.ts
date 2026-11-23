@@ -3,7 +3,7 @@ import type { AudioDecoder, DecodedAudio } from './audio-decoder';
 import { buildOnsetEnvelope, ENVELOPE_RATE_HERTZ } from './onset-envelope';
 import { realignOffset } from './realign-offset';
 
-/** A song's fingerprint as StepsVault sends it: its onset envelope, never its audio. */
+/** A song's fingerprint as dancedance.studio sends it: its onset envelope, never its audio. */
 export interface AudioFingerprint {
   envelope: ArrayLike<number>;
   rateHertz: number;

@@ -11,8 +11,8 @@ const ISO_MINUTE_PATTERN = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/;
 
 /**
  * The names a generated song's folder is named from, always in English letters: StepMania 5 on Windows can't open a
- * folder in another script. Unlike vault songs, a title with no English spelling never keeps its own script; it falls
- * back to "Song <youtubeId>", else "Generated song <date> <time>".
+ * folder in another script. Unlike library songs, a title with no English spelling never keeps its own script; it falls
+ * back to "Song <videoId>", else "Generated song <date> <time>".
  */
 export function getGeneratedSongFolderNames({ headerText, song, now }: { headerText: string; song: GeneratorSongFacts; now: string }): SongFolderNames {
   const getTag = (tagName: string) => getSscTagValue({ text: headerText, tagName }) || null;
@@ -33,7 +33,7 @@ export function isInEnglishLetters(name: string): boolean {
 }
 
 function getFallbackTitle({ song, now }: { song: GeneratorSongFacts; now: string }): string {
-  if (song.youtubeId) return `Song ${song.youtubeId}`;
+  if (song.videoId) return `Song ${song.videoId}`;
   const minuteMatch = ISO_MINUTE_PATTERN.exec(now);
   return minuteMatch ? `Generated song ${minuteMatch[1] ?? ''} ${minuteMatch[2] ?? ''}${minuteMatch[3] ?? ''}` : 'Generated song';
 }

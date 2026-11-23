@@ -1,6 +1,6 @@
 /**
  * Pairing a browser with the local bridge. The player starts it in Sync, which shows a short code; they type it on the
- * StepsVault site, whose page (in their browser) trades it here for a long random token. The token is made here and
+ * dancedance.studio site, whose page (in their browser) trades it here for a long random token. The token is made here and
  * goes straight to the browser, so it never passes through any server.
  */
 

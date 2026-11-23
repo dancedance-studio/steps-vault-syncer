@@ -63,23 +63,24 @@ export type LinkJob =
   | { id: string; kind: 'music'; addonId: string; findId: string; ref: string; songId: string; expiresAt: string | null }
   /**
    * "Into my game": a song already in the player's library list, to install now instead of at the next background sync.
-   * songId is its vaultSongId; addonId is the link addon whose sites take its video link.
+   * songId is its librarySongId; addonId is the link addon whose sites take its video link.
    */
   | { id: string; kind: 'install'; addonId: string; songId: string; expiresAt: string | null }
   /**
-   * Is this video's music the song? songId is its vaultSongId; song its facts as the vault list gives them (it is often
-   * not in the player's library); videoId the video to ask the addon about. Nothing is installed or uploaded for it.
+   * Is this video's music the song? songId is its librarySongId; song its facts as the library list gives them (it is often
+   * not in the player's library); videoId the video to ask the addon about, and videoUrl its web address when the site
+   * sends one. Nothing is installed or uploaded for it.
    */
-  | { id: string; kind: 'verify'; addonId: string; songId: string; videoId: string; song: VerifySongFacts; expiresAt: string | null };
+  | { id: string; kind: 'verify'; addonId: string; songId: string; videoId: string; videoUrl: string | null; song: VerifySongFacts; expiresAt: string | null };
 
-/** The facts of a verify job's song that the addon is asked with, as the vault list gives them. */
+/** The facts of a verify job's song that the addon is asked with, as the library list gives them. */
 export interface VerifySongFacts {
-  vaultSongId: string;
+  librarySongId: string;
   title: string;
   artist: string;
   album: string | null;
   genre: string | null;
-  /** 0 when the site sent none, as for a vault song. */
+  /** 0 when the site sent none, as for a library song. */
   lengthSeconds: number;
 }
 
@@ -142,7 +143,7 @@ export interface LinkJobAudio {
   contentType: LinkAudioContentType;
 }
 
-/** The site's side of link jobs, as Sync uses it. StepsVaultClient implements it with the device token. */
+/** The site's side of link jobs, as Sync uses it. DancedanceClient implements it with the device token. */
 export interface LinkJobsApi {
   reportPresence(presence: SyncPresence): Promise<void>;
   /** Waits on the site up to LINK_JOB_WAIT_MILLISECONDS; null when no job came. */
@@ -204,11 +205,12 @@ function parseVerifyJobOrNull({ value, id, addonId, expiresAt }: { value: Record
   const videoId = getJobIdOrNull(value.videoId);
   const song = parseVerifySongFactsOrNull(value.song);
   if (songId === null || videoId === null || song === null) return null;
-  return { id, kind: 'verify', addonId, songId, videoId, song: { ...song, vaultSongId: songId }, expiresAt };
+  const videoUrl = typeof value.videoUrl === 'string' ? value.videoUrl : null;
+  return { id, kind: 'verify', addonId, songId, videoId, videoUrl, song: { ...song, librarySongId: songId }, expiresAt };
 }
 
 /** A song without a title and an artist can't be asked about; its id is the job's songId. */
-function parseVerifySongFactsOrNull(value: unknown): Omit<VerifySongFacts, 'vaultSongId'> | null {
+function parseVerifySongFactsOrNull(value: unknown): Omit<VerifySongFacts, 'librarySongId'> | null {
   if (!isRecord(value) || typeof value.title !== 'string' || typeof value.artist !== 'string' || value.title.trim() === '' || value.artist.trim() === '') return null;
   return {
     title: value.title,
@@ -264,7 +266,7 @@ export function buildNotFoundAnswer(addonError: string | null): LinkJobAnswer {
  * music, so its title, channel and length are the song's.
  */
 function buildVideoFactsOrNull({ choice, lengthSec }: { choice: Pick<SongSourceChoice, 'song' | 'videoLink'>; lengthSec: number | null }): LinkVideoFacts | null {
-  const videoId = choice.song.youtubeId;
+  const videoId = choice.song.videoId;
   if (videoId === null) return null;
   return { videoId, title: choice.song.title, channel: choice.song.artist, lengthSec };
 }

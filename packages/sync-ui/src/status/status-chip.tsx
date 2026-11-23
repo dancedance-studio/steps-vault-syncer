@@ -1,4 +1,4 @@
-import type { SongSyncStatus } from '@stepsvault/sync-core';
+import type { SongSyncStatus } from '@dancedance/sync-core';
 import type { ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';

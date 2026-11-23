@@ -1,5 +1,5 @@
 import { Menu, nativeImage, Tray, type NativeImage } from 'electron';
-import type { TrayStatus } from '@stepsvault/sync-ui';
+import type { TrayStatus } from '@dancedance/sync-ui';
 import { APP_DISPLAY_NAME } from '../shared/app-name';
 import { buildTrayMenuTemplate, getTrayStatusLine, type TrayActions, type TrayView } from './tray-menu';
 

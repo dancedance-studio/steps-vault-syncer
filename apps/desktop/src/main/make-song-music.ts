@@ -24,8 +24,8 @@ import {
   type SongSourceChoice,
   type SongSourceFileLink,
   type SongSourceSong,
-} from '@stepsvault/sync-core';
-import type { MusicChoiceView, SongSourceSearchResult } from '@stepsvault/sync-ui';
+} from '@dancedance/sync-core';
+import type { MusicChoiceView, SongSourceSearchResult } from '@dancedance/sync-ui';
 import type { MusicSourceRegistry } from './music-source-registry';
 
 const UNKNOWN_ARTIST = 'Unknown artist';
@@ -268,9 +268,9 @@ function buildFoundMusicView({ choice, source }: { choice: FoundSongChoice; sour
 }
 
 function buildSongFacts({ choice, lengthSeconds }: { choice: MusicChoice; lengthSeconds: number }): GeneratorSongFacts {
-  if (choice.kind === 'file') return { title: choice.title, artist: choice.artist, album: null, genre: null, lengthSeconds, youtubeId: null };
-  const { title, artist, album, genre, youtubeId } = choice.song;
-  return { title, artist, album, genre, lengthSeconds, youtubeId };
+  if (choice.kind === 'file') return { title: choice.title, artist: choice.artist, album: null, genre: null, lengthSeconds, videoId: null };
+  const { title, artist, album, genre, videoId } = choice.song;
+  return { title, artist, album, genre, lengthSeconds, videoId };
 }
 
 /** The extension from the link's file name or address, when it is one Sync knows; otherwise the fallback. */

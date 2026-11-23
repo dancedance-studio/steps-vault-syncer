@@ -26,21 +26,21 @@ export type SongInstallCheck =
  * the video the record names) is really in its folder. Another version is "different" only when an addon's file was it
  * (isAddonFile): a file of the player's own says nothing about the song's video link.
  */
-export async function checkSongInstall({ songsFolder, outcome, vaultSongId, isAddonFile = () => false }: { songsFolder: SongsFolder; outcome: SyncOutcome; vaultSongId: string; isAddonFile?: (sourceId: string) => boolean }): Promise<SongInstallCheck> {
-  const installedSong = outcome.record.installedSongs.find((song) => song.vaultSongId === vaultSongId);
+export async function checkSongInstall({ songsFolder, outcome, librarySongId, isAddonFile = () => false }: { songsFolder: SongsFolder; outcome: SyncOutcome; librarySongId: string; isAddonFile?: (sourceId: string) => boolean }): Promise<SongInstallCheck> {
+  const installedSong = outcome.record.installedSongs.find((song) => song.librarySongId === librarySongId);
   if (installedSong && (await hasSongFiles({ songsFolder, installedSong }))) return { kind: 'installed' };
-  const songPlan = outcome.finalPlan.songPlans.find((plan) => plan.vaultSongId === vaultSongId);
+  const songPlan = outcome.finalPlan.songPlans.find((plan) => plan.librarySongId === librarySongId);
   if (!songPlan) return buildFailedCheck(NOT_IN_LIBRARY_REASON);
-  const addonMessage = outcome.audioResultsBySongId.get(vaultSongId)?.addonMessages[0] ?? null;
+  const addonMessage = outcome.audioResultsBySongId.get(librarySongId)?.addonMessages[0] ?? null;
   if (songPlan.status === 'needs-audio' && songPlan.isWaitingForAddon) return { kind: 'waiting-for-addon', reason: getPlainReasonOrNull(addonMessage) ?? STILL_GETTING_MUSIC_REASON };
   if (songPlan.status === 'needs-audio') return buildFailedCheck(addonMessage ?? NO_MUSIC_REASON);
-  if (songPlan.status === 'different-edit') return getDifferentEditCheck({ outcome, vaultSongId, isAddonFile });
-  const writeFailure = outcome.events.find((event) => event.vaultSongId === vaultSongId && event.kind === 'failed' && event.partyListId === undefined);
+  if (songPlan.status === 'different-edit') return getDifferentEditCheck({ outcome, librarySongId, isAddonFile });
+  const writeFailure = outcome.events.find((event) => event.librarySongId === librarySongId && event.kind === 'failed' && event.partyListId === undefined);
   return buildFailedCheck(writeFailure?.message ?? NOT_WRITTEN_REASON);
 }
 
-function getDifferentEditCheck({ outcome, vaultSongId, isAddonFile }: { outcome: SyncOutcome; vaultSongId: string; isAddonFile: (sourceId: string) => boolean }): SongInstallCheck {
-  const match = outcome.audioResultsBySongId.get(vaultSongId)?.match;
+function getDifferentEditCheck({ outcome, librarySongId, isAddonFile }: { outcome: SyncOutcome; librarySongId: string; isAddonFile: (sourceId: string) => boolean }): SongInstallCheck {
+  const match = outcome.audioResultsBySongId.get(librarySongId)?.match;
   if (match?.kind === 'different-edit' && isAddonFile(match.sourceId)) return { kind: 'different', reason: ADDON_DIFFERENT_EDIT_REASON };
   return buildFailedCheck(DIFFERENT_EDIT_REASON);
 }

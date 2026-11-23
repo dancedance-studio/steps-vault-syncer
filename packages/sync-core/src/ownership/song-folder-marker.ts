@@ -1,18 +1,18 @@
 import type { InstalledSong } from './installed-songs';
 
 /** Dot first, so StepMania and most file browsers don't show it to the player. */
-export const SONG_FOLDER_MARKER_FILE_NAME = '.stepsvault.json';
-const MARKER_FORMAT = 'stepsvault-song';
+export const SONG_FOLDER_MARKER_FILE_NAME = '.dancedance.json';
+const MARKER_FORMAT = 'dancedance-song';
 
 export interface SongFolderMarker {
   format: typeof MARKER_FORMAT;
   version: 1;
-  vaultSongId: string;
+  librarySongId: string;
   installId: string;
 }
 
 export function buildSongFolderMarkerText(installedSong: InstalledSong): string {
-  const marker: SongFolderMarker = { format: MARKER_FORMAT, version: 1, vaultSongId: installedSong.vaultSongId, installId: installedSong.installId };
+  const marker: SongFolderMarker = { format: MARKER_FORMAT, version: 1, librarySongId: installedSong.librarySongId, installId: installedSong.installId };
   return `${JSON.stringify(marker, null, 2)}\n`;
 }
 
@@ -20,12 +20,12 @@ export function buildSongFolderMarkerText(installedSong: InstalledSong): string 
 export function parseSongFolderMarker(text: string): SongFolderMarker | null {
   const value = parseJsonOrNull(text);
   if (!isRecord(value) || value.format !== MARKER_FORMAT || value.version !== 1) return null;
-  if (typeof value.vaultSongId !== 'string' || typeof value.installId !== 'string') return null;
-  return { format: MARKER_FORMAT, version: 1, vaultSongId: value.vaultSongId, installId: value.installId };
+  if (typeof value.librarySongId !== 'string' || typeof value.installId !== 'string') return null;
+  return { format: MARKER_FORMAT, version: 1, librarySongId: value.librarySongId, installId: value.installId };
 }
 
 export function isMarkerOf({ marker, installedSong }: { marker: SongFolderMarker | null; installedSong: InstalledSong }): boolean {
-  return marker?.vaultSongId === installedSong.vaultSongId && marker.installId === installedSong.installId;
+  return marker?.librarySongId === installedSong.librarySongId && marker.installId === installedSong.installId;
 }
 
 function parseJsonOrNull(text: string): unknown {

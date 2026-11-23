@@ -10,7 +10,7 @@ import {
   isLinkJobExpired,
   MAX_SONG_SOURCE_WAIT_SECONDS,
   SignedOutError,
-  StepsVaultApiError,
+  DancedanceApiError,
   withLinkSongSource,
   type FindLinkJob,
   type InstallLinkJob,
@@ -26,7 +26,7 @@ import {
   type LinkSongSource,
   type MusicLinkJob,
   type SongMusicSource,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 import { SiteMusicLimitError, type FoundSongChoices, type MakeSongMusic } from './make-song-music';
 import type { SiteSongInstallResult } from './site-song-installs';
 import type { AddonWait, SiteVideoCheckAnswer } from './site-video-checks';
@@ -77,7 +77,7 @@ export interface SiteLinkJobsDependencies {
   /** The site said this computer is signed out. */
   onSignedOut(): void;
   /** "Into my game": syncs now and says whether the library song really is in the game, or why not. */
-  installSong(options: { vaultSongId: string }): Promise<SiteSongInstallResult>;
+  installSong(options: { librarySongId: string }): Promise<SiteSongInstallResult>;
   /** A verify job: is the video's music the song? Nothing is installed or uploaded for it. */
   checkVideo(options: { job: VerifyLinkJob; wait: AddonWait }): Promise<SiteVideoCheckAnswer>;
 }
@@ -341,7 +341,7 @@ export class SiteLinkJobs {
 
   /** "Into my game": answered only once the song's music is in its folder in the game, or with why it isn't. */
   private async runInstallJob(job: InstallLinkJob): Promise<void> {
-    const result = await this.dependencies.installSong({ vaultSongId: job.songId }).catch((): SiteSongInstallResult => ({ kind: 'failed', reason: INSTALL_FAILED_REASON }));
+    const result = await this.dependencies.installSong({ librarySongId: job.songId }).catch((): SiteSongInstallResult => ({ kind: 'failed', reason: INSTALL_FAILED_REASON }));
     await this.answerJob({ job, answer: result.kind === 'installed' ? { status: 'installed' } : { status: result.kind, reason: result.reason } });
   }
 
@@ -536,7 +536,7 @@ function buildAddonTimeoutError(): HttpRequestError {
 
 /** For the log: what kind of failure, never an error's own text, which can hold an address. */
 function describeFailure(error: unknown): string {
-  if (error instanceof StepsVaultApiError) return `the site answered ${String(error.status)}`;
+  if (error instanceof DancedanceApiError) return `the site answered ${String(error.status)}`;
   if (error instanceof HttpRequestError) return error.failure;
   return error instanceof Error ? error.name : 'unknown';
 }

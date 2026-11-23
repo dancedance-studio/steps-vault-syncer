@@ -1,6 +1,6 @@
 import { opendir } from 'node:fs/promises';
 import path from 'node:path';
-import type { MusicFile, MusicLibrary } from '@stepsvault/sync-core';
+import type { MusicFile, MusicLibrary } from '@dancedance/sync-core';
 import type { MusicSourceRegistry } from './music-source-registry';
 
 /** Formats Chromium can decode, so the sound check can read them. */

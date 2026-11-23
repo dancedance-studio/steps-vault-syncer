@@ -1,7 +1,7 @@
-# StepsVault Sync
+# dancedance.studio Sync
 
-StepsVault Sync puts the songs from your [dancedance.studio](https://dancedance.studio) vault into your own StepMania game,
-lined up with **your own copy of the music**. StepsVault makes dance steps; it never sends anyone music.
+dancedance.studio Sync puts the songs from your [dancedance.studio](https://dancedance.studio) library into your own StepMania game,
+lined up with **your own copy of the music**. dancedance.studio makes dance steps; it never sends anyone music.
 
 - It only adds, updates, moves or removes the songs it added itself. Your own song folders are never touched.
 - It checks that your music file is the same version as the steps were made for, and lines the steps up with it.
@@ -30,18 +30,18 @@ pnpm test
 | `packages/sync-ui` | The Sync screens as React components, shared by the website and the desktop app |
 | `apps/desktop` | The Windows app (Electron): the game's Songs folder, music folders, tray and background sync |
 
-To see every screen with made-up data, run `pnpm --filter @stepsvault/sync-ui preview` and open the address it prints.
+To see every screen with made-up data, run `pnpm --filter @dancedance/sync-ui preview` and open the address it prints.
 The desktop app (`apps/desktop`) comes with task 11.
 
 ## Run the desktop app
 
 ```bash
-pnpm --filter @stepsvault/desktop start
+pnpm --filter @dancedance/desktop start
 ```
 
-To try it against a StepsVault site on your own computer, set `STEPSVAULT_SITE_URL` (for example
-`http://127.0.0.1:8787`). `STEPSVAULT_USER_DATA_DIR` keeps a test run's settings apart from your real ones, and
-`STEPSVAULT_LOG_STATE=1` prints one line per change (never the sign-in token), and one per step of a link job from the
+To try it against a dancedance.studio site on your own computer, set `DANCEDANCE_SITE_URL` (for example
+`http://127.0.0.1:8787`). `DANCEDANCE_USER_DATA_DIR` keeps a test run's settings apart from your real ones, and
+`DANCEDANCE_LOG_STATE=1` prints one line per change (never the sign-in token), and one per step of a link job from the
 website (its id and status, never the link).
 
 ## Links from the website
@@ -51,7 +51,7 @@ comes to the front on Generators › Make a song, already searching your music f
 game comes first when they are missing). `wanted` (the Wanted request) and `party` (the party list) stay with the song's
 job on your computer. Sync reads only this one address and these four parts, and ignores any other link. The installer
 registers the scheme; to try it from a development run, start it from `apps/desktop` with the link as an argument
-(`pnpm exec electron . "dancedance-sync://generators/make?title=Neon+Rain"`), or set `STEPSVAULT_REGISTER_LINKS=1` once to make
+(`pnpm exec electron . "dancedance-sync://generators/make?title=Neon+Rain"`), or set `DANCEDANCE_REGISTER_LINKS=1` once to make
 links in your browser open the development copy.
 
 ## Licence

@@ -7,18 +7,18 @@ export type GeneratedSongActivityStep =
   | 'resumed'
   /** The song is in "My generated songs" in the game. */
   | 'written'
-  /** StepsVault's generator made it: it is in the vault and installs with a sync. */
-  | 'added-to-vault'
-  /** The same song was in the vault and the player kept that one. */
-  | 'kept-vault-song'
+  /** dancedance.studio's generator made it: it is in the library and installs with a sync. */
+  | 'added-to-library'
+  /** The same song was in the library and the player kept that one. */
+  | 'kept-library-song'
   | 'failed'
   | 'cancelled'
   /** The player cancelled, but the generator could no longer stop. */
   | 'not-cancelled';
 
 /**
- * A generated song has no vault song id, so it is its own kind of Activity line. Kept apart from ActivityEvent so code
- * that reads a sync's events (which always have a vaultSongId) keeps working unchanged.
+ * A generated song has no library song id, so it is its own kind of Activity line. Kept apart from ActivityEvent so code
+ * that reads a sync's events (which always have a librarySongId) keeps working unchanged.
  */
 export interface GeneratedSongActivityEvent {
   kind: 'generated-song';

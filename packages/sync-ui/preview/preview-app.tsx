@@ -1,11 +1,11 @@
-import { FOLDER_LAYOUTS, type FolderLayout } from '@stepsvault/sync-core';
+import { FOLDER_LAYOUTS, type FolderLayout } from '@dancedance/sync-core';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import {
-  ADDON_AGENT_SKILL, ActivityScreen, AgentBox, AudioSourcesScreen, FourArrowLoader, GENERATOR_AGENT_SKILL, GreenPillButton, Icon, SiteLogo, SquareIconTile, WebsiteGeneratorsScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyVaultState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
+  ADDON_AGENT_SKILL, ActivityScreen, AgentBox, AudioSourcesScreen, FourArrowLoader, GENERATOR_AGENT_SKILL, GreenPillButton, Icon, SiteLogo, SquareIconTile, WebsiteGeneratorsScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyLibraryState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
   PermissionLostState, PhoneStatusView, SongFolderLockedState, SongsFolderMissingState, SongsFolderPreview, StatusChip, SyncHomeScreen, SyncShell, UpdateBanner, SONG_STATUSES, SONG_STATUS_DISPLAYS,
   type LinkCodeState, type SyncPlatform, type SyncScreen,
 } from '../src/index';
-import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_LINKS_TAB, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PARTY_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
+import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_DANCEDANCE_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_LINKS_TAB, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PARTY_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
 
 type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone' | 'intro-pieces';
 type SyncPhase = 'idle' | 'syncing' | 'finished' | 'finished-all';
@@ -86,7 +86,7 @@ function PreviewScreenContent({ screen, platform, syncPhase, onNavigate }: { scr
       {screen === 'folder-preview' && <SongsFolderPreview songsFolderPath={platform === 'website' ? 'Songs  (C:\\Games\\StepMania 5 LTEK Edition)' : FAKE_GAME.songsFolderPath} playerGroups={FAKE_PLAYER_GROUPS} layoutText="by genre" onChangeLayout={noop} onChooseAnotherFolder={noop} onContinue={noop} />}
       {screen === 'songs' && <SongsPreview platform={platform} syncPhase={syncPhase} onNavigate={onNavigate} />}
       {screen === 'audio-sources' && <AudioSourcesPreview onNavigate={onNavigate} />}
-      {screen === 'generators' && (platform === 'website' ? <WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR} makeSongHref="#make-a-song" desktopAppHref="#desktop-app" playPageHref="#play" /> : <GeneratorsPreview />)}
+      {screen === 'generators' && (platform === 'website' ? <WebsiteGeneratorsScreen dancedanceGenerator={FAKE_DANCEDANCE_GENERATOR} makeSongHref="#make-a-song" desktopAppHref="#desktop-app" playPageHref="#play" /> : <GeneratorsPreview />)}
       {screen === 'folder-layout' && <FolderLayoutPreview />}
       {screen === 'activity' && <ActivityPreview />}
       {screen === 'account' && <AccountPreview />}
@@ -132,7 +132,7 @@ function AudioSourcesPreview({ onNavigate }: { onNavigate: (screen: SyncScreen) 
       musicFolders={FAKE_MUSIC_FOLDERS}
       scan={{ scannedFileCount: 241, percent: 62 }}
       matchedSongCount={8}
-      vaultSongCount={12}
+      librarySongCount={12}
       pickedFiles={FAKE_PICKED_FILES}
       addons={addons}
       onAddMusicFolder={noop}
@@ -152,7 +152,7 @@ function GeneratorsPreview(): ReactElement {
   const [generators, setGenerators] = useState(FAKE_GENERATORS);
   return (
     <GeneratorsScreen
-      stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR}
+      dancedanceGenerator={FAKE_DANCEDANCE_GENERATOR}
       generators={generators}
       jobs={FAKE_GENERATOR_JOBS}
       generatedSongs={FAKE_GENERATED_SONGS}
@@ -169,7 +169,7 @@ function GeneratorsPreview(): ReactElement {
       onStopFindingSong={noop}
       onMakeSong={() => Promise.resolve({ kind: 'started', jobKey: 'job-night-drive' })}
       onCancelJob={noop}
-      onAnswerVaultChoice={noop}
+      onAnswerLibraryChoice={noop}
       onDismissJob={noop}
       onFetchSongReport={() => Promise.resolve('# How it was made\n\nOnsets found with a simple energy rule, arrows by flow.')}
       mySongsHref="#my-songs"
@@ -235,7 +235,7 @@ function StatesBoard(): ReactElement {
         <section>
           <h2 className="preview-section-title">Empty + error states</h2>
           <div className="preview-grid">
-            <EmptyVaultState vaultHref="#vault" />
+            <EmptyLibraryState libraryHref="#library" />
             <PermissionLostState onReconnect={noop} />
             <SongsFolderMissingState previousSongsFolderPath={FAKE_GAME.songsFolderPath} onChooseFolder={noop} />
             <DiskFullState neededSpaceText="48 MB" songCount={3} driveName="C:" onTryAgain={noop} />
@@ -257,7 +257,7 @@ function PhoneBoard(): ReactElement {
       <div className="preview-board">
         <div className="preview-phone">
           <div>
-            <PhoneStatusView computerName="LIVING-ROOM-PC" gameName="StepMania 5 LTEK" overallStatus="synced" lastSyncText="2 hours ago" syncedCount={8} needsAudioCount={2} updateCount={2} songs={FAKE_SONG_ROWS.slice(0, 4).map((row) => ({ vaultSongId: row.vaultSongId, title: row.title, coverArtUrl: row.coverArtUrl, status: row.status }))} />
+            <PhoneStatusView computerName="LIVING-ROOM-PC" gameName="StepMania 5 LTEK" overallStatus="synced" lastSyncText="2 hours ago" syncedCount={8} needsAudioCount={2} updateCount={2} songs={FAKE_SONG_ROWS.slice(0, 4).map((row) => ({ librarySongId: row.librarySongId, title: row.title, coverArtUrl: row.coverArtUrl, status: row.status }))} />
           </div>
         </div>
       </div>

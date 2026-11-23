@@ -20,7 +20,7 @@ export interface SongListProps {
   rows: readonly SongRowView[];
   isSyncing: boolean;
   selectedSongId: string | null;
-  onOpenSongDetails: (vaultSongId: string) => void;
+  onOpenSongDetails: (librarySongId: string) => void;
   onSongAction: (request: SongActionRequest) => void;
   initialFilters?: Partial<SongFilters>;
   pageSize?: number;
@@ -47,7 +47,7 @@ export function SongList(props: SongListProps): ReactElement {
           <SongListHead />
           <ul className="sv-sync-song-list" aria-label={`Your ${SITE_NAME} songs`}>
             {shownRows.map((row) => (
-              <SongRow key={row.vaultSongId} row={row} isSelected={row.vaultSongId === props.selectedSongId} isSyncing={props.isSyncing} onOpenDetails={props.onOpenSongDetails} onSongAction={props.onSongAction} />
+              <SongRow key={row.librarySongId} row={row} isSelected={row.librarySongId === props.selectedSongId} isSyncing={props.isSyncing} onOpenDetails={props.onOpenSongDetails} onSongAction={props.onSongAction} />
             ))}
           </ul>
           {visibleRows.length === 0 && (

@@ -20,7 +20,7 @@ export interface AddonManifest extends ManifestIdentity {
   protocol: typeof ADDON_PROTOCOL_VERSION;
   kind: 'addon';
   /**
-   * 'audio-links' (music for a song in the vault, with 'video-links' its video too) and/or 'song-source' (a new song
+   * 'audio-links' (music for a song in the library, with 'video-links' its video too) and/or 'song-source' (a new song
    * to make with a generator). Names Sync doesn't know are dropped.
    */
   provides: readonly AddonProvides[];
@@ -38,8 +38,8 @@ export interface AddonSongFacts {
   album: string | null;
   genre: string | null;
   lengthSeconds: number | null;
-  youtubeId: string | null;
-  youtubeUrl: string | null;
+  videoId: string | null;
+  videoUrl: string | null;
 }
 
 export type AudioLink =
@@ -76,8 +76,8 @@ export interface AudioLinksRequestBody {
  * be checked against the manifest (getAddonOptionValues).
  */
 export function buildAudioLinksRequestBody({ song, optionValues }: { song: AddonSongFacts; optionValues: AddonOptionValues }): AudioLinksRequestBody {
-  const { title, artist, album, genre, lengthSeconds, youtubeId, youtubeUrl } = song;
-  const body: AudioLinksRequestBody = { protocol: ADDON_PROTOCOL_VERSION, song: { title, artist, album, genre, lengthSeconds, youtubeId, youtubeUrl } };
+  const { title, artist, album, genre, lengthSeconds, videoId, videoUrl } = song;
+  const body: AudioLinksRequestBody = { protocol: ADDON_PROTOCOL_VERSION, song: { title, artist, album, genre, lengthSeconds, videoId, videoUrl } };
   return Object.keys(optionValues).length === 0 ? body : { ...body, options: { ...optionValues } };
 }
 

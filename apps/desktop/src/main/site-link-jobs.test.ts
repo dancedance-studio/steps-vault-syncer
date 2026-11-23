@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   buildInstalledAddon,
   HttpRequestError,
-  StepsVaultClient,
+  DancedanceClient,
   type AddonManifest,
   type FileUploadHttpClient,
   type FileUploadHttpRequest,
@@ -16,7 +16,7 @@ import {
   type InstalledAddon,
   type LinkSongSource,
   type VideoAudioComparison,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 import { GeneratorJobFiles } from './generator-job-files';
 import { MakeSongMusic, type MakeSongMusicPorts } from './make-song-music';
 import { MusicSourceRegistry } from './music-source-registry';
@@ -32,24 +32,24 @@ const OPEN_AUDIO_LINKS: AddonManifest = {
   inputs: [{ id: 'link', kind: 'link', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }],
 };
 const FOUND_NIGHT_DRIVE = {
-  song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 221, youtubeId: 'Vid3o1d-x_Z' },
+  song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 221, videoId: 'Vid3o1d-x_Z' },
   links: [{ kind: 'file-url', url: `${ADDON_URL}/files/night-drive.ogg`, label: 'Music', fileName: 'night-drive.ogg' }, { kind: 'file-url', media: 'video', url: `${ADDON_URL}/files/night-drive.mp4`, label: 'Video', fileName: 'night-drive.mp4' }],
 };
 const FIND_JOB = { id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: NIGHT_DRIVE_LINK, expiresAt: '2026-11-21T12:00:20.000Z' };
 const MUSIC_JOB = { id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' };
-/** "Into my game" for a song already in the player's library list; songId is its vaultSongId. */
+/** "Into my game" for a song already in the player's library list; songId is its librarySongId. */
 const INSTALL_JOB = { id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' };
-/** Is this video's music the song? The song's facts come as the vault list gives them; it has no video link yet. */
+/** Is this video's music the song? The song's facts come as the library list gives them; it has no video link yet. */
 const VERIFY_JOB = {
-  id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z',
-  song: { vaultSongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, youtubeId: null, chartVersion: 'v1' },
+  id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', videoUrl: 'https://clips.example/v/Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z',
+  song: { librarySongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, videoId: null, chartVersion: 'v1' },
 };
 const VIDEO_AUDIO_LINKS = { status: 200, body: { links: [{ kind: 'file-url', url: `${ADDON_URL}/files/night-drive-video.ogg`, label: 'Music', fileName: 'night-drive-video.ogg' }] } };
 
 let workFolder: string;
 
 beforeEach(async () => {
-  workFolder = await mkdtemp(path.join(os.tmpdir(), 'stepsvault-link-jobs-test-'));
+  workFolder = await mkdtemp(path.join(os.tmpdir(), 'dancedance-link-jobs-test-'));
 });
 
 afterEach(async () => {
@@ -198,7 +198,7 @@ class LinkJobsHarness {
   /** The library songs install jobs asked for, in order. */
   readonly installedSongIds: string[] = [];
   /** Stands for the app's sync and its check of the game folder: installed unless a test says otherwise. */
-  installSong: (vaultSongId: string) => Promise<SiteSongInstallResult> = () => Promise.resolve({ kind: 'installed' });
+  installSong: (librarySongId: string) => Promise<SiteSongInstallResult> = () => Promise.resolve({ kind: 'installed' });
   /** The songs whose fingerprint a verify job fetched, and the addon files it downloaded. */
   readonly fingerprintSongIds: string[] = [];
   readonly addonFileUrls: string[] = [];
@@ -218,7 +218,7 @@ class LinkJobsHarness {
       waitMilliseconds: this.clock.waitMilliseconds,
     });
     this.linkJobs = new SiteLinkJobs({
-      buildApi: () => (this.isLinked ? new StepsVaultClient({ httpClient: this.site, fileUploadClient: this.site, siteUrl: 'https://dancedance.studio', deviceToken: 'device-token-1' }) : null),
+      buildApi: () => (this.isLinked ? new DancedanceClient({ httpClient: this.site, fileUploadClient: this.site, siteUrl: 'https://dancedance.studio', deviceToken: 'device-token-1' }) : null),
       getAddons: () => this.addons,
       songs,
       addonHttpClient: this.addon,
@@ -233,9 +233,9 @@ class LinkJobsHarness {
         this.signOutCount += 1;
         this.isLinked = false;
       },
-      installSong: ({ vaultSongId }) => {
-        this.installedSongIds.push(vaultSongId);
-        return this.installSong(vaultSongId);
+      installSong: ({ librarySongId }) => {
+        this.installedSongIds.push(librarySongId);
+        return this.installSong(librarySongId);
       },
       checkVideo: ({ job, wait }) => checkVideoForSite({
         job,
@@ -247,8 +247,8 @@ class LinkJobsHarness {
             this.addonFileUrls.push(url);
             return Promise.resolve(`addon:${url}`);
           },
-          fetchFingerprint: (vaultSongId) => {
-            this.fingerprintSongIds.push(vaultSongId);
+          fetchFingerprint: (librarySongId) => {
+            this.fingerprintSongIds.push(librarySongId);
             return Promise.resolve({ envelope: [0.1, 0.5, 0.2], rateHertz: 100 });
           },
           compareVideoAudio: () => Promise.resolve(this.videoComparison),
@@ -606,13 +606,13 @@ describe('install jobs', () => {
 });
 
 describe('verify jobs', () => {
-  it('ask the link addon for the video’s music with the song’s facts and the video id, compare it, and answer matched', async () => {
+  it('ask the link addon for the video’s music with the song’s facts and the video, compare it, and answer matched', async () => {
     const harness = new LinkJobsHarness();
     harness.linkJobs.start();
     harness.site.queueJob(VERIFY_JOB);
     await waitUntil(() => getAnswerStatuses(harness).includes('matched'));
     expect(harness.addon.requests.map((request) => request.url)).toEqual([`${ADDON_URL}/audio-links`]);
-    expect(harness.addon.requests[0]?.jsonBody).toMatchObject({ song: { title: 'Night Drive', artist: 'Lumen Park', genre: 'Synthwave', lengthSeconds: 221, youtubeId: 'Vid3o1d-x_Z' } });
+    expect(harness.addon.requests[0]?.jsonBody).toMatchObject({ song: { title: 'Night Drive', artist: 'Lumen Park', genre: 'Synthwave', lengthSeconds: 221, videoId: 'Vid3o1d-x_Z', videoUrl: 'https://clips.example/v/Vid3o1d-x_Z' } });
     expect(harness.addonFileUrls).toEqual([`${ADDON_URL}/files/night-drive-video.ogg`]);
     expect(harness.fingerprintSongIds).toEqual(['song_42']);
     expect(harness.site.answers.at(-1)).toEqual({ jobId: 'lj_12', answer: { status: 'matched', lengthSec: 221, offsetSec: 1.23 } });

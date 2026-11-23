@@ -1,4 +1,4 @@
-import type { FolderLayout } from '@stepsvault/sync-core';
+import type { FolderLayout } from '@dancedance/sync-core';
 import type { ReactElement } from 'react';
 import { SyncDialog } from '../dialog/sync-dialog';
 import { Note } from '../shared/small-parts';

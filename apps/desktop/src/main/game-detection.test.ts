@@ -7,7 +7,7 @@ import { findInstalledGames, getInstallParentFolders } from './game-detection';
 let games: string;
 
 beforeEach(async () => {
-  games = await mkdtemp(path.join(os.tmpdir(), 'stepsvault-games-'));
+  games = await mkdtemp(path.join(os.tmpdir(), 'dancedance-games-'));
 });
 
 afterEach(async () => {

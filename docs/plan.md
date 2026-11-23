@@ -1,10 +1,10 @@
-# StepsVault Sync — plan
+# dancedance.studio Sync — plan
 
-StepsVault Sync puts the songs in a player's StepsVault vault into their own StepMania `Songs` folder, using **the
+dancedance.studio Sync puts the songs in a player's dancedance.studio library into their own StepMania `Songs` folder, using **the
 player's own copy of each song's music**, and lines the steps up with that copy. Sync sends a player's music only to a generator the player chose, after telling
 them where it goes.
 
-The screens are designed on the StepsVault design canvas (page "v2", boards "Sync 1" to "Sync 7" and "Sync — states").
+The screens are designed on the dancedance.studio design canvas (page "v2", boards "Sync 1" to "Sync 7" and "Sync — states").
 The written spec lives with the website and is summarised here.
 
 ## Two ways to run it, one core
@@ -19,9 +19,9 @@ The written spec lives with the website and is summarised here.
 
 Both use the same packages from this repo:
 
-- **`@stepsvault/sync-core`**: plain TypeScript, no DOM and no Node APIs. It contains the sync plan, the folder
+- **`@dancedance/sync-core`**: plain TypeScript, no DOM and no Node APIs. It contains the sync plan, the folder
   layout and names, the record of which folders we own, `.ssc` editing, audio matching, the addon protocol client
-  and the StepsVault API client. Everything that touches the outside world goes through an interface (a "port")
+  and the dancedance.studio API client. Everything that touches the outside world goes through an interface (a "port")
   that the website and the app each implement:
   - `SongsFolder`: list, read, write, rename, remove inside the game's `Songs` folder;
   - `AudioDecoder`: a file → mono samples at 44.1 kHz (Chromium's `decodeAudioData`: mp3, ogg, wav, flac, AAC, Opus; no
@@ -29,28 +29,28 @@ Both use the same packages from this repo:
   - `MusicLibrary`: the files in the player's music folders;
   - `HttpClient`: `fetch` with a timeout;
   - `Clock`.
-- **`@stepsvault/sync-ui`**: the React screens from the design, shared by the website and the app.
+- **`@dancedance/sync-ui`**: the React screens from the design, shared by the website and the app.
 - **`apps/desktop`**: the Electron app (main process: folder access, network, tray, updates; a hidden window decodes
   and matches audio; the visible window runs `sync-ui`).
 
-The website (a private repo) installs `sync-core` and `sync-ui` from npm under the `@stepsvault` scope.
+The website (a private repo) installs `sync-core` and `sync-ui` from npm under the `@dancedance` scope.
 
 ## Rules that never bend
 
 1. **Never touch the player's own folders.** Sync only adds, updates, moves or removes folders it created itself.
    It knows them from two things that must agree: its own record of installed songs, and a marker file
-   `.stepsvault.json` inside each song folder it writes. If the player changed a chart file, the song becomes
+   `.dancedance.json` inside each song folder it writes. If the player changed a chart file, the song becomes
    "You edited this", and Sync never overwrites it unless the player chooses "Replace".
 2. **We never send music unasked.** Sync downloads steps (`.ssc`, images) and the song's fingerprint (its onset
    envelope: how strongly new sounds start, 100 times a second). The player's music is read on their computer and
    copied into the song folder. The only time it leaves the computer is when the player makes a song with a generator
-   that isn't on their computer (StepsVault's included): Sync first says "Your music file will be sent to <address>"
+   that isn't on their computer (dancedance.studio's included): Sync first says "Your music file will be sent to <address>"
    and goes on only when the player agrees.
 3. **Addons see song facts only**: title, artist, album, genre, length and the song's video link, plus what the player
-   types into a song source's fields. They never see the player's account, files or anything else. The player agrees once per addon. StepsVault lists no addons and
+   types into a song source's fields. They never see the player's account, files or anything else. The player agrees once per addon. dancedance.studio lists no addons and
    promotes none.
 4. **One clear status per song** (icon + word, never colour alone): Synced, Syncing…, Needs audio, Different edit,
-   Update available, You edited this, Removed from vault.
+   Update available, You edited this, Removed from library.
 
 ## How one song syncs
 
@@ -74,7 +74,7 @@ The player chooses one: **One group** (`dancedance.studio`), **By genre** (`Pop`
 no group; a song is in one group, and moves on the next sync when the player regroups it). A group name
 the player already uses (compared without case, as Windows does) gets the prefix `dancedance.studio - ` instead. Changing
 the layout moves only our folders. Folder names use English letters only, because StepMania 5 on Windows can't open
-Hebrew or Japanese names: a song in another script is named by the English-letter spelling StepsVault sends. StepMania keeps scores by folder path, so moved songs start with fresh scores,
+Hebrew or Japanese names: a song in another script is named by the English-letter spelling dancedance.studio sends. StepMania keeps scores by folder path, so moved songs start with fresh scores,
 and Sync says so before moving anything.
 
 ## Addon protocol (v1)
@@ -105,12 +105,12 @@ own repo.
 1. Repo setup: pnpm workspace, TypeScript, Vitest, lint, CI, contributor docs.
 2. Core: the songs-folder port, the record of owned folders and the marker files.
 3. Core: folder layout and group names (prefix only on a clash).
-4. Core: the sync planner, from the vault and the folder to a list of actions and a status per song.
+4. Core: the sync planner, from the library and the folder to a list of actions and a status per song.
 5. Core: `.ssc` editing (`#MUSIC`, `#OFFSET`) and writing a song safely.
 6. Core: audio matching (onset envelope + cross-correlation), checked against the engine's own numbers.
 7. Core: audio sources (music folders, picked files).
 8. Core: the addon protocol v1 client and its docs.
-9. Core: the StepsVault API client.
+9. Core: the dancedance.studio API client.
 10. UI: the Sync screens as shared React components.
 11. Desktop app: Electron shell, Node ports, sign in by code.
 12. Desktop app: tray, background sync, game detection, updates.

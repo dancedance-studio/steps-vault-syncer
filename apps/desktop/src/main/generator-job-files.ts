@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { HttpRequestError, type DownloadGeneratorFile, type DownloadedGeneratorFileKind, type GeneratedSongFiles } from '@stepsvault/sync-core';
+import { HttpRequestError, type DownloadGeneratorFile, type DownloadedGeneratorFileKind, type GeneratedSongFiles } from '@dancedance/sync-core';
 import type { MusicSourceRegistry } from './music-source-registry';
 import { downloadToFile } from './node-file-download';
 import { getUserAgentHeader } from './node-http-client';

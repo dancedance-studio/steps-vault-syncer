@@ -23,11 +23,11 @@ const MANIFEST_ANSWER = {
   options: [{ id: 'style', label: 'Style', kind: 'choice', choices: [{ value: 'calm', label: 'Calm' }, { value: 'busy', label: 'Busy' }], default: 'calm' }],
 };
 const MANIFEST = { ...MANIFEST_ANSWER, maxMusicBytes: 100 * 1024 * 1024 } as GeneratorManifest;
-const SONG: GeneratorSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, youtubeId: null };
+const SONG: GeneratorSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, videoId: null };
 const MUSIC: GeneratorUploadFile = { sourceId: 'music-1', fileName: 'Pulse Garden.ogg', contentType: 'audio/ogg', bytes: 4_000_000 };
 const VIDEO: GeneratorUploadFile = { sourceId: 'video-1', fileName: 'Pulse Garden.mp4', contentType: 'video/mp4', bytes: 30_000_000 };
-const STEPSVAULT_ADDRESS = 'https://stepsvault.example.com/api/generator';
-const SIGN_IN = { siteUrl: 'https://stepsvault.example.com', deviceToken: 'device-token-1' };
+const DANCEDANCE_ADDRESS = 'https://dancedance.example.com/api/generator';
+const SIGN_IN = { siteUrl: 'https://dancedance.example.com', deviceToken: 'device-token-1' };
 const CHART_TEXT = '#TITLE:Pulse Garden;\n#OFFSET:0;\n#BPMS:0=128;\n';
 
 type RecordedAnswer = HttpResponse<unknown> | HttpRequestError;
@@ -243,11 +243,11 @@ describe('a good job', () => {
     expect(error).toMatchObject({ reason: 'refused-job', message: 'Onset Steps couldn’t take this song: Too many songs at once, try in a minute.' });
   });
 
-  it('reports a song that already exists, trusting a vault song id only from StepsVault’s generator', async () => {
-    const answer = { status: 409, body: { error: 'This song is already being made.', vaultSongId: 'song_42' } };
-    const httpClient = new RecordedGenerator({ [`POST ${LOCAL_ADDRESS}/jobs`]: [answer], [`POST ${STEPSVAULT_ADDRESS}/jobs`]: [answer] });
-    expect(await startGeneratorJob(buildStartOptions({ httpClient }))).toEqual({ kind: 'already-exists', message: 'This song is already being made.', vaultSongId: null });
-    expect(await startGeneratorJob(buildStartOptions({ httpClient, generator: buildGenerator({ baseUrl: STEPSVAULT_ADDRESS }), signIn: SIGN_IN }))).toEqual({ kind: 'already-exists', message: 'This song is already being made.', vaultSongId: 'song_42' });
+  it('reports a song that already exists, trusting a library song id only from dancedance.studio’s generator', async () => {
+    const answer = { status: 409, body: { error: 'This song is already being made.', librarySongId: 'song_42' } };
+    const httpClient = new RecordedGenerator({ [`POST ${LOCAL_ADDRESS}/jobs`]: [answer], [`POST ${DANCEDANCE_ADDRESS}/jobs`]: [answer] });
+    expect(await startGeneratorJob(buildStartOptions({ httpClient }))).toEqual({ kind: 'already-exists', message: 'This song is already being made.', librarySongId: null });
+    expect(await startGeneratorJob(buildStartOptions({ httpClient, generator: buildGenerator({ baseUrl: DANCEDANCE_ADDRESS }), signIn: SIGN_IN }))).toEqual({ kind: 'already-exists', message: 'This song is already being made.', librarySongId: 'song_42' });
   });
 
   it('refuses a job id that breaks the rules', async () => {
@@ -358,25 +358,25 @@ describe('file links', () => {
     const url = 'https://cdn.example.org/a1b2c3/song.ssc?signature=abc';
     const httpClient = new RecordedGenerator({ [`GET ${REMOTE_ADDRESS}/jobs/a1b2c3`]: [{ status: 200, body: { state: 'done', files: [{ kind: 'chart', url, bytes: 100 }] } }] });
     const outcome = await waitForGeneratorJob({ httpClient, generator: buildGenerator({ baseUrl: REMOTE_ADDRESS }), job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds });
-    expect(outcome).toEqual({ kind: 'done', files: [{ kind: 'chart', url, bytes: 100 }], vaultSongId: null });
+    expect(outcome).toEqual({ kind: 'done', files: [{ kind: 'chart', url, bytes: 100 }], librarySongId: null });
   });
 });
 
-describe('the vault song StepsVault’s generator made', () => {
-  const doneAnswer = { status: 200, body: { state: 'done', vaultSongId: 'song_42' } };
+describe('the library song dancedance.studio’s generator made', () => {
+  const doneAnswer = { status: 200, body: { state: 'done', librarySongId: 'song_42' } };
 
-  it('is read from StepsVault’s own done answer, which needs no files', async () => {
-    const httpClient = new RecordedGenerator({ [`GET ${STEPSVAULT_ADDRESS}/jobs/a1b2c3`]: [doneAnswer] });
-    const outcome = await waitForGeneratorJob({ httpClient, generator: buildGenerator({ baseUrl: STEPSVAULT_ADDRESS }), signIn: SIGN_IN, job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds });
-    expect(outcome).toEqual({ kind: 'done', files: [], vaultSongId: 'song_42' });
+  it('is read from dancedance.studio’s own done answer, which needs no files', async () => {
+    const httpClient = new RecordedGenerator({ [`GET ${DANCEDANCE_ADDRESS}/jobs/a1b2c3`]: [doneAnswer] });
+    const outcome = await waitForGeneratorJob({ httpClient, generator: buildGenerator({ baseUrl: DANCEDANCE_ADDRESS }), signIn: SIGN_IN, job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds });
+    expect(outcome).toEqual({ kind: 'done', files: [], librarySongId: 'song_42' });
   });
 
   it('is ignored from any other generator, which still must send its song file', async () => {
     const httpClient = new RecordedGenerator({ [`GET ${JOB_URL}`]: [doneAnswer] });
     const error = await getRejection(waitForGeneratorJob({ httpClient, generator: buildGenerator(), job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds }));
     expect(error.reason).toBe('invalid-answer');
-    const withChart = new RecordedGenerator({ [`GET ${JOB_URL}`]: [{ status: 200, body: { state: 'done', vaultSongId: 'song_42', files: [{ kind: 'chart', url: `${LOCAL_ADDRESS}/song.ssc`, bytes: 100 }] } }] });
-    expect(await waitForGeneratorJob({ httpClient: withChart, generator: buildGenerator(), job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds })).toMatchObject({ kind: 'done', vaultSongId: null });
+    const withChart = new RecordedGenerator({ [`GET ${JOB_URL}`]: [{ status: 200, body: { state: 'done', librarySongId: 'song_42', files: [{ kind: 'chart', url: `${LOCAL_ADDRESS}/song.ssc`, bytes: 100 }] } }] });
+    expect(await waitForGeneratorJob({ httpClient: withChart, generator: buildGenerator(), job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds })).toMatchObject({ kind: 'done', librarySongId: null });
   });
 });
 
@@ -408,21 +408,21 @@ describe('cancel', () => {
   });
 });
 
-describe('signing in to StepsVault’s own generator', () => {
-  it('sends the device token on every call to StepsVault, file downloads included', async () => {
-    const jobUrl = `${STEPSVAULT_ADDRESS}/jobs/a1b2c3`;
-    const chartUrl = `${STEPSVAULT_ADDRESS}/files/a1b2c3/song.ssc`;
-    const bannerUrl = `${STEPSVAULT_ADDRESS}/files/a1b2c3/banner.png`;
+describe('signing in to dancedance.studio’s own generator', () => {
+  it('sends the device token on every call to dancedance.studio, file downloads included', async () => {
+    const jobUrl = `${DANCEDANCE_ADDRESS}/jobs/a1b2c3`;
+    const chartUrl = `${DANCEDANCE_ADDRESS}/files/a1b2c3/song.ssc`;
+    const bannerUrl = `${DANCEDANCE_ADDRESS}/files/a1b2c3/banner.png`;
     const httpClient = new RecordedGenerator({
-      [`GET ${STEPSVAULT_ADDRESS}/manifest.json`]: [{ status: 200, body: MANIFEST_ANSWER }],
-      [`POST ${STEPSVAULT_ADDRESS}/jobs`]: [{ status: 202, body: { jobId: 'a1b2c3', retryAfterSeconds: 10 } }],
+      [`GET ${DANCEDANCE_ADDRESS}/manifest.json`]: [{ status: 200, body: MANIFEST_ANSWER }],
+      [`POST ${DANCEDANCE_ADDRESS}/jobs`]: [{ status: 202, body: { jobId: 'a1b2c3', retryAfterSeconds: 10 } }],
       [`GET ${jobUrl}`]: [{ status: 200, body: { state: 'done', files: [{ kind: 'chart', url: chartUrl, bytes: 100 }, { kind: 'banner', url: bannerUrl, bytes: 100 }] } }],
       [`GET ${chartUrl}`]: [{ status: 200, body: CHART_TEXT }],
       [`DELETE ${jobUrl}`]: [{ status: 200, body: { cancelled: true } }],
     });
-    const generator = buildGenerator({ baseUrl: STEPSVAULT_ADDRESS });
+    const generator = buildGenerator({ baseUrl: DANCEDANCE_ADDRESS });
     const { downloads, downloadGeneratorFile } = buildDownloadRecorder();
-    await fetchGeneratorManifest({ httpClient, address: STEPSVAULT_ADDRESS, signIn: SIGN_IN });
+    await fetchGeneratorManifest({ httpClient, address: DANCEDANCE_ADDRESS, signIn: SIGN_IN });
     await startGeneratorJob(buildStartOptions({ httpClient, generator, signIn: SIGN_IN }));
     const outcome = await waitForGeneratorJob({ httpClient, generator, signIn: SIGN_IN, job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds });
     if (outcome.kind !== 'done') throw new Error('Expected the job to be done.');
@@ -445,10 +445,10 @@ describe('signing in to StepsVault’s own generator', () => {
     expect(httpClient.requests.map((request) => request.headers)).toEqual([{}, {}, {}]);
   });
 
-  it('refuses a StepsVault file link outside its own address, so the token never follows it', async () => {
+  it('refuses a dancedance.studio file link outside its own address, so the token never follows it', async () => {
     const files = [{ kind: 'chart' as const, url: 'https://cdn.example.org/song.ssc', bytes: 100 }];
     const httpClient = new RecordedGenerator({});
-    const error = await getRejection(collectGeneratorFiles({ httpClient, generator: buildGenerator({ baseUrl: STEPSVAULT_ADDRESS }), signIn: SIGN_IN, files, downloadGeneratorFile: buildDownloadRecorder().downloadGeneratorFile }));
+    const error = await getRejection(collectGeneratorFiles({ httpClient, generator: buildGenerator({ baseUrl: DANCEDANCE_ADDRESS }), signIn: SIGN_IN, files, downloadGeneratorFile: buildDownloadRecorder().downloadGeneratorFile }));
     expect(error.reason).toBe('invalid-answer');
     expect(httpClient.requests).toEqual([]);
   });

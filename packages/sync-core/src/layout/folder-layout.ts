@@ -16,9 +16,9 @@ const UNKNOWN_TITLE_NAME = 'Untitled';
 /** The game folder for the songs the player put in no group, in the "My groups" layout. */
 export const UNGROUPED_NAME = 'Ungrouped';
 
-/** What layout needs to know about a vault song. */
+/** What layout needs to know about a library song. */
 export interface SongFolderFacts {
-  vaultSongId: string;
+  librarySongId: string;
   title: string;
   artist: string;
   /** The title and artist in English letters when they are written in another script; folders are named by them. */
@@ -82,7 +82,7 @@ export interface TargetFolderOptions {
  * the same title never renames it (StepMania keeps scores by folder). New and moving songs get names no one uses.
  */
 export function getTargetFolderPaths(options: TargetFolderOptions): Map<string, SongsPath> {
-  const groupNamesBySongId = new Map(options.songs.map((song) => [song.vaultSongId, getGroupName({ baseName: getGroupBaseName({ layout: options.layout, song }), playerGroupNames: options.playerGroupNames })]));
+  const groupNamesBySongId = new Map(options.songs.map((song) => [song.librarySongId, getGroupName({ baseName: getGroupBaseName({ layout: options.layout, song }), playerGroupNames: options.playerGroupNames })]));
   return getSongFolderPaths({ songs: options.songs, groupNamesBySongId, record: options.record, foreignFolderNamesByGroupKey: options.foreignFolderNamesByGroupKey });
 }
 
@@ -101,12 +101,12 @@ export function getSongFolderPaths(options: SongFolderPathOptions): Map<string, 
   const takenNameKeysByGroupKey = getForeignNameKeysByGroupKey(options.foreignFolderNamesByGroupKey);
   const targetPathsBySongId = new Map<string, SongsPath>();
   for (const song of options.songs) {
-    const keptPath = getKeptPath({ song, groupName: groupNamesBySongId.get(song.vaultSongId) ?? ONE_GROUP_NAME, record: options.record });
+    const keptPath = getKeptPath({ song, groupName: groupNamesBySongId.get(song.librarySongId) ?? ONE_GROUP_NAME, record: options.record });
     if (keptPath) reserveTarget({ song, path: keptPath, targetPathsBySongId, takenNameKeysByGroupKey });
   }
   for (const song of [...options.songs].sort(compareSongsForNaming)) {
-    if (targetPathsBySongId.has(song.vaultSongId)) continue;
-    const groupName = groupNamesBySongId.get(song.vaultSongId) ?? ONE_GROUP_NAME;
+    if (targetPathsBySongId.has(song.librarySongId)) continue;
+    const groupName = groupNamesBySongId.get(song.librarySongId) ?? ONE_GROUP_NAME;
     const folderName = getNewSongFolderName({ song, takenNameKeys: getTakenNameKeys({ takenNameKeysByGroupKey, groupName }) });
     reserveTarget({ song, path: buildSongsPath(groupName, folderName), targetPathsBySongId, takenNameKeysByGroupKey });
   }
@@ -114,7 +114,7 @@ export function getSongFolderPaths(options: SongFolderPathOptions): Map<string, 
 }
 
 function getKeptPath({ song, groupName, record }: { song: SongFolderFacts; groupName: string; record: InstalledSongsRecord }): SongsPath | null {
-  const installedSong = findInstalledSong({ record, vaultSongId: song.vaultSongId });
+  const installedSong = findInstalledSong({ record, librarySongId: song.librarySongId });
   const [installedGroupName, installedFolderName] = installedSong?.folderPath ?? [];
   if (installedGroupName === undefined || installedFolderName === undefined) return null;
   return getNameKey(installedGroupName) === getNameKey(groupName) ? buildSongsPath(groupName, installedFolderName) : null;
@@ -137,7 +137,7 @@ export function getUnusedName({ preferredName, takenNameKeys }: { preferredName:
 function reserveTarget(options: { song: SongFolderFacts; path: SongsPath; targetPathsBySongId: Map<string, SongsPath>; takenNameKeysByGroupKey: Map<string, Set<string>> }): void {
   const [groupName, folderName] = options.path;
   if (groupName === undefined || folderName === undefined) return;
-  options.targetPathsBySongId.set(options.song.vaultSongId, options.path);
+  options.targetPathsBySongId.set(options.song.librarySongId, options.path);
   getTakenNameKeys({ takenNameKeysByGroupKey: options.takenNameKeysByGroupKey, groupName }).add(getNameKey(folderName));
 }
 
@@ -152,7 +152,7 @@ function getForeignNameKeysByGroupKey(foreignFolderNamesByGroupKey: ReadonlyMap<
   return new Map([...(foreignFolderNamesByGroupKey ?? [])].map(([groupKey, names]) => [groupKey, new Set(names.map(getNameKey))]));
 }
 
-/** A fixed order, so two computers syncing the same vault choose the same names. */
+/** A fixed order, so two computers syncing the same library choose the same names. */
 function compareSongsForNaming(first: SongFolderFacts, second: SongFolderFacts): number {
-  return first.vaultSongId < second.vaultSongId ? -1 : first.vaultSongId > second.vaultSongId ? 1 : 0;
+  return first.librarySongId < second.librarySongId ? -1 : first.librarySongId > second.librarySongId ? 1 : 0;
 }

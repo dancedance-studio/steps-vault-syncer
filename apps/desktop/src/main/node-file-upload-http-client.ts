@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { HttpRequestError, type FileUploadHttpClient, type FileUploadHttpRequest, type HttpResponse } from '@stepsvault/sync-core';
+import { HttpRequestError, type FileUploadHttpClient, type FileUploadHttpRequest, type HttpResponse } from '@dancedance/sync-core';
 import type { GetSourceFilePath } from './node-multipart-http-client';
 import { fetchWithLimits, getUserAgentHeader } from './node-http-client';
 

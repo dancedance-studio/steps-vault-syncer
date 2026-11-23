@@ -14,7 +14,7 @@ export interface GeneratorFileDownload {
   kind: DownloadedGeneratorFileKind;
   maxBytes: number;
   generatorName: string;
-  /** Send these with the request: the sign-in for StepsVault's own generator, otherwise none. */
+  /** Send these with the request: the sign-in for dancedance.studio's own generator, otherwise none. */
   headers: Readonly<Record<string, string>>;
 }
 
@@ -27,7 +27,7 @@ export type DownloadGeneratorFile = (download: GeneratorFileDownload) => Promise
 export interface CollectGeneratorFilesOptions {
   httpClient: HttpClient;
   generator: InstalledGenerator;
-  /** Set by the app for StepsVault's own generator only. */
+  /** Set by the app for dancedance.studio's own generator only. */
   signIn?: GeneratorSignIn | null;
   files: readonly GeneratorFileLink[];
   downloadGeneratorFile: DownloadGeneratorFile;
@@ -54,7 +54,7 @@ export async function collectGeneratorFiles(options: CollectGeneratorFilesOption
   return { chartText, reportText, sourceIdByKind: await downloadLargeFiles(options) };
 }
 
-/** StepsVault's generator serves its files on its own address, behind the same sign-in; anywhere else is refused. */
+/** dancedance.studio's generator serves its files on its own address, behind the same sign-in; anywhere else is refused. */
 function checkSignedInFilesStayOnGenerator({ generator, signIn, files }: CollectGeneratorFilesOptions): void {
   if (!isOnSignInSite({ signIn, url: generator.baseUrl })) return;
   if (files.every((file) => isOnSignInSite({ signIn, url: file.url }))) return;

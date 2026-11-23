@@ -1,4 +1,4 @@
-import type { FolderLayout, GeneratorDifficulty, SongSourceInput, SongSyncStatus, VaultSongChoice } from '@stepsvault/sync-core';
+import type { FolderLayout, GeneratorDifficulty, SongSourceInput, SongSyncStatus, LibrarySongChoice } from '@dancedance/sync-core';
 
 /** The website shows browser permission prompts; the desktop app has a tray and background sync. */
 export type SyncPlatform = 'website' | 'desktop';
@@ -19,10 +19,10 @@ export type SongSyncStep = 'finding-audio' | 'checking-edit' | 'lining-up' | 'wr
 /** Where a song is in the sync that is running now. */
 export type SongSyncProgress = { kind: 'working'; step: SongSyncStep } | { kind: 'waiting-in-line' };
 
-export type SongAction = 'sync' | 'choose-audio' | 'use-different-file' | 'update' | 'keep-mine' | 'replace-with-stepsvault' | 'remove-from-game' | 'keep-in-game';
+export type SongAction = 'sync' | 'choose-audio' | 'use-different-file' | 'update' | 'keep-mine' | 'replace-with-dancedance' | 'remove-from-game' | 'keep-in-game';
 
 export interface SongRowView {
-  vaultSongId: string;
+  librarySongId: string;
   title: string;
   artist: string;
   genre: string | null;
@@ -30,7 +30,7 @@ export interface SongRowView {
   levels: DifficultyLevels;
   status: SongSyncStatus;
   audioSource: SongAudioSource;
-  /** When the song was added to the vault (milliseconds since 1970), for the "Recently added" sort. */
+  /** When the song was added to the library (milliseconds since 1970), for the "Recently added" sort. */
   addedAt: number;
   progress?: SongSyncProgress | null;
   /** A short line under the status, for example "Keeping your version". */
@@ -92,7 +92,7 @@ export interface MusicFolderView {
 }
 
 export interface PickedFileView {
-  vaultSongId: string;
+  librarySongId: string;
   title: string;
   fileName: string;
   status: SongSyncStatus;
@@ -118,7 +118,7 @@ export interface AddonView {
   isEnabled: boolean;
   health: AddonHealth;
   options: readonly AddonOptionView[];
-  /** False for an addon that only brings new songs: it is never asked for a vault song's music. Missing means true. */
+  /** False for an addon that only brings new songs: it is never asked for a library song's music. Missing means true. */
   isAudioSource?: boolean;
   isNew?: boolean;
 }
@@ -174,7 +174,7 @@ export type LayoutPreviewsByLayout = Readonly<Record<FolderLayout, LayoutPreview
 /** `write-failed`: a song couldn't be written (full disk, StepMania open…); its details say what to do. */
 export type ActivityKind =
   | 'sync-finished' | 'added' | 'updated' | 'lined-up' | 'no-audio' | 'different-edit' | 'removed' | 'kept-edits' | 'addon-not-answering' | 'moved' | 'connected' | 'write-failed'
-  /** Making a song with a generator: started or still going, in the game (or the vault), stopped by a problem, cancelled. */
+  /** Making a song with a generator: started or still going, in the game (or the library), stopped by a problem, cancelled. */
   | 'generating' | 'generated' | 'generate-failed' | 'generate-cancelled';
 
 export interface ActivityEntryView {
@@ -227,15 +227,15 @@ export type LinkCodeState = 'typing' | 'miss' | 'great' | 'linked';
 /** Where an addon or generator runs: on this computer the music stays here, on the internet it is sent there. */
 export type ServiceLocationView = { kind: 'this-computer' } | { kind: 'internet'; address: string };
 
-/** StepsVault's own generator: always listed first, and used when the player doesn't pick another one. */
-export interface StepsVaultGeneratorView {
+/** dancedance.studio's own generator: always listed first, and used when the player doesn't pick another one. */
+export interface DancedanceGeneratorView {
   /** The player's tokens; null when Sync doesn't know them. */
   tokenCount: number | null;
   /** Where the player buys tokens, opened in their browser. */
   tokensHref: string;
-  /** What it can make; null while StepsVault can't be reached. */
+  /** What it can make; null while dancedance.studio can't be reached. */
   difficulties: readonly GeneratorDifficulty[] | null;
-  /** The sentence to agree to before the first song, since StepsVault receives the music too; null once agreed. */
+  /** The sentence to agree to before the first song, since dancedance.studio receives the music too; null once agreed. */
   musicUploadWarning: string | null;
 }
 
@@ -347,7 +347,7 @@ export interface PreselectedSongView {
 export type MakeSongResult = { kind: 'started'; jobKey: string } | { kind: 'failed'; message: string };
 
 /** working: sending the music or being made; the rest are where the job ended, or a question for the player. */
-export type GeneratorJobStateView = 'working' | 'needs-vault-choice' | 'done' | 'failed' | 'cancelled';
+export type GeneratorJobStateView = 'working' | 'needs-library-choice' | 'done' | 'failed' | 'cancelled';
 
 /** A song being made, or recently made, with a generator. */
 export interface GeneratorJobView {
@@ -355,22 +355,22 @@ export interface GeneratorJobView {
   songTitle: string;
   songArtist: string;
   generatorName: string;
-  isStepsVault: boolean;
+  isDancedance: boolean;
   state: GeneratorJobStateView;
   /** For example "Placing the steps"; the generator's own words when it gives them. */
   stageText: string;
   progressPercent: number | null;
   /** Why it failed, or why the generator couldn't stop it. */
   message: string | null;
-  /** "Keep the vault song, or the generated one?", while the player hasn't answered. */
-  vaultChoiceQuestion: string | null;
+  /** "Keep the library song, or the generated one?", while the player hasn't answered. */
+  libraryChoiceQuestion: string | null;
   /** Where the finished song went. */
   doneText: string | null;
 }
 
-export interface VaultChoiceAnswer {
+export interface LibraryChoiceAnswer {
   jobKey: string;
-  choice: VaultSongChoice;
+  choice: LibrarySongChoice;
 }
 
 /** A song in "My generated songs" in the game. */

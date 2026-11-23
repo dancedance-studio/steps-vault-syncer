@@ -25,7 +25,7 @@ export interface GeneratorUploadFile {
   bytes: number;
 }
 
-/** What every call to a generator needs. signIn is set by the app for StepsVault's own generator only. */
+/** What every call to a generator needs. signIn is set by the app for dancedance.studio's own generator only. */
 export interface GeneratorCallOptions {
   httpClient: HttpClient;
   generator: InstalledGenerator;
@@ -43,8 +43,8 @@ export interface StartGeneratorJobOptions extends Omit<GeneratorCallOptions, 'ht
   video: GeneratorUploadFile | null;
 }
 
-/** vaultSongId: the vault song StepsVault's own generator made; null from any other generator. */
-export type GeneratorJobOutcome = { kind: 'done'; files: GeneratorFileLink[]; vaultSongId: string | null } | { kind: 'cancelled'; cancelResult: GeneratorCancelResult };
+/** librarySongId: the library song dancedance.studio's own generator made; null from any other generator. */
+export type GeneratorJobOutcome = { kind: 'done'; files: GeneratorFileLink[]; librarySongId: string | null } | { kind: 'cancelled'; cancelResult: GeneratorCancelResult };
 
 export interface WaitForGeneratorJobOptions extends GeneratorCallOptions {
   job: GeneratorJob;
@@ -67,7 +67,7 @@ export async function startGeneratorJob(options: StartGeneratorJobOptions): Prom
   const timeoutMilliseconds = getUploadTimeoutMilliseconds(music.bytes + (video?.bytes ?? 0));
   try {
     const answer = await httpClient.requestJsonWithFiles({ url, method: 'POST', headers: getSignInHeaders({ signIn, url }), parts, timeoutMilliseconds, maxResponseBytes: MAX_ANSWER_BYTES });
-    return parseStartJobAnswer({ answer, generator: getGeneratorReference(generator), isFromStepsVault: isOnSignInSite({ signIn, url }) });
+    return parseStartJobAnswer({ answer, generator: getGeneratorReference(generator), isFromDancedance: isOnSignInSite({ signIn, url }) });
   } catch (error) {
     if (error instanceof HttpRequestError) throw buildNotAnsweringError({ generator, error });
     throw error;
@@ -79,7 +79,7 @@ export async function fetchGeneratorJobStatus({ httpClient, generator, signIn, j
   const url = getJobUrl({ generator, jobId });
   try {
     const answer = await httpClient.requestJson({ url, method: 'GET', headers: getSignInHeaders({ signIn, url }), timeoutMilliseconds: STATUS_TIMEOUT_MILLISECONDS, maxResponseBytes: MAX_ANSWER_BYTES });
-    return parseJobStatusAnswer({ answer, generator: getGeneratorReference(generator), isFromStepsVault: isOnSignInSite({ signIn, url }) });
+    return parseJobStatusAnswer({ answer, generator: getGeneratorReference(generator), isFromDancedance: isOnSignInSite({ signIn, url }) });
   } catch (error) {
     if (error instanceof HttpRequestError) throw buildNotAnsweringError({ generator, error });
     throw error;
@@ -100,7 +100,7 @@ export async function waitForGeneratorJob(options: WaitForGeneratorJobOptions): 
     progress.waitedSeconds += progress.retryAfterSeconds;
     if (shouldStop()) return cancelAndReport(options);
     const status = await fetchStatusOrNullWhenMissed({ options, progress });
-    if (status?.state === 'done') return { kind: 'done', files: status.files, vaultSongId: status.vaultSongId };
+    if (status?.state === 'done') return { kind: 'done', files: status.files, librarySongId: status.librarySongId };
     if (status?.state === 'failed') throw new GeneratorError({ reason: 'job-failed', message: status.message });
     if (status) {
       progress.retryAfterSeconds = status.retryAfterSeconds;

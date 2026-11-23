@@ -35,14 +35,14 @@ function StateButton({ iconName, label, isGhost = false, onClick }: { iconName: 
   );
 }
 
-export function EmptyVaultState({ vaultHref }: { vaultHref: string }): ReactElement {
+export function EmptyLibraryState({ libraryHref }: { libraryHref: string }): ReactElement {
   const picture = (
     <div className="sv-sync-empty-receptors" aria-hidden="true">
       <ArrowReceptor direction="left" size={40} /><ArrowReceptor direction="down" size={40} /><ArrowReceptor direction="up" size={40} /><ArrowReceptor direction="right" size={40} />
     </div>
   );
   return (
-    <StateCard label="Empty library" tone="calm" picture={picture} title="Your library is empty" action={<a className="sv-sync-button" href={vaultHref}><Icon name="external" />Browse the library</a>}>
+    <StateCard label="Empty library" tone="calm" picture={picture} title="Your library is empty" action={<a className="sv-sync-button" href={libraryHref}><Icon name="external" />Browse the library</a>}>
       Make or add songs on {SITE_NAME}. They show up here and sync to your game.
     </StateCard>
   );

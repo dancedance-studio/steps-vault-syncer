@@ -4,7 +4,7 @@ import { ADDON_PROTOCOL_VERSION, getAddonErrorOrNull, InvalidAddonAnswerError, p
 import type { SongSourceInputValues } from './song-source-inputs';
 
 const MAX_SONG_TEXT_LENGTH = 200;
-const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
+const VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 // No real song is longer; a bigger number is a broken answer, not a song.
 const MAX_SONG_LENGTH_SECONDS = 60 * 60;
 /** Enough to tell a few versions apart; more is a search page, not a pick. */
@@ -17,7 +17,7 @@ export interface SongSourceSong {
   album: string | null;
   genre: string | null;
   lengthSeconds: number | null;
-  youtubeId: string | null;
+  videoId: string | null;
 }
 
 export type SongSourceFileLink = Extract<AudioLink, { kind: 'file-url' }>;
@@ -97,7 +97,7 @@ function parseSongOrNull(value: unknown): SongSourceSong | null {
   const title = getSongTextOrNull(value.title);
   const artist = getSongTextOrNull(value.artist);
   if (title === null || artist === null) return null;
-  return { title, artist, album: getSongTextOrNull(value.album), genre: getSongTextOrNull(value.genre), lengthSeconds: getLengthSecondsOrNull(value.lengthSeconds), youtubeId: getYoutubeIdOrNull(value.youtubeId) };
+  return { title, artist, album: getSongTextOrNull(value.album), genre: getSongTextOrNull(value.genre), lengthSeconds: getLengthSecondsOrNull(value.lengthSeconds), videoId: getVideoIdOrNull(value.videoId) };
 }
 
 function getSongTextOrNull(value: unknown): string | null {
@@ -110,8 +110,8 @@ function getLengthSecondsOrNull(value: unknown): number | null {
   return value > 0 && value <= MAX_SONG_LENGTH_SECONDS ? value : null;
 }
 
-function getYoutubeIdOrNull(value: unknown): string | null {
-  return typeof value === 'string' && YOUTUBE_ID_PATTERN.test(value) ? value : null;
+function getVideoIdOrNull(value: unknown): string | null {
+  return typeof value === 'string' && VIDEO_ID_PATTERN.test(value) ? value : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

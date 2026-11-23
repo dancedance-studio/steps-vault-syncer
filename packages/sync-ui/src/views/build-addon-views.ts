@@ -1,5 +1,5 @@
 /** Builds what the addon screens show from installed addons; shared by the website and the desktop app. */
-import { getAddonOptionValues, isAddonProviding, isHostOnSites, parseUrlOrNull, type AddonManifest, type AddonOption, type AddonOptionValues, type InstalledAddon } from '@stepsvault/sync-core';
+import { getAddonOptionValues, isAddonProviding, isHostOnSites, parseUrlOrNull, type AddonManifest, type AddonOption, type AddonOptionValues, type InstalledAddon } from '@dancedance/sync-core';
 import type { AddonInstallPreview, AddonOptionView, AddonView, LinkFieldView, LinksTabView, SongSourceTabView } from '../sync-ui-types';
 
 export function buildAddonView(addon: InstalledAddon): AddonView {
