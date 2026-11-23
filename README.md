@@ -10,6 +10,15 @@ lined up with **your own copy of the music**. dancedance.studio makes dance step
 Sync runs on the website (Chrome or Edge) and as this open-source desktop app (Windows first). Both share the
 packages in this repo. How it works and what is planned: [docs/plan.md](docs/plan.md).
 
+## Download
+
+Get the Windows installer from [dancedance.studio/sync/about](https://dancedance.studio/sync/about) or this repo's
+[releases](https://github.com/dancedance-studio/sync/releases).
+
+- **Code signing policy:** [docs/code-signing-policy.md](docs/code-signing-policy.md). Free code signing provided by
+  [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+- **Privacy:** [what Sync sends, and where](docs/privacy.md).
+
 ## Build it
 
 You need Node 22 or newer, and pnpm. Run `corepack enable` once to get the pnpm version this repo pins. On Windows,
