@@ -1,4 +1,4 @@
-# Releasing StepsVault Sync
+# Releasing dancedance.studio Sync
 
 Releases are built in public GitHub Actions (`.github/workflows/release.yml`), signed through SignPath's free plan for
 open-source projects, and published as GitHub releases. The app updates itself from those releases.
