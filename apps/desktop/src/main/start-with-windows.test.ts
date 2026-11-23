@@ -16,13 +16,13 @@ describe('start with Windows', () => {
     expect(applyWith(INSTALLED, true)).toEqual({ command: `"${INSTALLED.programPath}"`, written: [{ openAtLogin: true, name: 'dancedance.studio Sync' }] });
   });
 
-  it('from source, starts Electron with the quoted app folder, under its own name', () => {
-    expect(applyWith(FROM_SOURCE, true)).toEqual({ command: `"${FROM_SOURCE.programPath}" "C:\\projects\\sync\\apps\\desktop"`, written: [{ openAtLogin: true, name: 'dancedance.studio Sync (from source)', args: ['"C:\\projects\\sync\\apps\\desktop"'] }] });
+  it('from source, starts Electron with the app folder as a bare argument (Electron quotes it), under its own name', () => {
+    expect(applyWith(FROM_SOURCE, true)).toEqual({ command: `"${FROM_SOURCE.programPath}" C:\\projects\\sync\\apps\\desktop`, written: [{ openAtLogin: true, name: 'dancedance.studio Sync (from source)', args: ['C:\\projects\\sync\\apps\\desktop'] }] });
   });
 
   it('turned off, removes the same value', () => {
     expect(applyWith(INSTALLED, false).written).toEqual([{ openAtLogin: false, name: 'dancedance.studio Sync' }]);
-    expect(applyWith(FROM_SOURCE, false).written).toEqual([{ openAtLogin: false, name: 'dancedance.studio Sync (from source)', args: ['"C:\\projects\\sync\\apps\\desktop"'] }]);
+    expect(applyWith(FROM_SOURCE, false).written).toEqual([{ openAtLogin: false, name: 'dancedance.studio Sync (from source)', args: ['C:\\projects\\sync\\apps\\desktop'] }]);
   });
 
   it('changes nothing outside Windows or in a test run', () => {
