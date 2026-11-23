@@ -31,7 +31,7 @@ rules (choices only).
 ## 3. Jobs
 
 - `POST /jobs`, `multipart/form-data`: a `request` JSON part
-  (`{ "protocol": 1, "song": { "title", "artist", "lengthSeconds", "album", "genre", "youtubeId" }, "difficulties": [...], "options": {...} }`),
+  (`{ "protocol": 1, "song": { "title", "artist", "lengthSeconds", "album", "genre", "videoId" }, "difficulties": [...], "options": {...} }`),
   a `music` file part, and a `video` part only if you set `usesVideo`. Answer `202 { "jobId", "retryAfterSeconds" }`
   right away and do the work in the background.
 - `GET /jobs/<jobId>`: `{ "state": "queued" | "working", "progress": 0.4, "stage": "Placing the steps", "retryAfterSeconds": 10 }`,
@@ -151,7 +151,7 @@ def cancel_job(job_id: str):
 
 ```bash
 curl -s http://127.0.0.1:47870/manifest.json
-curl -s -X POST http://127.0.0.1:47870/jobs -F 'request={"protocol":1,"song":{"title":"Test","artist":"Me","lengthSeconds":120,"album":null,"genre":null,"youtubeId":null},"difficulties":["Easy"],"options":{}};type=application/json' -F "music=@song.ogg;type=audio/ogg"
+curl -s -X POST http://127.0.0.1:47870/jobs -F 'request={"protocol":1,"song":{"title":"Test","artist":"Me","lengthSeconds":120,"album":null,"genre":null,"videoId":null},"difficulties":["Easy"],"options":{}};type=application/json' -F "music=@song.ogg;type=audio/ogg"
 curl -s http://127.0.0.1:47870/jobs/<jobId>
 ```
 

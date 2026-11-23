@@ -7,7 +7,7 @@ import { findMusicCandidates, scanMusicLibrary, type MusicFile, type MusicLibrar
 import { searchMusicIndex } from './music-search';
 import { getFileNameFacts, getSongNameKey } from './song-names';
 
-const CHEAP_THRILLS: AudioSearchSong = { librarySongId: 'a', title: 'Cheap Thrills', artist: 'Sia', album: 'This Is Acting', genre: 'Pop', lengthSeconds: 224, youtubeId: null, youtubeUrl: null };
+const CHEAP_THRILLS: AudioSearchSong = { librarySongId: 'a', title: 'Cheap Thrills', artist: 'Sia', album: 'This Is Acting', genre: 'Pop', lengthSeconds: 224, videoId: null, videoUrl: null };
 
 function buildMusicFile(overrides: Partial<MusicFile> & { sourceId: string; fileName: string }): MusicFile {
   return { folderNames: [], taggedTitle: null, taggedArtist: null, ...overrides };

@@ -17,7 +17,7 @@ const GENERATOR_MUSIC_BYTES = new Uint8Array([79, 103, 103, 83, 1]);
 const PLAYER_MUSIC_BYTES = new Uint8Array([79, 103, 103, 83, 2]);
 const VIDEO_BYTES = new Uint8Array([0, 0, 0, 24]);
 const GROUP = 'My generated songs';
-const PULSE_GARDEN: GeneratorSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, youtubeId: 'pulse123' };
+const PULSE_GARDEN: GeneratorSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, videoId: 'pulse123' };
 
 const METERS_BY_DIFFICULTY: Readonly<Record<string, string>> = { Easy: '3', Medium: 'not a level' };
 
@@ -99,7 +99,7 @@ describe('writeGeneratedSong', () => {
     expect(game.songsFolder.readBytes([...folder, 'video.mp4'])).toEqual(VIDEO_BYTES);
     expect(game.songsFolder.readBytes([...folder, 'banner.png'])).toEqual(PNG_BYTES);
     expect(await game.songsFolder.readText([...folder, SONG_FOLDER_MARKER_FILE_NAME])).toContain('"format": "dancedance-generated-song"');
-    expect(getGeneratedSongs(game.record)).toMatchObject([{ songKey: 'youtube:pulse123', generatorId: 'example.onset-steps', generatorVersion: '0.1.0', folderPath: folder, difficulties: ['Easy', 'Medium'], levelsByDifficulty: { Easy: 3 }, inPlaceOfLibrarySongId: null }]);
+    expect(getGeneratedSongs(game.record)).toMatchObject([{ songKey: 'video:pulse123', generatorId: 'example.onset-steps', generatorVersion: '0.1.0', folderPath: folder, difficulties: ['Easy', 'Medium'], levelsByDifficulty: { Easy: 3 }, inPlaceOfLibrarySongId: null }]);
     expect(game.record.ownedGroupNames).toEqual([GROUP]);
     expect((await game.songsFolder.listEntries([GROUP])).map((entry) => entry.name)).toEqual(['Pulse Garden']);
   });
@@ -169,23 +169,23 @@ describe('writeGeneratedSong', () => {
 
   it('names the folder in English letters from #TITLETRANSLIT', async () => {
     const game = new GeneratedSongGame();
-    const song = { ...PULSE_GARDEN, title: 'הזוג הזה', artist: 'מרגי', youtubeId: null };
+    const song = { ...PULSE_GARDEN, title: 'הזוג הזה', artist: 'מרגי', videoId: null };
     await game.write({ song, files: { chartText: buildSongSsc({ header: { TITLE: 'הזוג הזה', TITLETRANSLIT: 'HaZug HaZe', ARTIST: 'מרגי' } }) } });
     expect(await game.songsFolder.listEntries([GROUP])).toEqual([{ name: 'HaZug HaZe', isFolder: true }]);
     expect(await game.readSongText('HaZug HaZe')).toContain('#TITLE:הזוג הזה;');
     expect(getGeneratedSongs(game.record)[0]?.songKey).toBe('song:הזוג הזה\nמרגי');
   });
 
-  it('falls back to “Song <youtubeId>” when the title has no English spelling', async () => {
+  it('falls back to “Song <videoId>” when the title has no English spelling', async () => {
     const game = new GeneratedSongGame();
     await game.write({ files: { chartText: buildSongSsc({ header: { TITLE: 'הזוג הזה', ARTIST: 'מרגי' } }) } });
     expect(await game.songsFolder.listEntries([GROUP])).toEqual([{ name: 'Song pulse123', isFolder: true }]);
     expect(await game.readSongText('Song pulse123')).toContain('#TITLE:הזוג הזה;');
   });
 
-  it('falls back to “Generated song <date> <time>” without a youtubeId, and never keeps a title with other scripts left in it', async () => {
+  it('falls back to “Generated song <date> <time>” without a videoId, and never keeps a title with other scripts left in it', async () => {
     const game = new GeneratedSongGame();
-    const song = { ...PULSE_GARDEN, youtubeId: null };
+    const song = { ...PULSE_GARDEN, videoId: null };
     await game.write({ song, files: { chartText: buildSongSsc({ header: { TITLE: 'Tokyo 東京' } }) } });
     await game.write({ song: { ...song, title: 'Other' }, files: { chartText: buildSongSsc({ header: { TITLE: 'Другая' } }) } });
     expect((await game.songsFolder.listEntries([GROUP])).map((entry) => entry.name).sort()).toEqual(['Generated song 2026-10-25 1200', 'Generated song 2026-10-25 1200 (Kairo Lights)']);
@@ -233,7 +233,7 @@ describe('writeGeneratedSong', () => {
 });
 
 describe('a generated song that is also in the library', () => {
-  const LIBRARY_SONGS: LibrarySongIdentity[] = [{ librarySongId: 'library-1', title: 'Another Title', artist: 'Someone', youtubeId: 'pulse123' }];
+  const LIBRARY_SONGS: LibrarySongIdentity[] = [{ librarySongId: 'library-1', title: 'Another Title', artist: 'Someone', videoId: 'pulse123' }];
 
   it('asks the player which one to keep, and writes nothing yet', async () => {
     const game = new GeneratedSongGame();
@@ -244,7 +244,7 @@ describe('a generated song that is also in the library', () => {
 
   it('finds the same song by title and artist when there is no video', async () => {
     const game = new GeneratedSongGame();
-    const result = await game.write({ song: { ...PULSE_GARDEN, youtubeId: null }, librarySongs: [{ librarySongId: 'library-2', title: ' pulse  GARDEN', artist: 'Kairo Lights', youtubeId: null }] });
+    const result = await game.write({ song: { ...PULSE_GARDEN, videoId: null }, librarySongs: [{ librarySongId: 'library-2', title: ' pulse  GARDEN', artist: 'Kairo Lights', videoId: null }] });
     expect(result).toMatchObject({ kind: 'needs-library-choice', librarySongId: 'library-2' });
   });
 

@@ -27,7 +27,7 @@ const SIGN_IN = { siteUrl: 'https://dancedance.example.com', deviceToken: 'devic
 const MANIFEST: GeneratorManifest = { protocol: 1, kind: 'generator', id: 'stepcat.tap-forge', name: 'Tap Forge', version: '1.2.0', author: '@stepcat', description: '', difficulties: ['Easy', 'Medium'], musicTypes: ['audio/ogg'], usesVideo: false, maxMusicBytes: 1_000_000, options: [] };
 const DANCEDANCE_MANIFEST: GeneratorManifest = { ...MANIFEST, id: 'dancedance.generator', name: 'dancedance.studio' };
 const CHART_TEXT = ['#TITLE:Night Drive;', '#OFFSET:0;', '#BPMS:0=120;', '', '#NOTEDATA:;', '#STEPSTYPE:dance-single;', '#DIFFICULTY:Easy;', '#NOTES:', '1000', ';', ''].join('\n');
-const NIGHT_DRIVE = { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null };
+const NIGHT_DRIVE = { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, videoId: null };
 
 type Route = (request: HttpRequest | MultipartHttpRequest) => HttpResponse<unknown>;
 
@@ -178,13 +178,13 @@ describe('GeneratorJobRunner', () => {
     await runner.initialize();
     const source = { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' };
     const video = { sourceId: 'file:jobs/job-1/source-video.mp4', fileName: 'source-video.mp4', contentType: 'video/mp4', bytes: 4 };
-    await runner.startJob(buildStart({ song: { ...NIGHT_DRIVE, youtubeId: 'Vid3o1d-x_Z' }, video, playerVideoLocation: 'jobs/job-1/source-video.mp4', source }));
+    await runner.startJob(buildStart({ song: { ...NIGHT_DRIVE, videoId: 'Vid3o1d-x_Z' }, video, playerVideoLocation: 'jobs/job-1/source-video.mp4', source }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
     const requestPart = sentParts.find((part) => part.kind === 'json' && part.name === 'request');
-    expect(requestPart?.kind === 'json' ? requestPart.value : null).toMatchObject({ song: { title: 'Night Drive', youtubeId: 'Vid3o1d-x_Z' } });
+    expect(requestPart?.kind === 'json' ? requestPart.value : null).toMatchObject({ song: { title: 'Night Drive', videoId: 'Vid3o1d-x_Z' } });
     expect(sentParts.some((part) => part.kind === 'file' && part.fileName === 'source-video.mp4')).toBe(true);
     expect(app.savedJobs[0]?.source).toEqual(source);
-    expect(getGeneratedSongs(app.record)[0]).toMatchObject({ song: { youtubeId: 'Vid3o1d-x_Z' }, source });
+    expect(getGeneratedSongs(app.record)[0]).toMatchObject({ song: { videoId: 'Vid3o1d-x_Z' }, source });
   });
 
   it('keeps no source for music from the player’s own files', async () => {
@@ -256,7 +256,7 @@ describe('GeneratorJobRunner', () => {
 
   it('asks which song to keep when the library has the same song, then writes the player’s choice', async () => {
     const app = new FakeApp();
-    app.librarySongs = [{ librarySongId: 'song_7', title: 'Night Drive', artist: 'Lumen Park', youtubeId: null }];
+    app.librarySongs = [{ librarySongId: 'song_7', title: 'Night Drive', artist: 'Lumen Park', videoId: null }];
     app.routeFinishedJob({ address: COMMUNITY_ADDRESS });
     const runner = app.buildRunner();
     await runner.startJob(buildStart());
@@ -271,7 +271,7 @@ describe('GeneratorJobRunner', () => {
 
   it('writes nothing when the player keeps the library song', async () => {
     const app = new FakeApp();
-    app.librarySongs = [{ librarySongId: 'song_7', title: 'Night Drive', artist: 'Lumen Park', youtubeId: null }];
+    app.librarySongs = [{ librarySongId: 'song_7', title: 'Night Drive', artist: 'Lumen Park', videoId: null }];
     app.routeFinishedJob({ address: COMMUNITY_ADDRESS });
     const runner = app.buildRunner();
     await runner.startJob(buildStart());

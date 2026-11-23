@@ -16,7 +16,7 @@ const OPEN_AUDIO_LINKS: AddonManifest = {
   options: [{ id: 'media', label: 'What to get', kind: 'choice', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], default: 'audio-and-video' }],
   inputs: [{ id: 'link', kind: 'link', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }, { id: 'note', kind: 'search', label: 'Note', placeholder: null }],
 };
-const NIGHT_DRIVE: SongSourceSong = { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 220.6, youtubeId: 'Vid3o1d-x_Z' };
+const NIGHT_DRIVE: SongSourceSong = { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 220.6, videoId: 'Vid3o1d-x_Z' };
 const MUSIC_LINK: SongSourceFileLink = { kind: 'file-url', media: 'audio', url: 'http://127.0.0.1:7802/files/night-drive.ogg', label: 'Music', fileName: 'night-drive.ogg' };
 const VIDEO_LINK: SongSourceFileLink = { kind: 'file-url', media: 'video', url: 'http://127.0.0.1:7802/files/night-drive.mp4', label: 'Video', fileName: 'night-drive.mp4' };
 
@@ -64,9 +64,9 @@ describe('reading link jobs', () => {
     expect(parseLinkJobOrNull({ id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/night-drive', expiresAt: '2026-11-21T12:00:20.000Z' })).toEqual({ id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/night-drive', expiresAt: '2026-11-21T12:00:20.000Z' });
     expect(parseLinkJobOrNull({ id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' })).toEqual({ id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' });
     expect(parseLinkJobOrNull({ id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' })).toEqual({ id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' });
-    const librarySong = { librarySongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, youtubeId: null, chartVersion: 'v1' };
+    const librarySong = { librarySongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, videoId: null, chartVersion: 'v1' };
     expect(parseLinkJobOrNull({ id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z', song: librarySong })).toEqual({
-      id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z',
+      id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', videoUrl: null, expiresAt: '2026-11-21T12:03:00.000Z',
       song: { librarySongId: 'song_42', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221 },
     });
   });
@@ -102,7 +102,7 @@ describe('find answers', () => {
     const choices = [
       { song: NIGHT_DRIVE, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK },
       { song: { ...NIGHT_DRIVE, title: 'Night Drive (Live)' }, musicLink: MUSIC_LINK, videoLink: null },
-      { song: { ...NIGHT_DRIVE, title: 'Night Drive (Edit)', youtubeId: null }, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK },
+      { song: { ...NIGHT_DRIVE, title: 'Night Drive (Edit)', videoId: null }, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK },
       { song: { ...NIGHT_DRIVE, title: 'Night Drive (Demo)', lengthSeconds: null }, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK },
     ];
     const results = buildLinkFindResults({ choices, link: 'https://www.clips.example/v/night-drive', sites: ['clips.example', 'media.example.org'] });

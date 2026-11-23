@@ -23,7 +23,7 @@ const MANIFEST_ANSWER = {
   options: [{ id: 'style', label: 'Style', kind: 'choice', choices: [{ value: 'calm', label: 'Calm' }, { value: 'busy', label: 'Busy' }], default: 'calm' }],
 };
 const MANIFEST = { ...MANIFEST_ANSWER, maxMusicBytes: 100 * 1024 * 1024 } as GeneratorManifest;
-const SONG: GeneratorSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, youtubeId: null };
+const SONG: GeneratorSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, videoId: null };
 const MUSIC: GeneratorUploadFile = { sourceId: 'music-1', fileName: 'Pulse Garden.ogg', contentType: 'audio/ogg', bytes: 4_000_000 };
 const VIDEO: GeneratorUploadFile = { sourceId: 'video-1', fileName: 'Pulse Garden.mp4', contentType: 'video/mp4', bytes: 30_000_000 };
 const DANCEDANCE_ADDRESS = 'https://dancedance.example.com/api/generator';

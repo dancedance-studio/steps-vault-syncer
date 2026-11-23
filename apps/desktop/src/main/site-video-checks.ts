@@ -65,7 +65,7 @@ export async function checkVideoForSite({ ports, job, wait }: { ports: SiteVideo
 
 /** Asks again as often as the addon says while it is still working, until it answers or the job's time is up. */
 async function fetchVideoAudioLinks({ ports, addon, job, wait }: { ports: SiteVideoCheckPorts; addon: InstalledAddon; job: VerifyLinkJob; wait: AddonWait }): Promise<{ kind: 'links'; links: AudioLink[]; addonError: string | null } | { kind: 'failed'; reason: string }> {
-  const song = buildAddonSongFacts({ ...job.song, youtubeId: job.videoId });
+  const song = buildAddonSongFacts({ ...job.song, videoId: job.videoId, videoUrl: job.videoUrl });
   for (;;) {
     const answer = await fetchAudioLinks({ httpClient: ports.addonHttpClient, addon, song });
     if (answer.kind === 'links') return answer;

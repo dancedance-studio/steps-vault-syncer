@@ -8,7 +8,9 @@ export interface LibrarySongDetails extends LibrarySong {
   /** Beginner to Challenge; null where the site sent no level. */
   levels: (number | null)[];
   bpm: number | null;
-  youtubeId: string | null;
+  videoId: string | null;
+  /** The video's web address, when the site sends one. */
+  videoUrl?: string | null;
   imageKinds: string[];
   hasFingerprint: boolean;
   /** The colour of the player's group on the site (green, pink, cyan, yellow, orange or purple; null: in no group), so

@@ -12,7 +12,7 @@ import type { SyncPartyList, LibrarySongDetails } from '../dancedance-api/danced
 import type { SongFiles } from '../writing/song-writer';
 import { runSync, type SyncPorts, type SyncSettings, type SyncLibrary } from './run-sync';
 
-const CHEAP_THRILLS: LibrarySongDetails = { librarySongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, youtubeId: null, chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
+const CHEAP_THRILLS: LibrarySongDetails = { librarySongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, videoId: null, chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
 const WATCH_ME: LibrarySongDetails = { ...CHEAP_THRILLS, librarySongId: 'b', slug: 'watch-me', title: 'Watch Me', artist: 'Silento', genre: 'Hip-Hop' };
 /** In party lists only, never in the player's library. */
 const LEVITATING: LibrarySongDetails = { ...CHEAP_THRILLS, librarySongId: 'd', slug: 'levitating', title: 'Levitating', artist: 'Dua Lipa' };

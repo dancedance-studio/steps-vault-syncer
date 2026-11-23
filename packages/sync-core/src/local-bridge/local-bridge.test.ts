@@ -14,7 +14,7 @@ const GROUP_NAME = 'My generated songs';
 function buildGeneratedSong(overrides: Partial<GeneratedSong> = {}): GeneratedSong {
   return {
     songKey: 'song:night drive\nlumen park',
-    song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null },
+    song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, videoId: null },
     generatorId: 'stepcat.tap-forge', generatorVersion: '1.2.0', generatorName: 'Tap Forge', difficulties: ['Easy', 'Hard'], levelsByDifficulty: { Easy: 3, Hard: 9 },
     installId: 'install-1', folderPath: [GROUP_NAME, 'Night Drive'], inPlaceOfLibrarySongId: null, generatedAt: '2026-10-30T10:00:00.000Z',
     ...overrides,

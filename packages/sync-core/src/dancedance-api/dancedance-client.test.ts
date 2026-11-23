@@ -19,7 +19,8 @@ const LIBRARY_SONG = {
   lengthSeconds: 212,
   levels: [3, 5, 8, 11, 13],
   bpm: 174,
-  youtubeId: 'abcdefghijk',
+  videoId: 'abcdefghijk',
+  videoUrl: 'https://clips.example/watch?v=abcdefghijk',
   chartVersion: '0f3a9c1d2e4b5a69',
   imageKinds: ['banner', 'background', 'jacket'],
   hasFingerprint: true,
@@ -172,7 +173,7 @@ describe('reportComputerSongs', () => {
 
 describe('buildComputerSongReports', () => {
   it('lists the generated songs newest first, with the facts the site shows (never where the music came from), and at most 500', () => {
-    const older = { songKey: 'song:a', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null }, generatorId: 'tap', generatorVersion: '1.0.0', generatorName: 'Tap Forge', difficulties: ['Easy' as const], installId: 'i1', folderPath: buildSongsPath('My generated songs', 'Night Drive'), inPlaceOfLibrarySongId: null, generatedAt: '2026-10-21T10:00:00.000Z' };
+    const older = { songKey: 'song:a', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, videoId: null }, generatorId: 'tap', generatorVersion: '1.0.0', generatorName: 'Tap Forge', difficulties: ['Easy' as const], installId: 'i1', folderPath: buildSongsPath('My generated songs', 'Night Drive'), inPlaceOfLibrarySongId: null, generatedAt: '2026-10-21T10:00:00.000Z' };
     const newer = { ...older, songKey: 'song:b', song: { ...older.song, title: 'Low Tide' }, source: { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' }, generatedAt: '2026-10-24T10:00:00.000Z' };
     expect(buildComputerSongReports([older, newer])).toEqual([
       { localId: 'song:b', title: 'Low Tide', artistName: 'Lumen Park', generatorName: 'Tap Forge', difficulties: ['Easy'], madeAt: '2026-10-24T10:00:00.000Z' },
@@ -184,8 +185,10 @@ describe('buildComputerSongReports', () => {
 });
 
 describe('buildAddonSongFacts', () => {
-  it('passes only the facts addons may see, with the video link built from the id', () => {
-    expect(buildAddonSongFacts(LIBRARY_SONG)).toEqual({ title: '桜ドライブ', artist: 'Rei Hoshino', album: null, genre: 'J-Pop', lengthSeconds: 212, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' });
+  it('passes only the facts addons may see, with the video’s address as the site sent it', () => {
+    expect(buildAddonSongFacts(LIBRARY_SONG)).toEqual({ title: '桜ドライブ', artist: 'Rei Hoshino', album: null, genre: 'J-Pop', lengthSeconds: 212, videoId: 'abcdefghijk', videoUrl: 'https://clips.example/watch?v=abcdefghijk' });
+    expect(buildAddonSongFacts({ ...LIBRARY_SONG, videoUrl: null })).toMatchObject({ videoId: 'abcdefghijk', videoUrl: null });
+    expect(buildAddonSongFacts({ ...LIBRARY_SONG, videoId: null })).toMatchObject({ videoId: null, videoUrl: null });
   });
 });
 

@@ -68,9 +68,10 @@ export type LinkJob =
   | { id: string; kind: 'install'; addonId: string; songId: string; expiresAt: string | null }
   /**
    * Is this video's music the song? songId is its librarySongId; song its facts as the library list gives them (it is often
-   * not in the player's library); videoId the video to ask the addon about. Nothing is installed or uploaded for it.
+   * not in the player's library); videoId the video to ask the addon about, and videoUrl its web address when the site
+   * sends one. Nothing is installed or uploaded for it.
    */
-  | { id: string; kind: 'verify'; addonId: string; songId: string; videoId: string; song: VerifySongFacts; expiresAt: string | null };
+  | { id: string; kind: 'verify'; addonId: string; songId: string; videoId: string; videoUrl: string | null; song: VerifySongFacts; expiresAt: string | null };
 
 /** The facts of a verify job's song that the addon is asked with, as the library list gives them. */
 export interface VerifySongFacts {
@@ -204,7 +205,8 @@ function parseVerifyJobOrNull({ value, id, addonId, expiresAt }: { value: Record
   const videoId = getJobIdOrNull(value.videoId);
   const song = parseVerifySongFactsOrNull(value.song);
   if (songId === null || videoId === null || song === null) return null;
-  return { id, kind: 'verify', addonId, songId, videoId, song: { ...song, librarySongId: songId }, expiresAt };
+  const videoUrl = typeof value.videoUrl === 'string' ? value.videoUrl : null;
+  return { id, kind: 'verify', addonId, songId, videoId, videoUrl, song: { ...song, librarySongId: songId }, expiresAt };
 }
 
 /** A song without a title and an artist can't be asked about; its id is the job's songId. */
@@ -264,7 +266,7 @@ export function buildNotFoundAnswer(addonError: string | null): LinkJobAnswer {
  * music, so its title, channel and length are the song's.
  */
 function buildVideoFactsOrNull({ choice, lengthSec }: { choice: Pick<SongSourceChoice, 'song' | 'videoLink'>; lengthSec: number | null }): LinkVideoFacts | null {
-  const videoId = choice.song.youtubeId;
+  const videoId = choice.song.videoId;
   if (videoId === null) return null;
   return { videoId, title: choice.song.title, channel: choice.song.artist, lengthSec };
 }

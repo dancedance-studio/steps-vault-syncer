@@ -20,7 +20,8 @@ For each song Sync asks about, an addon gets the song's facts only:
 | `album` | `"Afterimage"` or `null` |
 | `genre` | `"Electronic"` or `null` |
 | `lengthSeconds` | `201` or `null` |
-| `youtubeId`, `youtubeUrl` | the song's video on dancedance.studio, or `null` |
+| `videoId` | the id of the song's video on dancedance.studio, or `null` |
+| `videoUrl` | that video's web address when the site gives one, else `null` |
 
 Never the player's account, name, IP-based identity beyond what any web request carries, files, other songs, or
 anything else on their computer.
@@ -83,7 +84,7 @@ Request:
 
 ```json
 { "protocol": 1, "song": { "title": "Pulse Garden", "artist": "Kairo Lights", "album": null, "genre": "Electronic",
-  "lengthSeconds": 201, "youtubeId": null, "youtubeUrl": null }, "options": { "media": "audio" } }
+  "lengthSeconds": 201, "videoId": null, "videoUrl": null }, "options": { "media": "audio" } }
 ```
 
 `options` is there only when the manifest declares options. It has one value for every declared option (the
@@ -153,7 +154,7 @@ In the manifest:
 
 Answers:
 
-- `200 { "song": { "title", "artist", "album", "genre", "lengthSeconds", "youtubeId" }, "links": [...] }`: the song
+- `200 { "song": { "title", "artist", "album", "genre", "lengthSeconds", "videoId" }, "links": [...] }`: the song
   it found (`title` and `artist` are needed; the rest may be `null`) and its files, as `file-url` links like those of
   `/audio-links`: one music file, and a video if the addon provides videos. Sync shows the song so the player can
   check it, then sends the music (and the video, if the generator wants it) to the generator; the video from the same
@@ -166,7 +167,7 @@ Answers:
 - `200 { "error": "One short sentence" }`: nothing found for this input.
 
 The same limits as `/audio-links` apply: an answer within 20 seconds and under 64 KB; Sync keeps asking after `202`
-for up to 3 minutes, long enough to download a song's music and its video. Facts are trimmed to 200 characters; a `lengthSeconds` outside 0-3600 or a `youtubeId` that
+for up to 3 minutes, long enough to download a song's music and its video. Facts are trimmed to 200 characters; a `lengthSeconds` outside 0-3600 or a `videoId` that
 isn't 11 characters becomes `null`. The first music link is used; `open-page` links are ignored here. An answer with a
 `song` is used even if it also has an `error`; one with neither counts as not answering. A video needs no
 `video-links` in `provides`, and the `media` option "Music only" drops it, as for `/audio-links`.
@@ -176,7 +177,7 @@ addon.
 
 Sync keeps which addon found the music, and the link the player typed (none for a search), with the made song, for
 "How it was made". It keeps them on the player's computer only and doesn't send them to dancedance.studio. Sync never
-reads anything out of the link itself: the song's facts, `youtubeId` among them, come only from the addon's answer.
+reads anything out of the link itself: the song's facts, `videoId` among them, come only from the addon's answer.
 
 ### Links from the website
 

@@ -22,7 +22,7 @@ const blockingServers: Server[] = [];
 
 function buildGeneratedSong(overrides: Partial<GeneratedSong> = {}): GeneratedSong {
   return {
-    songKey: 'song:night drive\nlumen park', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null },
+    songKey: 'song:night drive\nlumen park', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, videoId: null },
     generatorId: 'stepcat.tap-forge', generatorVersion: '1.2.0', generatorName: 'Tap Forge', difficulties: ['Hard'], levelsByDifficulty: { Hard: 9 },
     installId: 'install-1', folderPath: ['My generated songs', 'Night Drive'], inPlaceOfLibrarySongId: null, generatedAt: '2026-10-30T10:00:00.000Z', ...overrides,
   };

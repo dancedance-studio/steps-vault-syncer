@@ -18,7 +18,6 @@ const MAX_SSC_BYTES = 4 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_FINGERPRINT_BYTES = 16 * 1024 * 1024;
 const BYTES_PER_FLOAT = 4;
-const YOUTUBE_WATCH_URL = 'https://www.youtube.com/watch?v=';
 /** Every dancedance.studio song has these; used when the library hasn't been read in this session yet. */
 const DEFAULT_IMAGE_KINDS = ['banner', 'background', 'jacket'];
 
@@ -184,15 +183,15 @@ export async function pollDeviceSignIn({ httpClient, siteUrl, pollingId }: { htt
 }
 
 /** Exactly the facts an addon may see (docs/addons.md). */
-export function buildAddonSongFacts(song: Pick<LibrarySongDetails, 'title' | 'artist' | 'album' | 'genre' | 'lengthSeconds' | 'youtubeId'>): AddonSongFacts {
+export function buildAddonSongFacts(song: Pick<LibrarySongDetails, 'title' | 'artist' | 'album' | 'genre' | 'lengthSeconds' | 'videoId' | 'videoUrl'>): AddonSongFacts {
   return {
     title: song.title,
     artist: song.artist,
     album: song.album,
     genre: song.genre,
     lengthSeconds: song.lengthSeconds,
-    youtubeId: song.youtubeId,
-    youtubeUrl: song.youtubeId ? `${YOUTUBE_WATCH_URL}${song.youtubeId}` : null,
+    videoId: song.videoId,
+    videoUrl: song.videoId ? (song.videoUrl ?? null) : null,
   };
 }
 
@@ -242,7 +241,8 @@ function parseLibrarySong(value: unknown): LibrarySongDetails {
     lengthSeconds: typeof song.lengthSeconds === 'number' ? song.lengthSeconds : 0,
     levels: Array.isArray(song.levels) ? song.levels.slice(0, 5).map((level) => (typeof level === 'number' && level > 0 ? level : null)) : [],
     bpm: typeof song.bpm === 'number' && song.bpm > 0 ? song.bpm : null,
-    youtubeId: typeof song.youtubeId === 'string' ? song.youtubeId : null,
+    videoId: typeof song.videoId === 'string' ? song.videoId : null,
+    videoUrl: typeof song.videoUrl === 'string' ? song.videoUrl : null,
     chartVersion: getString(song.chartVersion),
     imageKinds: Array.isArray(song.imageKinds) ? song.imageKinds.filter((kind): kind is string => typeof kind === 'string' && /^[a-z]+$/.test(kind)) : [],
     hasFingerprint: song.hasFingerprint === true,

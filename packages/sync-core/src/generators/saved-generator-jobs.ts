@@ -125,7 +125,7 @@ function loadSavedGeneratorJobOrNull(value: unknown): SavedGeneratorJob | null {
 
 function loadSongFactsOrNull(value: unknown): GeneratorSongFacts | null {
   if (!isRecord(value) || typeof value.title !== 'string' || typeof value.artist !== 'string' || typeof value.lengthSeconds !== 'number') return null;
-  return { title: value.title, artist: value.artist, album: getTextOrNull(value.album), genre: getTextOrNull(value.genre), lengthSeconds: value.lengthSeconds, youtubeId: getTextOrNull(value.youtubeId) };
+  return { title: value.title, artist: value.artist, album: getTextOrNull(value.album), genre: getTextOrNull(value.genre), lengthSeconds: value.lengthSeconds, videoId: getTextOrNull(value.videoId) };
 }
 
 function loadLibraryChoiceOrNull(value: unknown): SavedGeneratorJob['libraryChoice'] {

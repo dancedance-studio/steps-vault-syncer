@@ -10,8 +10,8 @@ import type { LibrarySongDetails } from '../dancedance-api/dancedance-api-types'
 import type { SongFiles } from '../writing/song-writer';
 import { runSync, type SyncPhase, type SyncPorts, type SyncSettings, type SyncLibrary } from './run-sync';
 
-const CHEAP_THRILLS: LibrarySongDetails = { librarySongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, youtubeId: null, chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
-const WATCH_ME: LibrarySongDetails = { librarySongId: 'b', slug: 'watch-me', title: 'Watch Me', artist: 'Silentó', album: null, genre: 'Hip-Hop', lengthSeconds: 185, levels: [1, 3, 5, 8, null], bpm: 140, youtubeId: null, chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
+const CHEAP_THRILLS: LibrarySongDetails = { librarySongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, videoId: null, chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
+const WATCH_ME: LibrarySongDetails = { librarySongId: 'b', slug: 'watch-me', title: 'Watch Me', artist: 'Silentó', album: null, genre: 'Hip-Hop', lengthSeconds: 185, levels: [1, 3, 5, 8, null], bpm: 140, videoId: null, chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
 const NO_FINGERPRINT: LibrarySongDetails = { ...WATCH_ME, librarySongId: 'c', slug: 'old-song', title: 'Old Song', hasFingerprint: false };
 
 class FakeLibrary implements SyncLibrary {
@@ -124,7 +124,7 @@ describe('runSync', () => {
 
   it('asks the addons for a song made from a website link with its video id, and puts its video in the game as a file', async () => {
     // The site gives a link song the video the addon found, or the one the player picked in the site's video step.
-    const nightDrive: LibrarySongDetails = { librarySongId: 'song_12', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 221, levels: [2, 4, 6, 9, null], bpm: 118, youtubeId: 'Vid3o1d-x_Z', chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
+    const nightDrive: LibrarySongDetails = { librarySongId: 'song_12', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 221, levels: [2, 4, 6, 9, null], bpm: 118, videoId: 'Vid3o1d-x_Z', chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
     const songsFolder = new MemorySongsFolder();
     songsFolder.addMusicSource({ sourceId: 'download:night-drive.ogg', bytes: new Uint8Array([79, 103, 103, 83]) });
     songsFolder.addMusicSource({ sourceId: 'download:night-drive.mp4', bytes: new Uint8Array([0, 0, 0, 24]) });
@@ -144,7 +144,7 @@ describe('runSync', () => {
     const settings = { ...(await buildSettings()), addons: [buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7802', manifest, consentedAt: '2026-11-21T10:00:00Z' })] };
     const outcome = await runSync({ ports, settings });
     expect(addonRequests.map((request) => request.url)).toEqual(['http://127.0.0.1:7802/audio-links']);
-    expect(addonRequests[0]?.jsonBody).toMatchObject({ song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 221, youtubeId: 'Vid3o1d-x_Z' } });
+    expect(addonRequests[0]?.jsonBody).toMatchObject({ song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 221, videoId: 'Vid3o1d-x_Z' } });
     expect(outcome.finalPlan.songPlans.map((songPlan) => songPlan.status)).toEqual(['synced']);
     expect((await songsFolder.listEntries(['dancedance.studio', 'Night Drive'])).map((entry) => entry.name)).toContain('video.mp4');
   });

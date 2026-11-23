@@ -42,7 +42,7 @@ export interface GeneratorSongFacts {
   album: string | null;
   genre: string | null;
   lengthSeconds: number;
-  youtubeId: string | null;
+  videoId: string | null;
 }
 
 /** The `request` part of POST <address>/jobs. */
@@ -92,8 +92,8 @@ export function parseGeneratorManifest(value: unknown): GeneratorManifest {
  * must already be checked against the manifest.
  */
 export function buildGeneratorJobRequestBody({ song, difficulties, optionValues }: { song: GeneratorSongFacts; difficulties: readonly GeneratorDifficulty[]; optionValues: AddonOptionValues }): GeneratorJobRequestBody {
-  const { title, artist, album, genre, lengthSeconds, youtubeId } = song;
-  return { protocol: GENERATOR_PROTOCOL_VERSION, song: { title, artist, album, genre, lengthSeconds, youtubeId }, difficulties: [...difficulties], options: { ...optionValues } };
+  const { title, artist, album, genre, lengthSeconds, videoId } = song;
+  return { protocol: GENERATOR_PROTOCOL_VERSION, song: { title, artist, album, genre, lengthSeconds, videoId }, difficulties: [...difficulties], options: { ...optionValues } };
 }
 
 export type GeneratorCancelResult =

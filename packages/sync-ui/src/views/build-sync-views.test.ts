@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildEmptyInstalledSongsRecord, buildSongsPath, withInstalledSong, type LibrarySongDetails } from '@dancedance/sync-core';
 import { buildActivityEntries, buildLayoutViews, buildSongDetailsById, buildSongRows, describeShift, getDayText, getTrayStatus, type SongViewInput } from './build-sync-views';
 
-const CHEAP_THRILLS: LibrarySongDetails = { librarySongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, youtubeId: null, chartVersion: 'v1', imageKinds: [], hasFingerprint: true };
+const CHEAP_THRILLS: LibrarySongDetails = { librarySongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, videoId: null, chartVersion: 'v1', imageKinds: [], hasFingerprint: true };
 const BUNNY: LibrarySongDetails = { ...CHEAP_THRILLS, librarySongId: 'b', slug: 'bunny', title: 'Big Buck Bunny', artist: 'Blender', genre: 'Electronic' };
 const RECORD = withInstalledSong({ record: buildEmptyInstalledSongsRecord(), installedSong: { librarySongId: 'a', chartVersion: 'v1', installId: 'i', folderPath: buildSongsPath('dancedance.studio', 'Cheap Thrills'), chartHashesByFileName: {}, music: { fileName: 'music.ogg', shiftSeconds: 0.5 }, installedAt: '2026-10-24T10:00:00Z' } });
 

@@ -32,7 +32,7 @@ const OPEN_AUDIO_LINKS: AddonManifest = {
   inputs: [{ id: 'link', kind: 'link', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }],
 };
 const FOUND_NIGHT_DRIVE = {
-  song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 221, youtubeId: 'Vid3o1d-x_Z' },
+  song: { title: 'Night Drive', artist: 'Lumen Park', lengthSeconds: 221, videoId: 'Vid3o1d-x_Z' },
   links: [{ kind: 'file-url', url: `${ADDON_URL}/files/night-drive.ogg`, label: 'Music', fileName: 'night-drive.ogg' }, { kind: 'file-url', media: 'video', url: `${ADDON_URL}/files/night-drive.mp4`, label: 'Video', fileName: 'night-drive.mp4' }],
 };
 const FIND_JOB = { id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: NIGHT_DRIVE_LINK, expiresAt: '2026-11-21T12:00:20.000Z' };
@@ -41,8 +41,8 @@ const MUSIC_JOB = { id: 'lj_2', kind: 'music', addonId: 'open-audio-links', find
 const INSTALL_JOB = { id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' };
 /** Is this video's music the song? The song's facts come as the library list gives them; it has no video link yet. */
 const VERIFY_JOB = {
-  id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z',
-  song: { librarySongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, youtubeId: null, chartVersion: 'v1' },
+  id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', videoUrl: 'https://clips.example/v/Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z',
+  song: { librarySongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, videoId: null, chartVersion: 'v1' },
 };
 const VIDEO_AUDIO_LINKS = { status: 200, body: { links: [{ kind: 'file-url', url: `${ADDON_URL}/files/night-drive-video.ogg`, label: 'Music', fileName: 'night-drive-video.ogg' }] } };
 
@@ -606,13 +606,13 @@ describe('install jobs', () => {
 });
 
 describe('verify jobs', () => {
-  it('ask the link addon for the video’s music with the song’s facts and the video id, compare it, and answer matched', async () => {
+  it('ask the link addon for the video’s music with the song’s facts and the video, compare it, and answer matched', async () => {
     const harness = new LinkJobsHarness();
     harness.linkJobs.start();
     harness.site.queueJob(VERIFY_JOB);
     await waitUntil(() => getAnswerStatuses(harness).includes('matched'));
     expect(harness.addon.requests.map((request) => request.url)).toEqual([`${ADDON_URL}/audio-links`]);
-    expect(harness.addon.requests[0]?.jsonBody).toMatchObject({ song: { title: 'Night Drive', artist: 'Lumen Park', genre: 'Synthwave', lengthSeconds: 221, youtubeId: 'Vid3o1d-x_Z' } });
+    expect(harness.addon.requests[0]?.jsonBody).toMatchObject({ song: { title: 'Night Drive', artist: 'Lumen Park', genre: 'Synthwave', lengthSeconds: 221, videoId: 'Vid3o1d-x_Z', videoUrl: 'https://clips.example/v/Vid3o1d-x_Z' } });
     expect(harness.addonFileUrls).toEqual([`${ADDON_URL}/files/night-drive-video.ogg`]);
     expect(harness.fingerprintSongIds).toEqual(['song_42']);
     expect(harness.site.answers.at(-1)).toEqual({ jobId: 'lj_12', answer: { status: 'matched', lengthSec: 221, offsetSec: 1.23 } });

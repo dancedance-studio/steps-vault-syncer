@@ -30,7 +30,7 @@ everything else. The full rules are in `docs/addons.md`; read it before you star
 ## 3. Answer `POST /audio-links`
 
 Sync sends only the song's facts:
-`{ "protocol": 1, "song": { "title", "artist", "album", "genre", "lengthSeconds", "youtubeId", "youtubeUrl" }, "options": {...} }`.
+`{ "protocol": 1, "song": { "title", "artist", "album", "genre", "lengthSeconds", "videoId", "videoUrl" }, "options": {...} }`.
 
 Answer one of:
 
@@ -51,7 +51,7 @@ Start from the example in `docs/addons.md` ("A minimal addon"), and add `"kind":
 
 ```bash
 curl -s http://127.0.0.1:8080/manifest.json
-curl -s -X POST http://127.0.0.1:8080/audio-links -H "Content-Type: application/json" -d '{"protocol":1,"song":{"title":"Pulse Garden","artist":"Kairo Lights","album":null,"genre":null,"lengthSeconds":201,"youtubeId":null,"youtubeUrl":null}}'
+curl -s -X POST http://127.0.0.1:8080/audio-links -H "Content-Type: application/json" -d '{"protocol":1,"song":{"title":"Pulse Garden","artist":"Kairo Lights","album":null,"genre":null,"lengthSeconds":201,"videoId":null,"videoUrl":null}}'
 ```
 
 Then add its address in Sync under **Addons**: Sync shows what it will see, then uses it on songs that need music.

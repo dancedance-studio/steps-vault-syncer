@@ -19,7 +19,7 @@ For each song, a generator gets:
 |---|---|
 | the music | the player's own music file, as Sync found it (music folders, a file the player picked, or an addon) |
 | the video | the song's video, when Sync has one; otherwise nothing |
-| the song's facts | `title`, `artist` and `lengthSeconds` always (Sync falls back to the file's name, `"Unknown artist"`, and the length it measures); `album`, `genre`, `youtubeId` when known, else `null` |
+| the song's facts | `title`, `artist` and `lengthSeconds` always (Sync falls back to the file's name, `"Unknown artist"`, and the length it measures); `album`, `genre`, `videoId` when known, else `null` |
 | the difficulties | which of `Beginner`, `Easy`, `Medium`, `Hard`, `Challenge` to make |
 | the options | the player's picks for the generator's options, as for addons |
 
@@ -87,7 +87,7 @@ The request is `multipart/form-data` with these parts:
 
   ```json
   { "protocol": 1, "song": { "title": "Pulse Garden", "artist": "Kairo Lights", "album": null, "genre": null,
-    "lengthSeconds": 201, "youtubeId": null }, "difficulties": ["Easy", "Medium"], "options": {} }
+    "lengthSeconds": 201, "videoId": null }, "difficulties": ["Easy", "Medium"], "options": {} }
   ```
 
 - `music`: the music file, with its `Content-Type` (one of the manifest's `musicTypes`) and a file name, at most
@@ -163,12 +163,12 @@ adds it to the player's library and installs it like any other library song. The
 Songs from a **community generator** go into the player's game, in the group **My generated songs**, one folder per
 song named in English letters (StepMania on Windows can't open other scripts). The folder is named from the song file's
 `#TITLETRANSLIT`, else its `#TITLE`, with accents taken off ("Beyoncé" becomes "Beyonce"). When that name has no English
-letters, or still has letters from another script, the folder is called `Song <youtubeId>` when the song has a
-`youtubeId`, else `Generated song <YYYY-MM-DD HHMM>`. When a folder of that name is already there, the artist is added,
+letters, or still has letters from another script, the folder is called `Song <videoId>` when the song has a
+`videoId`, else `Generated song <YYYY-MM-DD HHMM>`. When a folder of that name is already there, the artist is added,
 then a number.
 
 Making the same song again replaces the earlier version, in the same folder; files the new version doesn't use are
-removed. The same song means the same `youtubeId`, else the same title and artist (ignoring case and extra spaces),
+removed. The same song means the same `videoId`, else the same title and artist (ignoring case and extra spaces),
 whichever generator made it.
 
 When the same song is also in the player's library, Sync asks which one to keep in the game. The one not chosen stays

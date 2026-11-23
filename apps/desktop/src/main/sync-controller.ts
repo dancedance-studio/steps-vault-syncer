@@ -607,7 +607,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
 
   private async fetchLibrarySongIdentities(): Promise<LibrarySongIdentity[]> {
     const librarySongs = this.lastOutcome?.librarySongs ?? (await this.buildLibrary().fetchLibrary().catch(() => []));
-    return librarySongs.map(({ librarySongId, title, artist, youtubeId }) => ({ librarySongId, title, artist, youtubeId }));
+    return librarySongs.map(({ librarySongId, title, artist, videoId }) => ({ librarySongId, title, artist, videoId }));
   }
 
   private async saveReport({ songKey, reportText }: { songKey: string; reportText: string }): Promise<void> {

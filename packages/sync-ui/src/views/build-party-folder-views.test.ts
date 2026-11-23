@@ -4,7 +4,7 @@ import { buildActivityEntries } from './build-sync-views';
 import { buildPartyFolderPreview, buildPartyFolderViews, getPartyListEndText } from './build-party-folder-views';
 
 const NOW = new Date('2026-10-31T12:00:00Z');
-const CHEAP_THRILLS: LibrarySongDetails = { librarySongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, youtubeId: null, chartVersion: 'v1', imageKinds: [], hasFingerprint: true };
+const CHEAP_THRILLS: LibrarySongDetails = { librarySongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, videoId: null, chartVersion: 'v1', imageKinds: [], hasFingerprint: true };
 const LEVITATING: LibrarySongDetails = { ...CHEAP_THRILLS, librarySongId: 'd', slug: 'levitating', title: 'Levitating', artist: 'Dua Lipa' };
 const MAYA: SyncPartyList = { partyListId: 'party_maya', slug: 'maya-bday-7q2xk', name: 'Maya bday', gameFolderName: 'Party - Maya bday', endsAt: '2026-11-02T13:00:00Z', songs: [CHEAP_THRILLS, LEVITATING] };
 const MAYA_PLAN: PartyFolderPlan = {
