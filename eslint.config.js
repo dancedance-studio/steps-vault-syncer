@@ -18,5 +18,5 @@ export default typescript.config(
   },
   { files: ['**/*.{js,mjs}'], ...typescript.configs.disableTypeChecked },
   // Build and release scripts run in Node.
-  { files: ['**/scripts/**/*.mjs'], languageOptions: { globals: { process: 'readonly', console: 'readonly' } } },
+  { files: ['**/scripts/**/*.mjs'], languageOptions: { globals: { process: 'readonly', console: 'readonly', fetch: 'readonly', AbortSignal: 'readonly' } } },
 );
