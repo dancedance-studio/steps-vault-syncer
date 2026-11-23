@@ -1,0 +1,75 @@
+# "Ship it": the owner runs this by hand once a test version is checked (docs/releasing.md). It makes that GitHub
+# pre-release the latest full release, with the same signed files (nothing is built or signed again), so every
+# installed copy finds it within 6 hours. Then #admins hears "Released ✓" and #announcements gets the version's
+# "What's new".
+name: ship-it
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version to ship, as in its tag without the v (for example 0.2.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ship-it
+  cancel-in-progress: false
+
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write  # to edit the release
+      actions: read  # to see that the version's release run finished green
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: 22
+      - name: The version is a checked test version
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::\"$VERSION\" is not a version like 0.2.0."
+            exit 1
+          fi
+          is_prerelease=$(gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" --json isPrerelease --jq .isPrerelease) || {
+            echo "::error::There is no release v$VERSION. Tag it first (docs/releasing.md)."
+            exit 1
+          }
+          if [ "$is_prerelease" != "true" ]; then
+            echo "::error::v$VERSION is already a full release."
+            exit 1
+          fi
+          conclusion=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release.yml --branch "v$VERSION" --event push --limit 1 --json conclusion --jq '.[0].conclusion // ""')
+          if [ "$conclusion" != "success" ]; then
+            echo "::error::The release run for v$VERSION didn't finish green (\"$conclusion\"), so its check hasn't passed. Fix it, or re-run its failed jobs, then ship."
+            exit 1
+          fi
+      - name: Make it the latest full release
+        run: gh release edit "v$VERSION" --repo "$GITHUB_REPOSITORY" --prerelease=false --latest
+      - name: 'Tell #admins'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_ADMINS_WEBHOOK_URL }}
+          RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ inputs.version }}
+        run: |
+          export DISCORD_MESSAGE="Released ✓ Sync $VERSION is out for everyone → [The release](<$RELEASE_URL>)"
+          bash apps/desktop/scripts/post-to-discord.sh admins
+      - name: "Tell #announcements what's new"
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_ANNOUNCEMENTS_WEBHOOK_URL }}
+          DOWNLOAD_URL: ${{ github.server_url }}/${{ github.repository }}/releases/latest
+        run: |
+          bash apps/desktop/scripts/get-whats-new.sh "v$VERSION" whats-new.md
+          DISCORD_MESSAGE="$(printf '**dancedance.studio Sync %s** is out.\n\n%s\n\nSync updates itself within a few hours. New to Sync? Get it here: <%s>' "$VERSION" "$(cat whats-new.md)" "$DOWNLOAD_URL")"
+          export DISCORD_MESSAGE
+          bash apps/desktop/scripts/post-to-discord.sh announcements
