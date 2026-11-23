@@ -91,8 +91,8 @@ On a fresh `windows-latest` machine, from the published pre-release:
   half-signed build fails; for a signed one, both signatures are valid and the publisher is "SignPath Foundation"
 - `latest.yml` names the installer with its exact size and SHA-512, and `SHA256SUMS.txt` matches every file
 - a silent per-user install (`/S`) works, with both "What Sync sends" answers on
-- for an unsigned release, the installed app's `resources\app-update.yml` points at this repo's GitHub releases and
-  names no `publisherName` (see "Updates without a signature")
+- the installed app's `resources\app-update.yml` (its update settings) is there and points at this repo's GitHub
+  releases; for an unsigned release, it also names no `publisherName` (see "Updates without a signature")
 - the installer and the app say "dancedance.studio Sync" and the version in their file details
 - the installed app starts and reports its version (`--print-version`, which opens no window)
 - a silent uninstall removes the app, its entry in Apps and the `dancedance-sync` link scheme
@@ -104,8 +104,13 @@ current user.
 
 ## Updates without a signature
 
-The installed app's updater (electron-updater) checks a downloaded installer's signature only when the app's
-`resources\app-update.yml` names a `publisherName`. electron-builder writes one only when it signs the app with a
+The installed app's updater (electron-updater) reads where to look for new versions from the app's
+`resources\app-update.yml`. electron-builder writes that file only when it packages the app for an NSIS target, never
+for `--dir`, and an installer built `--prepackaged` doesn't add it. So the release workflow packages the app with a
+throw-away installer, then builds the real one from that app folder. Copies of `v0.1.0-preview.1`, packaged with
+`--dir`, have no such file and can't update themselves: their players install 0.1.0 by hand.
+
+electron-updater checks a downloaded installer's signature only when `app-update.yml` names a `publisherName`. electron-builder writes one only when it signs the app with a
 certificate itself (`CSC_LINK`, `win.signtoolOptions.publisherName` or `win.azureSignOptions`). This repo's builds have
 none of these: SignPath signs outside electron-builder. So no copy asks for a signature, and an unsigned copy takes an
 unsigned update (or, later, a signed one). Every download is still checked against the SHA-512 in its release's
@@ -180,4 +185,4 @@ With SignPath, step 2 of "Make a release" is:
   Control block it; players there use Sync in the browser on dancedance.studio.
 - **With SignPath, the uninstaller is still not signed.** NSIS makes it while building the installer, so it can't go
   through SignPath before the installer is assembled. Windows may warn when the app is uninstalled.
-- **The installer is about 110 MB**, mostly the Chromium runtime that Electron ships.
+- **The installer is about 130 MB**, mostly the Chromium runtime that Electron ships.
