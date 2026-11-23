@@ -484,6 +484,14 @@
 .sv-sync-empty-receptors { display: flex; gap: 8px; opacity: .55; }
 .sv-sync-update-banner { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: linear-gradient(90deg, rgba(28, 216, 255, .16), rgba(28, 216, 255, .04)); border-bottom: 1px solid rgba(28, 216, 255, .35); font-size: 14px; color: var(--sv-sync-text); }
 
+/* ---------- Options (desktop): open rows, a thin line under each, the control at the right ---------- */
+.sv-sync-option-list { display: flex; flex-direction: column; max-width: 760px; margin: 0; padding: 0; list-style: none; border-top: 1px solid #1d2232; }
+.sv-sync-option-row { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; min-height: 68px; padding: 14px 0; border-bottom: 1px solid #1a1f2d; }
+.sv-sync-option-row > .sv-sync-miss-line { padding: 0; }
+.sv-sync-option-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sv-sync-option-title { font-size: 15.5px; font-weight: 600; color: var(--sv-sync-text-strong); }
+.sv-sync-option-note { font-size: 14px; line-height: 1.45; color: var(--sv-sync-text-muted); }
+
 /* ---------- Dialogs ---------- */
 .sv-sync-dialog-backdrop { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-start; justify-content: center; padding: 90px 20px; overflow-y: auto; background: rgba(5, 6, 10, .74); }
 .sv-sync-dialog { display: flex; flex-direction: column; gap: 16px; width: min(580px, 100%); padding: 26px; border-radius: 16px; background: var(--sv-sync-panel); border: 1px solid var(--sv-sync-border-strong); box-shadow: 0 30px 80px rgba(0, 0, 0, .7); animation: sv-sync-appear .18s ease-out both; }

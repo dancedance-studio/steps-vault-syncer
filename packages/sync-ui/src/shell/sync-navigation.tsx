@@ -15,7 +15,11 @@ const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   { screen: 'folder-layout', label: 'Folder layout', iconName: 'layout' },
   { screen: 'activity', label: 'Activity', iconName: 'clock' },
   { screen: 'account', label: 'Account', iconName: 'person' },
+  { screen: 'options', label: 'Options', iconName: 'sliders' },
 ];
+
+/** The app's own screens: the website keeps the account in its own settings and has no app to set up. */
+const DESKTOP_ONLY_SCREENS: readonly SyncScreen[] = ['account', 'options'];
 
 export interface SyncNavigationProps {
   platform: SyncPlatform;
@@ -27,10 +31,9 @@ export interface SyncNavigationProps {
   hasWebsiteGenerators?: boolean;
 }
 
-/** The website keeps the account in its own settings. */
 export function getNavigationItems({ platform }: { platform: SyncPlatform }): readonly NavigationItem[] {
   if (platform === 'desktop') return NAVIGATION_ITEMS;
-  return NAVIGATION_ITEMS.filter((item) => item.screen !== 'account');
+  return NAVIGATION_ITEMS.filter((item) => !DESKTOP_ONLY_SCREENS.includes(item.screen));
 }
 
 export function SyncNavigation({ platform, currentScreen, onNavigate, hrefsByScreen }: SyncNavigationProps): ReactElement {

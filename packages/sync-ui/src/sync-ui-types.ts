@@ -3,7 +3,8 @@ import type { FolderLayout, GeneratorDifficulty, SongSourceInput, SongSyncStatus
 /** The website shows browser permission prompts; the desktop app has a tray and background sync. */
 export type SyncPlatform = 'website' | 'desktop';
 
-export type SyncScreen = 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account';
+/** Options is the desktop app's own: the website has no versions to update and nothing to start with Windows. */
+export type SyncScreen = 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'options';
 
 /** Levels in the game's order (Beginner, Easy, Medium, Hard, Challenge); null when that chart doesn't exist. */
 export type DifficultyLevels = readonly [number | null, number | null, number | null, number | null, number | null];
@@ -207,6 +208,20 @@ export interface PartyFolderView {
 }
 
 export type TrayStatus = 'synced' | 'syncing' | 'needs-attention' | 'paused';
+
+/** Where the installed app is with new versions, as Options shows it. Only a check the player started can fail out loud. */
+export type UpdateCheckView =
+  | { kind: 'not-checked' }
+  | { kind: 'checking' }
+  | { kind: 'up-to-date' }
+  | { kind: 'downloading'; version: string }
+  | { kind: 'ready'; version: string }
+  | { kind: 'failed' };
+
+/** Options › versions: an installed copy checks GitHub for new versions; a copy run from source gets them from git. */
+export type AppVersionsView =
+  | { kind: 'from-source'; currentVersion: string }
+  | { kind: 'installed'; currentVersion: string; updateCheck: UpdateCheckView; isAutomaticCheckOn: boolean; shouldGetTestVersionsFirst: boolean };
 
 export interface LinkedComputerView {
   computerId: string;

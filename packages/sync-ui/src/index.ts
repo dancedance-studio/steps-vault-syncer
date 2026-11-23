@@ -56,6 +56,7 @@ export * from './desktop/desktop-sign-in-screen';
 export * from './desktop/link-code-form';
 export * from './desktop/linked-computers-table';
 export * from './desktop/update-banner';
+export * from './desktop/options-screen';
 export * from './states/empty-and-error-states';
 export * from './phone/phone-status-view';
 export * from './views/build-sync-views';

@@ -1,13 +1,13 @@
 import { FOLDER_LAYOUTS, type FolderLayout } from '@dancedance/sync-core';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import {
-  ADDON_AGENT_SKILL, ActivityScreen, AgentBox, AudioSourcesScreen, FourArrowLoader, GENERATOR_AGENT_SKILL, GreenPillButton, Icon, SiteLogo, SquareIconTile, WebsiteGeneratorsScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyLibraryState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
+  ADDON_AGENT_SKILL, ActivityScreen, AgentBox, OptionsScreen, AudioSourcesScreen, FourArrowLoader, GENERATOR_AGENT_SKILL, GreenPillButton, Icon, SiteLogo, SquareIconTile, WebsiteGeneratorsScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyLibraryState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
   PermissionLostState, PhoneStatusView, SongFolderLockedState, SongsFolderMissingState, SongsFolderPreview, StatusChip, SyncHomeScreen, SyncShell, UpdateBanner, SONG_STATUSES, SONG_STATUS_DISPLAYS,
-  type LinkCodeState, type SyncPlatform, type SyncScreen,
+  type AppVersionsView, type LinkCodeState, type SyncPlatform, type SyncScreen,
 } from '../src/index';
 import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_DANCEDANCE_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_LINKS_TAB, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PARTY_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
 
-type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone' | 'intro-pieces';
+type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'options' | 'states' | 'phone' | 'intro-pieces';
 type SyncPhase = 'idle' | 'syncing' | 'finished' | 'finished-all';
 
 const PREVIEW_SCREENS: readonly { value: PreviewScreen; label: string }[] = [
@@ -20,12 +20,13 @@ const PREVIEW_SCREENS: readonly { value: PreviewScreen; label: string }[] = [
   { value: 'folder-layout', label: '5 · Folder layout' },
   { value: 'activity', label: '6 · Activity' },
   { value: 'account', label: '7 · Desktop sign in, linked computers' },
+  { value: 'options', label: '8 · Desktop options' },
   { value: 'states', label: 'States · chips, empty and errors' },
   { value: 'phone', label: 'Phone · status only' },
   { value: 'intro-pieces', label: 'Shared pieces · for the intro page' },
 ];
 
-const SCREENS_BY_NAVIGATION: Readonly<Record<SyncScreen, PreviewScreen>> = { 'songs': 'songs', 'audio-sources': 'audio-sources', 'generators': 'generators', 'folder-layout': 'folder-layout', 'activity': 'activity', 'account': 'account' };
+const SCREENS_BY_NAVIGATION: Readonly<Record<SyncScreen, PreviewScreen>> = { 'songs': 'songs', 'audio-sources': 'audio-sources', 'generators': 'generators', 'folder-layout': 'folder-layout', 'activity': 'activity', 'account': 'account', 'options': 'options' };
 
 function getQueryValue<Value extends string>({ name, allowedValues, fallback }: { name: string; allowedValues: readonly Value[]; fallback: Value }): Value {
   const value = new URLSearchParams(window.location.search).get(name);
@@ -90,6 +91,7 @@ function PreviewScreenContent({ screen, platform, syncPhase, onNavigate }: { scr
       {screen === 'folder-layout' && <FolderLayoutPreview />}
       {screen === 'activity' && <ActivityPreview />}
       {screen === 'account' && <AccountPreview />}
+      {screen === 'options' && <OptionsPreview />}
     </SyncShell>
   );
 }
@@ -197,6 +199,26 @@ function FolderLayoutPreview(): ReactElement {
 function ActivityPreview(): ReactElement {
   const [wasCopied, setWasCopied] = useState(false);
   return <ActivityScreen entries={FAKE_ACTIVITY_ENTRIES} wasCopied={wasCopied} onCopyDetails={() => { setWasCopied(true); }} hasOlderEntries onShowOlder={noop} />;
+}
+
+const PREVIEW_VERSIONS: readonly { label: string; versions: AppVersionsView }[] = [
+  { label: 'Up to date', versions: { kind: 'installed', currentVersion: '0.1.0', updateCheck: { kind: 'up-to-date' }, isAutomaticCheckOn: true, shouldGetTestVersionsFirst: false } },
+  { label: 'Checking', versions: { kind: 'installed', currentVersion: '0.1.0', updateCheck: { kind: 'checking' }, isAutomaticCheckOn: true, shouldGetTestVersionsFirst: false } },
+  { label: 'Ready', versions: { kind: 'installed', currentVersion: '0.1.0', updateCheck: { kind: 'ready', version: '0.2.0' }, isAutomaticCheckOn: true, shouldGetTestVersionsFirst: true } },
+  { label: 'Failed', versions: { kind: 'installed', currentVersion: '0.1.0', updateCheck: { kind: 'failed' }, isAutomaticCheckOn: false, shouldGetTestVersionsFirst: false } },
+  { label: 'From source', versions: { kind: 'from-source', currentVersion: '0.1.0' } },
+];
+
+function OptionsPreview(): ReactElement {
+  const [versionsIndex, setVersionsIndex] = useState(0);
+  const [isStartWithWindowsOn, setIsStartWithWindowsOn] = useState(true);
+  const versions = PREVIEW_VERSIONS[versionsIndex]?.versions ?? { kind: 'from-source', currentVersion: '0.1.0' };
+  return (
+    <div className="sv-sync-screen">
+      <label className="preview-inline-control">Versions <select value={versionsIndex} onChange={(event) => { setVersionsIndex(Number(event.target.value)); }}>{PREVIEW_VERSIONS.map((option, index) => <option key={option.label} value={index}>{option.label}</option>)}</select></label>
+      <OptionsScreen versions={versions} isStartWithWindowsOn={isStartWithWindowsOn} onCheckForUpdates={() => { setVersionsIndex(1); }} onRestartToUpdate={noop} onToggleAutomaticUpdateCheck={noop} onToggleTestVersionsFirst={noop} onToggleStartWithWindows={setIsStartWithWindowsOn} />
+    </div>
+  );
 }
 
 function AccountPreview(): ReactElement {

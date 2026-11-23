@@ -30,6 +30,7 @@ import type {
   SongSourceSearchResult,
   SongSourceTabView,
   DancedanceGeneratorView,
+  AppVersionsView,
   SyncRunView,
   TrayStatus,
   LibraryChoiceAnswer,
@@ -82,6 +83,9 @@ export interface DesktopSyncState {
   activity: ActivityEntryView[];
   trayStatus: TrayStatus;
   updateVersion: string | null;
+  /** Options: the version, and how this copy gets new ones. */
+  appVersions: AppVersionsView;
+  isStartWithWindowsOn: boolean;
   /** A problem the player should see now, in one sentence that says what to do. */
   problem: string | null;
 }
@@ -129,6 +133,10 @@ export interface DesktopSyncBridge {
   copyActivityDetails(): Promise<void>;
   restartToUpdate(): Promise<void>;
   dismissUpdate(): Promise<void>;
+  checkForUpdates(): Promise<void>;
+  setAutomaticUpdateCheck(isOn: boolean): Promise<void>;
+  setTestVersionsFirst(isOn: boolean): Promise<void>;
+  setStartWithWindows(isOn: boolean): Promise<void>;
 }
 
 /**
@@ -195,4 +203,8 @@ export const BRIDGE_METHOD_NAMES = [
   'copyActivityDetails',
   'restartToUpdate',
   'dismissUpdate',
+  'checkForUpdates',
+  'setAutomaticUpdateCheck',
+  'setTestVersionsFirst',
+  'setStartWithWindows',
 ] as const satisfies readonly (keyof DesktopSyncBridge)[];

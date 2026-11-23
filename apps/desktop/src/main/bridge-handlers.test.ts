@@ -23,6 +23,10 @@ describe('bridge handlers', () => {
     await handlers.dismissPreselectedSong('link-1');
     await handlers.answerLibraryChoice({ jobKey: 'job-1', choice: 'keep-library-song' });
     await handlers.findSongWithSource({ addonId: 'clip.songs', valuesByInputId: { link: 'https://clips.example/watch?v=abc123' } });
+    await handlers.checkForUpdates(undefined);
+    await handlers.setAutomaticUpdateCheck(false);
+    await handlers.setTestVersionsFirst(true);
+    await handlers.setStartWithWindows(false);
     expect(calls).toEqual([
       ['runSongAction', { librarySongId: 'song_7', action: 'choose-audio' }],
       ['setLayout', 'by-genre'],
@@ -35,6 +39,10 @@ describe('bridge handlers', () => {
       ['dismissPreselectedSong', 'link-1'],
       ['answerLibraryChoice', { jobKey: 'job-1', choice: 'keep-library-song' }],
       ['findSongWithSource', { addonId: 'clip.songs', valuesByInputId: { link: 'https://clips.example/watch?v=abc123' } }],
+      ['checkForUpdates'],
+      ['setAutomaticUpdateCheck', false],
+      ['setTestVersionsFirst', true],
+      ['setStartWithWindows', false],
     ]);
   });
 
@@ -43,6 +51,8 @@ describe('bridge handlers', () => {
     ['runSongAction', { librarySongId: 42, action: 'sync' }],
     ['setLayout', 'C:\\Windows'],
     ['setBackgroundSync', 'yes'],
+    ['setStartWithWindows', 'on'],
+    ['setTestVersionsFirst', 1],
     ['useFoundGame', 'x'.repeat(5_000)],
     ['installAddon', null],
     ['installAddon', { address: 'https://tapes.example.org', name: 'Indie Tapes', version: '1.0.0', author: 'hyperpad' }],

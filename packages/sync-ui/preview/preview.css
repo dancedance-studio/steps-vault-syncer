@@ -1,6 +1,7 @@
 body { margin: 0; background: #0b0b12; color: #e8ebf4; font-family: Rubik, system-ui, sans-serif; }
 .preview-controls { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 20px; background: #07080d; border-bottom: 1px solid #222839; font-size: 13px; }
 .preview-controls label { display: inline-flex; align-items: center; gap: 8px; color: #aab3c9; }
+.preview-inline-control { display: inline-flex; align-items: center; gap: 8px; color: #aab3c9; font-size: 13px; }
 .preview-controls select { min-height: 32px; border-radius: 8px; border: 1px solid #3a4360; background: #0e111a; color: #e8ebf4; font: inherit; padding: 0 8px; }
 .preview-controls b { color: #1cd8ff; font-style: italic; letter-spacing: .12em; text-transform: uppercase; font-size: 12px; }
 /* Stands in for the website's page column (--content-width 1240, 28px gutters), which sets the Sync width there. */

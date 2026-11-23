@@ -59,13 +59,14 @@ describe('SyncShell', () => {
     expect(onNavigate).toHaveBeenCalledWith('activity');
   });
 
-  it('in the desktop app, adds Account, the banner and the tray status', () => {
+  it('in the desktop app, adds Account, Options, the banner and the tray status', () => {
     render(
       <SyncShell platform="desktop" currentScreen="account" onNavigate={vi.fn()} banner={<div>banner here</div>} desktopSidebar={{ game: FAKE_GAME, trayStatus: 'needs-attention', playerName: 'Noa' }}>
         <p>screen</p>
       </SyncShell>,
     );
     expect(screen.getByRole('link', { name: 'Account' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('navigation', { name: 'Sync' }).textContent).toBe('SongsMusic & addonsGeneratorsFolder layoutActivityAccountOptions');
     expect(screen.getByText('banner here')).toBeDefined();
     expect(screen.getByText('Needs attention')).toBeDefined();
   });

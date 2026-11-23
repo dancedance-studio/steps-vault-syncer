@@ -7,6 +7,7 @@ import {
   EmptyLibraryState,
   FolderLayoutScreen,
   GeneratorsScreen,
+  OptionsScreen,
   SyncHomeScreen,
   SyncLoadingPanel,
   SyncShell,
@@ -120,6 +121,19 @@ function renderScreen(options: ScreenOptions): ReactNode {
   if (options.currentScreen === 'generators') return renderGenerators(options);
   if (options.currentScreen === 'folder-layout') {
     return <FolderLayoutScreen currentLayout={state.layout} previewsByLayout={state.previewsByLayout} movingSongCountsByLayout={state.movingSongCountsByLayout} playerGroupNames={state.playerGroupNames} onChangeLayout={(layout) => void bridge.setLayout(layout)} lastMove={state.lastLayoutMove} editGroupsHref={`${state.siteUrl}/library?tab=groups`} partyFolderPreview={state.partyFolderPreview} partyListsHref={`${state.siteUrl}/library?tab=party-lists`} />;
+  }
+  if (options.currentScreen === 'options') {
+    return (
+      <OptionsScreen
+        versions={state.appVersions}
+        isStartWithWindowsOn={state.isStartWithWindowsOn}
+        onCheckForUpdates={() => void bridge.checkForUpdates()}
+        onRestartToUpdate={() => void bridge.restartToUpdate()}
+        onToggleAutomaticUpdateCheck={(isOn) => void bridge.setAutomaticUpdateCheck(isOn)}
+        onToggleTestVersionsFirst={(isOn) => void bridge.setTestVersionsFirst(isOn)}
+        onToggleStartWithWindows={(isOn) => void bridge.setStartWithWindows(isOn)}
+      />
+    );
   }
   if (options.currentScreen === 'activity') {
     return (

@@ -58,6 +58,10 @@ export function buildBridgeHandlers(controller: SyncController): BridgeHandlers 
     copyActivityDetails: () => controller.copyActivityDetails(),
     restartToUpdate: () => controller.restartToUpdate(),
     dismissUpdate: () => controller.dismissUpdate(),
+    checkForUpdates: () => controller.checkForUpdates(),
+    setAutomaticUpdateCheck: (argument) => controller.setAutomaticUpdateCheck(getBoolean(argument)),
+    setTestVersionsFirst: (argument) => controller.setTestVersionsFirst(getBoolean(argument)),
+    setStartWithWindows: (argument) => controller.setStartWithWindows(getBoolean(argument)),
   };
 }
 

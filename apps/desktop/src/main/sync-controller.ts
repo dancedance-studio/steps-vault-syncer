@@ -71,6 +71,7 @@ import {
 } from '@dancedance/sync-ui';
 import { APP_DISPLAY_NAME } from '../shared/app-name';
 import type { DesktopSignIn, DesktopSyncBridge, DesktopSyncState } from '../shared/bridge-types';
+import { AppUpdates, buildAppVersionsView, type AppUpdater } from './app-updates';
 import type { AudioBridge } from './audio-bridge';
 import { buildDefaultSettings, parseSettings, withActivity, type DesktopSettings } from './desktop-settings';
 import type { DeviceTokenStore } from './device-token-store';
@@ -90,6 +91,7 @@ import { NodeMultipartHttpClient } from './node-multipart-http-client';
 import { NodeMusicLibrary } from './node-music-library';
 import { NodeSongsFolder } from './node-songs-folder';
 import { SiteLinkJobs } from './site-link-jobs';
+import { getStartWithWindowsChangeOrNull, type StartWithWindows } from './start-with-windows';
 import { installSongForSite, type SiteSongInstallResult } from './site-song-installs';
 import { checkVideoForSite, type AddonWait, type SiteVideoCheckAnswer } from './site-video-checks';
 import type { MakeSongLink } from './sync-link';
@@ -125,6 +127,9 @@ export interface SyncControllerOptions {
   /** The website origins the local bridge answers (only the real site in a release build). */
   bridgeOrigins: readonly string[];
   audioBridge: AudioBridge;
+  /** Null for a copy run from source: its updates come from git. */
+  appUpdater: AppUpdater | null;
+  startWithWindows: StartWithWindows;
   services: DesktopServices;
   onStateChange: (state: DesktopSyncState) => void;
   /** A line for support (link jobs from the website: their ids and statuses, never a link). */
@@ -152,6 +157,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   /** Uploads a website link song's audio, the only file Sync sends the site. */
   private readonly fileUploadClient: NodeFileUploadHttpClient;
   private readonly siteLinkJobs: SiteLinkJobs;
+  private readonly appUpdates: AppUpdates | null;
   private pairingExpiryTimer: ReturnType<typeof setTimeout> | null = null;
   private settings: DesktopSettings = buildDefaultSettings();
   private record: InstalledSongsRecord = buildEmptyInstalledSongsRecord();
@@ -169,7 +175,6 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private finishedSync: DesktopSyncState['finishedSync'] = null;
   private lastLayoutMove: DesktopSyncState['lastLayoutMove'] = null;
   private problem: string | null = null;
-  private readyUpdateVersion: string | null = null;
   private dismissedUpdateVersion: string | null = null;
   /** The song a website link asked to make, until the player makes it or closes Make a song. */
   private songLink: (MakeSongLink & { preselectionKey: string }) | null = null;
@@ -204,11 +209,13 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     });
     this.fileUploadClient = new NodeFileUploadHttpClient({ appVersion: options.appVersion, getSourceFilePath: (sourceId) => this.musicSources.getSource(sourceId)?.filePath ?? null });
     this.siteLinkJobs = this.createSiteLinkJobs();
+    this.appUpdates = options.appUpdater === null ? null : new AppUpdates({ updater: options.appUpdater, getSettings: () => this.settings, onChange: () => { this.publish(); }, log: options.logSupportLine });
   }
 
   async initialize(): Promise<void> {
     [this.settings, this.record, this.deviceToken] = await Promise.all([this.settingsStore.load(), this.recordStore.load(), this.options.tokenStore.load()]);
     if (this.deviceToken) this.signIn = { kind: 'signed-in', computerName: this.options.computerName };
+    await this.applyStartWithWindowsIfChanged();
     for (const filePath of Object.values(this.settings.pickedFilePathsBySongId)) this.musicSources.register(filePath);
     this.generatorSettings.applyStartCommands();
     for (const fileName of await readdir(this.reportsFolder).catch((): string[] => [])) this.reportSongKeys.add(fileName);
@@ -226,6 +233,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
 
   /** When Sync quits, programs it started for addons and generators stop too, and the website hears it is leaving. */
   async shutdown(): Promise<void> {
+    this.appUpdates?.stop();
     await Promise.all([this.siteLinkJobs.stop({ isLeaving: true }), this.starter.stopAll(), this.bridgeServer.stop()]);
   }
 
@@ -478,10 +486,30 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     await this.options.services.writeClipboard([`${APP_DISPLAY_NAME} ${this.options.appVersion}`, ...lines].join('\n'));
   }
 
-  /** Called when a new version finished downloading. */
-  setUpdateReady(version: string): void {
-    this.readyUpdateVersion = version;
-    this.publish();
+  /** Starts the automatic checks for new versions, when that switch is on; called once the app is set up. */
+  startUpdateChecks(): void {
+    this.appUpdates?.applyAutomaticCheckSetting();
+  }
+
+  async checkForUpdates(): Promise<void> {
+    await this.appUpdates?.checkNow({ isStartedByPlayer: true });
+  }
+
+  async setAutomaticUpdateCheck(isOn: boolean): Promise<void> {
+    await this.saveSettings({ ...this.settings, isAutomaticUpdateCheckOn: isOn });
+    this.appUpdates?.applyAutomaticCheckSetting();
+  }
+
+  async setTestVersionsFirst(isOn: boolean): Promise<void> {
+    await this.saveSettings({ ...this.settings, shouldGetTestVersionsFirst: isOn });
+    this.appUpdates?.handleTestVersionsChange();
+  }
+
+  /** The player's own choice is always written, even over one made in Windows' own Startup apps list. */
+  async setStartWithWindows(isOn: boolean): Promise<void> {
+    const { startWithWindows } = this.options;
+    startWithWindows.apply(isOn);
+    await this.saveSettings({ ...this.settings, shouldStartWithWindows: isOn, startWithWindowsCommand: isOn ? startWithWindows.command : null });
   }
 
   /** Never in the middle of a sync: a half-done sync could leave a song half written. */
@@ -491,9 +519,16 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   }
 
   dismissUpdate(): Promise<void> {
-    this.dismissedUpdateVersion = this.readyUpdateVersion;
+    this.dismissedUpdateVersion = this.appUpdates?.readyVersion ?? null;
     this.publish();
     return Promise.resolve();
+  }
+
+  private async applyStartWithWindowsIfChanged(): Promise<void> {
+    const change = getStartWithWindowsChangeOrNull({ shouldStart: this.settings.shouldStartWithWindows, command: this.options.startWithWindows.command, writtenCommand: this.settings.startWithWindowsCommand });
+    if (!change) return;
+    this.options.startWithWindows.apply(change.shouldStart);
+    await this.saveSettings({ ...this.settings, startWithWindowsCommand: change.writtenCommand });
   }
 
   private createJobRunner(): GeneratorJobRunner {
@@ -822,6 +857,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     };
     const songs = buildSongRows(songViewInput);
     const layoutViews = buildLayoutViews({ librarySongs: outcome?.librarySongs ?? [], record: this.record, playerGroupNames: this.playerGroupNames });
+    const readyUpdateVersion = this.appUpdates?.readyVersion ?? null;
     const partyFolderInput = { partyFolderPlans: outcome?.finalPlan.partyFolderPlans, partyLists: outcome?.partyLists ?? null, record: this.record, now: new Date() };
     return {
       appVersion: this.options.appVersion,
@@ -856,7 +892,9 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       lastSyncAt: this.settings.lastSyncAt,
       activity: buildActivityEntries({ events: this.settings.activity, librarySongs: outcome?.librarySongs ?? [] }),
       trayStatus: getTrayStatus({ isSyncing: this.syncRun !== null, isPaused: !this.settings.isBackgroundSyncOn, songPlans: outcome?.finalPlan.songPlans ?? [] }),
-      updateVersion: this.readyUpdateVersion !== null && this.readyUpdateVersion !== this.dismissedUpdateVersion ? this.readyUpdateVersion : null,
+      updateVersion: readyUpdateVersion !== null && readyUpdateVersion !== this.dismissedUpdateVersion ? readyUpdateVersion : null,
+      appVersions: buildAppVersionsView({ appUpdates: this.appUpdates, currentVersion: this.options.appVersion, settings: this.settings }),
+      isStartWithWindowsOn: this.settings.shouldStartWithWindows,
       problem: this.problem,
     };
   }
