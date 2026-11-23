@@ -2,11 +2,11 @@
 
 > Draft. It gets a legal review before it is announced anywhere.
 
-Every StepsVault song needs the player's own copy of the music. Sync looks in the player's music folders and in
+Every dancedance.studio song needs the player's own copy of the music. Sync looks in the player's music folders and in
 files they pick. An **addon** is a small web service, made by anyone, that can suggest other places the music might
 be: a file on the addon maker's own server, or a page the player can open (a store, a library).
 
-StepsVault doesn't list, host, review or recommend addons. Players add one by pasting its address, after a screen that
+dancedance.studio doesn't list, host, review or recommend addons. Players add one by pasting its address, after a screen that
 shows exactly what the addon will see.
 
 ## What an addon sees
@@ -20,7 +20,7 @@ For each song Sync asks about, an addon gets the song's facts only:
 | `album` | `"Afterimage"` or `null` |
 | `genre` | `"Electronic"` or `null` |
 | `lengthSeconds` | `201` or `null` |
-| `youtubeId`, `youtubeUrl` | the song's video on StepsVault, or `null` |
+| `youtubeId`, `youtubeUrl` | the song's video on dancedance.studio, or `null` |
 
 Never the player's account, name, IP-based identity beyond what any web request carries, files, other songs, or
 anything else on their computer.

@@ -1,7 +1,7 @@
-# StepsVault Sync
+# dancedance.studio Sync
 
-StepsVault Sync puts the songs from your [dancedance.studio](https://dancedance.studio) vault into your own StepMania game,
-lined up with **your own copy of the music**. StepsVault makes dance steps; it never sends anyone music.
+dancedance.studio Sync puts the songs from your [dancedance.studio](https://dancedance.studio) vault into your own StepMania game,
+lined up with **your own copy of the music**. dancedance.studio makes dance steps; it never sends anyone music.
 
 - It only adds, updates, moves or removes the songs it added itself. Your own song folders are never touched.
 - It checks that your music file is the same version as the steps were made for, and lines the steps up with it.
@@ -39,7 +39,7 @@ The desktop app (`apps/desktop`) comes with task 11.
 pnpm --filter @dancedance/desktop start
 ```
 
-To try it against a StepsVault site on your own computer, set `DANCEDANCE_SITE_URL` (for example
+To try it against a dancedance.studio site on your own computer, set `DANCEDANCE_SITE_URL` (for example
 `http://127.0.0.1:8787`). `DANCEDANCE_USER_DATA_DIR` keeps a test run's settings apart from your real ones, and
 `DANCEDANCE_LOG_STATE=1` prints one line per change (never the sign-in token), and one per step of a link job from the
 website (its id and status, never the link).
