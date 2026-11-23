@@ -19,6 +19,8 @@ export interface DesktopSettings {
   shouldStartWithWindows: boolean;
   /** What Sync last wrote in Windows' list of programs to start (src/main/start-with-windows.ts); null when nothing. */
   startWithWindowsCommand: string | null;
+  /** The install whose installer answers are already in these settings (src/main/installer-choices.ts). */
+  appliedInstallId: string | null;
   /** Files the player chose with "Choose audio…", by library song id. */
   pickedFilePathsBySongId: Record<string, string>;
   addons: InstalledAddon[];
@@ -48,6 +50,7 @@ export function buildDefaultSettings(): DesktopSettings {
     shouldGetTestVersionsFirst: false,
     shouldStartWithWindows: true,
     startWithWindowsCommand: null,
+    appliedInstallId: null,
     pickedFilePathsBySongId: {},
     addons: [],
     generators: [],
@@ -77,6 +80,7 @@ export function parseSettings(value: unknown): DesktopSettings {
     shouldGetTestVersionsFirst: saved.shouldGetTestVersionsFirst === true,
     shouldStartWithWindows: saved.shouldStartWithWindows !== false,
     startWithWindowsCommand: typeof saved.startWithWindowsCommand === 'string' ? saved.startWithWindowsCommand : null,
+    appliedInstallId: typeof saved.appliedInstallId === 'string' ? saved.appliedInstallId : null,
     pickedFilePathsBySongId: getStringsByKey(saved.pickedFilePathsBySongId),
     addons: Array.isArray(saved.addons) ? saved.addons.flatMap((addon) => loadSavedAddon(addon) ?? []) : [],
     generators: Array.isArray(saved.generators) ? saved.generators.flatMap((generator) => loadSavedGenerator(generator) ?? []) : [],

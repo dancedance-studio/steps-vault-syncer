@@ -8,6 +8,7 @@ import { AudioBridge } from './audio-bridge';
 import { buildBridgeHandlers } from './bridge-handlers';
 import { DEFAULT_SITE_URL } from './desktop-settings';
 import { DeviceTokenStore } from './device-token-store';
+import { readInstallerChoicesOrNull } from './installer-choices';
 import { getLocalBridgeOrigins } from './local-bridge-origins';
 import { SafePairedBrowserStore } from './paired-browser-store';
 import { isGameRunning } from './game-process';
@@ -104,6 +105,7 @@ function createController(tray: Pick<SyncTray, 'show'>): SyncController {
       copy: { isPackaged: app.isPackaged, programPath: process.execPath, appFolder: app.getAppPath(), platform: process.platform, isTestRun: process.env.DANCEDANCE_USER_DATA_DIR !== undefined },
       setLoginItemSettings: (settings) => { app.setLoginItemSettings(settings); },
     }),
+    readInstallerChoices: () => readInstallerChoicesOrNull(app.isPackaged ? path.dirname(process.execPath) : null),
     services: {
       chooseFolder: async (title) => (await dialog.showOpenDialog({ title, properties: ['openDirectory'] })).filePaths[0] ?? null,
       chooseAudioFile: async () => (await dialog.showOpenDialog({ title: 'Choose this song’s music', properties: ['openFile'], filters: [{ name: 'Music', extensions: AUDIO_FILE_EXTENSIONS }] })).filePaths[0] ?? null,
