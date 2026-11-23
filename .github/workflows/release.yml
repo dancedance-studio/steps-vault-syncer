@@ -61,11 +61,15 @@ jobs:
         run: |
           bash apps/desktop/scripts/get-whats-new.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/whats-new.md"
           cat "$RUNNER_TEMP/whats-new.md"
-      - name: Package the app (no installer yet)
+      # electron-builder writes the app's update settings (resources/app-update.yml) only when it packages for an NSIS
+      # target, never for --dir, and a --prepackaged installer doesn't add them. Without them the app can't update itself,
+      # so the app is packaged with an installer that is thrown away; the real one is built from this app folder later.
+      - name: Package the app (its installer comes later)
         working-directory: apps/desktop
         run: |
           node scripts/build.mjs
-          pnpm exec electron-builder --win --dir --publish never
+          pnpm exec electron-builder --win nsis --publish never
+          cat release/win-unpacked/resources/app-update.yml
       - id: upload-app
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:

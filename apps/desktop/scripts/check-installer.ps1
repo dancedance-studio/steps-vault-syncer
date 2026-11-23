@@ -1,8 +1,8 @@
 <#
   The release check's run of the installer on a clean Windows machine (GitHub's windows-latest), in order: a silent
-  per-user install (/S) with both "What Sync sends" answers on, the installed app's signature (and, unsigned, its update
-  settings), its name and version in its file details, the app starting and reporting its version (--print-version),
-  then a silent uninstall.
+  per-user install (/S) with both "What Sync sends" answers on, the installed app's signature, its update settings, its
+  name and version in its file details, the app starting and reporting its version (--print-version), then a silent
+  uninstall.
 
   It stops at the first step that fails and writes that step's name to $env:GITHUB_OUTPUT as failed-step, for the
   "check failed" message. Never run it on a computer you use: it installs and uninstalls Sync for the current user.
@@ -90,19 +90,17 @@ Invoke-CheckStep 'the installed app''s signature' {
   if ($LASTEXITCODE -ne 0) { throw 'The installed app is not signed as it should be.' }
 }
 
-# electron-updater checks an update's signature only when the installed app's app-update.yml names a publisherName
-# (electron-builder writes one when it signs with a certificate itself). An unsigned app with one would refuse every
-# unsigned update, so players would be stuck on it.
-if (-not $ExpectedPublisher) {
-  Invoke-CheckStep 'the app''s update settings' {
-    $updateSettingsPath = Join-Path $script:InstallFolder 'resources\app-update.yml'
-    if (-not (Test-Path -LiteralPath $updateSettingsPath)) { throw "There is no $updateSettingsPath, so the app can't update itself." }
-    $updateSettings = Get-Content -LiteralPath $updateSettingsPath -Raw
-    Write-Host $updateSettings
-    if ($updateSettings -match '(?m)^\s*publisherName:') { throw 'app-update.yml names a publisherName, so this unsigned app would refuse every unsigned update.' }
-    if ($updateSettings -notmatch '(?m)^provider: github\s*$' -or $updateSettings -notmatch '(?m)^owner: dancedance-studio\s*$' -or $updateSettings -notmatch '(?m)^repo: sync\s*$') { throw 'app-update.yml doesn''t point at this repo''s GitHub releases.' }
-    Write-Host 'The app takes its updates from this repo''s GitHub releases, without asking for a signature.'
-  }
+# electron-updater reads the installed app's resources\app-update.yml: without it the app can't update at all. It checks
+# an update's signature only when that file names a publisherName (electron-builder writes one when it signs with a
+# certificate itself); an unsigned app with one would refuse every unsigned update, so players would be stuck on it.
+Invoke-CheckStep 'the app''s update settings' {
+  $updateSettingsPath = Join-Path $script:InstallFolder 'resources\app-update.yml'
+  if (-not (Test-Path -LiteralPath $updateSettingsPath)) { throw "There is no $updateSettingsPath, so the app can't update itself." }
+  $updateSettings = Get-Content -LiteralPath $updateSettingsPath -Raw
+  Write-Host $updateSettings
+  if ($updateSettings -notmatch '(?m)^provider: github\s*$' -or $updateSettings -notmatch '(?m)^owner: dancedance-studio\s*$' -or $updateSettings -notmatch '(?m)^repo: sync\s*$') { throw 'app-update.yml doesn''t point at this repo''s GitHub releases.' }
+  if (-not $ExpectedPublisher -and $updateSettings -match '(?m)^\s*publisherName:') { throw 'app-update.yml names a publisherName, so this unsigned app would refuse every unsigned update.' }
+  Write-Host 'The app takes its updates from this repo''s GitHub releases.'
 }
 
 Invoke-CheckStep 'the name and version in the files'' details' {
