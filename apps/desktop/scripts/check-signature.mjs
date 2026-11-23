@@ -34,11 +34,22 @@ function getUnsignedProblemOrNull({ fileName, status, subject }) {
   return `${fileName} ${signature}, but nothing in an unsigned release may be signed: this is a half-signed build.`;
 }
 
-/** PowerShell's Status is an enum; ConvertTo-Json would write its number, so it is turned into its name first. */
+/**
+ * PowerShell's Status is an enum; ConvertTo-Json would write its number, so it is turned into its name first. Windows
+ * PowerShell gets no PSModulePath: started from PowerShell 7 (check-installer.ps1 runs in pwsh), it would inherit 7's
+ * module folders, fail to load Get-AuthenticodeSignature, and read no status at all.
+ */
 function readSignature(filePath) {
-  const script = '$signature = Get-AuthenticodeSignature -LiteralPath $env:SIGNED_FILE; @{ status = "$($signature.Status)"; subject = "$($signature.SignerCertificate.Subject)" } | ConvertTo-Json -Compress';
-  const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { env: { ...process.env, SIGNED_FILE: filePath }, encoding: 'utf8' });
-  return JSON.parse(output);
+  const script = '$ErrorActionPreference = "Stop"; $signature = Get-AuthenticodeSignature -LiteralPath $env:SIGNED_FILE; @{ status = "$($signature.Status)"; subject = "$($signature.SignerCertificate.Subject)" } | ConvertTo-Json -Compress';
+  const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { env: { ...getEnvironmentWithoutModulePath(), SIGNED_FILE: filePath }, encoding: 'utf8' });
+  const signature = JSON.parse(output);
+  if (!signature.status) throw new Error(`PowerShell read no signature status for ${filePath}.`);
+  return signature;
+}
+
+/** Windows names are case-insensitive, so PSModulePath may come in any case. */
+function getEnvironmentWithoutModulePath() {
+  return Object.fromEntries(Object.entries(process.env).filter(([name]) => name.toUpperCase() !== 'PSMODULEPATH'));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
