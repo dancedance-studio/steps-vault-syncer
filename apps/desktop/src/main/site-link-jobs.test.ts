@@ -37,12 +37,12 @@ const FOUND_NIGHT_DRIVE = {
 };
 const FIND_JOB = { id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: NIGHT_DRIVE_LINK, expiresAt: '2026-11-21T12:00:20.000Z' };
 const MUSIC_JOB = { id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' };
-/** "Into my game" for a song already in the player's library list; songId is its vaultSongId. */
+/** "Into my game" for a song already in the player's library list; songId is its librarySongId. */
 const INSTALL_JOB = { id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' };
-/** Is this video's music the song? The song's facts come as the vault list gives them; it has no video link yet. */
+/** Is this video's music the song? The song's facts come as the library list gives them; it has no video link yet. */
 const VERIFY_JOB = {
   id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z',
-  song: { vaultSongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, youtubeId: null, chartVersion: 'v1' },
+  song: { librarySongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, youtubeId: null, chartVersion: 'v1' },
 };
 const VIDEO_AUDIO_LINKS = { status: 200, body: { links: [{ kind: 'file-url', url: `${ADDON_URL}/files/night-drive-video.ogg`, label: 'Music', fileName: 'night-drive-video.ogg' }] } };
 
@@ -198,7 +198,7 @@ class LinkJobsHarness {
   /** The library songs install jobs asked for, in order. */
   readonly installedSongIds: string[] = [];
   /** Stands for the app's sync and its check of the game folder: installed unless a test says otherwise. */
-  installSong: (vaultSongId: string) => Promise<SiteSongInstallResult> = () => Promise.resolve({ kind: 'installed' });
+  installSong: (librarySongId: string) => Promise<SiteSongInstallResult> = () => Promise.resolve({ kind: 'installed' });
   /** The songs whose fingerprint a verify job fetched, and the addon files it downloaded. */
   readonly fingerprintSongIds: string[] = [];
   readonly addonFileUrls: string[] = [];
@@ -233,9 +233,9 @@ class LinkJobsHarness {
         this.signOutCount += 1;
         this.isLinked = false;
       },
-      installSong: ({ vaultSongId }) => {
-        this.installedSongIds.push(vaultSongId);
-        return this.installSong(vaultSongId);
+      installSong: ({ librarySongId }) => {
+        this.installedSongIds.push(librarySongId);
+        return this.installSong(librarySongId);
       },
       checkVideo: ({ job, wait }) => checkVideoForSite({
         job,
@@ -247,8 +247,8 @@ class LinkJobsHarness {
             this.addonFileUrls.push(url);
             return Promise.resolve(`addon:${url}`);
           },
-          fetchFingerprint: (vaultSongId) => {
-            this.fingerprintSongIds.push(vaultSongId);
+          fetchFingerprint: (librarySongId) => {
+            this.fingerprintSongIds.push(librarySongId);
             return Promise.resolve({ envelope: [0.1, 0.5, 0.2], rateHertz: 100 });
           },
           compareVideoAudio: () => Promise.resolve(this.videoComparison),

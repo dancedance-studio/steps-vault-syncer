@@ -1,6 +1,6 @@
 # dancedance.studio Sync
 
-dancedance.studio Sync puts the songs from your [dancedance.studio](https://dancedance.studio) vault into your own StepMania game,
+dancedance.studio Sync puts the songs from your [dancedance.studio](https://dancedance.studio) library into your own StepMania game,
 lined up with **your own copy of the music**. dancedance.studio makes dance steps; it never sends anyone music.
 
 - It only adds, updates, moves or removes the songs it added itself. Your own song folders are never touched.

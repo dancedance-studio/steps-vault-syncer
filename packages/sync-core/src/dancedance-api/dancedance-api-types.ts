@@ -1,7 +1,7 @@
-import type { PartyListToSync, VaultSong } from '../planner/sync-plan-types';
+import type { PartyListToSync, LibrarySong } from '../planner/sync-plan-types';
 
-/** A song in the player's vault, as GET /api/sync/vault describes it. */
-export interface VaultSongDetails extends VaultSong {
+/** A song in the player's library, as GET /api/sync/library describes it. */
+export interface LibrarySongDetails extends LibrarySong {
   slug: string;
   album: string | null;
   lengthSeconds: number;
@@ -21,8 +21,8 @@ export interface SyncPartyList extends PartyListToSync {
   slug: string;
   /** When the list ends and its folder goes; null: no end. */
   endsAt: string | null;
-  /** Its ready songs, described like vault songs; their files come from the same song routes. */
-  songs: VaultSongDetails[];
+  /** Its ready songs, described like library songs; their files come from the same song routes. */
+  songs: LibrarySongDetails[];
 }
 
 /** The signed-in player as GET /api/sync/me describes them. */

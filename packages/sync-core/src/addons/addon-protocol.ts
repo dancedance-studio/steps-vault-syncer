@@ -20,7 +20,7 @@ export interface AddonManifest extends ManifestIdentity {
   protocol: typeof ADDON_PROTOCOL_VERSION;
   kind: 'addon';
   /**
-   * 'audio-links' (music for a song in the vault, with 'video-links' its video too) and/or 'song-source' (a new song
+   * 'audio-links' (music for a song in the library, with 'video-links' its video too) and/or 'song-source' (a new song
    * to make with a generator). Names Sync doesn't know are dropped.
    */
   provides: readonly AddonProvides[];

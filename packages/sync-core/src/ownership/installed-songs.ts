@@ -4,7 +4,7 @@ import type { PartyFolder } from './party-folders';
 
 /** One song folder Sync wrote. The record of these is kept by the website or the app, outside the Songs folder. */
 export interface InstalledSong {
-  vaultSongId: string;
+  librarySongId: string;
   /** Changes on dancedance.studio whenever the song's steps change. */
   chartVersion: string;
   /** New for every install, so a marker copied into another folder (or from another computer) never matches. */
@@ -42,12 +42,12 @@ export function buildEmptyInstalledSongsRecord(): InstalledSongsRecord {
 }
 
 export function withInstalledSong({ record, installedSong }: { record: InstalledSongsRecord; installedSong: InstalledSong }): InstalledSongsRecord {
-  const otherSongs = record.installedSongs.filter((song) => song.vaultSongId !== installedSong.vaultSongId);
+  const otherSongs = record.installedSongs.filter((song) => song.librarySongId !== installedSong.librarySongId);
   return { ...record, installedSongs: [...otherSongs, installedSong] };
 }
 
-export function withoutInstalledSong({ record, vaultSongId }: { record: InstalledSongsRecord; vaultSongId: string }): InstalledSongsRecord {
-  return { ...record, installedSongs: record.installedSongs.filter((song) => song.vaultSongId !== vaultSongId) };
+export function withoutInstalledSong({ record, librarySongId }: { record: InstalledSongsRecord; librarySongId: string }): InstalledSongsRecord {
+  return { ...record, installedSongs: record.installedSongs.filter((song) => song.librarySongId !== librarySongId) };
 }
 
 export function withOwnedGroup({ record, groupName }: { record: InstalledSongsRecord; groupName: string }): InstalledSongsRecord {
@@ -59,8 +59,8 @@ export function isOwnedGroup({ record, groupName }: { record: InstalledSongsReco
   return record.ownedGroupNames.some((ownedName) => getNameKey(ownedName) === getNameKey(groupName));
 }
 
-export function findInstalledSong({ record, vaultSongId }: { record: InstalledSongsRecord; vaultSongId: string }): InstalledSong | undefined {
-  return record.installedSongs.find((song) => song.vaultSongId === vaultSongId);
+export function findInstalledSong({ record, librarySongId }: { record: InstalledSongsRecord; librarySongId: string }): InstalledSong | undefined {
+  return record.installedSongs.find((song) => song.librarySongId === librarySongId);
 }
 
 export function findInstalledSongAt({ record, folderPath }: { record: InstalledSongsRecord; folderPath: SongsPath }): InstalledSong | undefined {

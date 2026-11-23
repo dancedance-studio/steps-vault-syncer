@@ -77,7 +77,7 @@ export interface SiteLinkJobsDependencies {
   /** The site said this computer is signed out. */
   onSignedOut(): void;
   /** "Into my game": syncs now and says whether the library song really is in the game, or why not. */
-  installSong(options: { vaultSongId: string }): Promise<SiteSongInstallResult>;
+  installSong(options: { librarySongId: string }): Promise<SiteSongInstallResult>;
   /** A verify job: is the video's music the song? Nothing is installed or uploaded for it. */
   checkVideo(options: { job: VerifyLinkJob; wait: AddonWait }): Promise<SiteVideoCheckAnswer>;
 }
@@ -341,7 +341,7 @@ export class SiteLinkJobs {
 
   /** "Into my game": answered only once the song's music is in its folder in the game, or with why it isn't. */
   private async runInstallJob(job: InstallLinkJob): Promise<void> {
-    const result = await this.dependencies.installSong({ vaultSongId: job.songId }).catch((): SiteSongInstallResult => ({ kind: 'failed', reason: INSTALL_FAILED_REASON }));
+    const result = await this.dependencies.installSong({ librarySongId: job.songId }).catch((): SiteSongInstallResult => ({ kind: 'failed', reason: INSTALL_FAILED_REASON }));
     await this.answerJob({ job, answer: result.kind === 'installed' ? { status: 'installed' } : { status: result.kind, reason: result.reason } });
   }
 

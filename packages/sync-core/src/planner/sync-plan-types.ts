@@ -1,8 +1,8 @@
 import type { SongFolderFacts } from '../layout/folder-layout';
 import type { SongsPath } from '../songs-folder/songs-path';
 
-/** A song in the player's vault on dancedance.studio, as Sync needs it. */
-export interface VaultSong extends SongFolderFacts {
+/** A song in the player's library on dancedance.studio, as Sync needs it. */
+export interface LibrarySong extends SongFolderFacts {
   /** Changes whenever the song's steps change on dancedance.studio. */
   chartVersion: string;
 }
@@ -15,18 +15,18 @@ export type AudioMatch =
   | { kind: 'not-found'; isWaitingForAddon: boolean };
 
 /** One clear status per song, as the status chips show it. */
-export type SongSyncStatus = 'synced' | 'syncing' | 'needs-audio' | 'different-edit' | 'update-available' | 'you-edited-this' | 'removed-from-vault';
+export type SongSyncStatus = 'synced' | 'syncing' | 'needs-audio' | 'different-edit' | 'update-available' | 'you-edited-this' | 'removed-from-library';
 
 export type SyncAction =
-  | { kind: 'add'; vaultSongId: string; to: SongsPath; chartVersion: string; audio: { sourceId: string; shiftSeconds: number; videoSourceId: string | null } }
-  | { kind: 'update'; vaultSongId: string; at: SongsPath; chartVersion: string }
-  | { kind: 'move'; vaultSongId: string; from: SongsPath; to: SongsPath }
-  | { kind: 'remove'; vaultSongId: string; at: SongsPath }
+  | { kind: 'add'; librarySongId: string; to: SongsPath; chartVersion: string; audio: { sourceId: string; shiftSeconds: number; videoSourceId: string | null } }
+  | { kind: 'update'; librarySongId: string; at: SongsPath; chartVersion: string }
+  | { kind: 'move'; librarySongId: string; from: SongsPath; to: SongsPath }
+  | { kind: 'remove'; librarySongId: string; at: SongsPath }
   /** Drops the record of a folder that is gone or no longer ours; touches nothing on disk. */
-  | { kind: 'forget'; vaultSongId: string };
+  | { kind: 'forget'; librarySongId: string };
 
 export interface SongPlan {
-  vaultSongId: string;
+  librarySongId: string;
   status: SongSyncStatus;
   /** In order; an empty list when nothing needs doing (or the player must choose first). */
   actions: SyncAction[];
@@ -35,7 +35,7 @@ export interface SongPlan {
 
 export interface SyncPlan {
   songPlans: SongPlan[];
-  /** Record clean-up for songs that are neither in the vault nor in the game any more. */
+  /** Record clean-up for songs that are neither in the library nor in the game any more. */
   forgetActions: SyncAction[];
   /** The party lists' folders, list by list; missing from plans made without party lists. */
   partyFolderPlans?: PartyFolderPlan[];
@@ -48,7 +48,7 @@ export interface PartyListToSync {
   /** "Party - <name>" from the site, before Sync's own name cleaning (getPartyFolderBaseName). */
   gameFolderName: string;
   /** The list's ready songs, in its order. */
-  songs: readonly VaultSong[];
+  songs: readonly LibrarySong[];
 }
 
 /** One party folder: copies of the list's songs, whatever the folder layout. */
@@ -69,7 +69,7 @@ export interface PartyFolderPlan {
 export interface PlayerChoices {
   /** For "You edited this": replace their edits with dancedance.studio's steps. Default: keep theirs. */
   replaceEditedSongIds: ReadonlySet<string>;
-  /** For "Removed from vault": remove it from the game. Default: keep it. */
+  /** For "Removed from library": remove it from the game. Default: keep it. */
   removeFromGameSongIds: ReadonlySet<string>;
   /** For "Update available" when automatic updates are off. */
   updateSongIds: ReadonlySet<string>;

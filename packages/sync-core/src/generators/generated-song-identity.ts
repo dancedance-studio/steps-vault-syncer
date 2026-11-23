@@ -1,8 +1,8 @@
 import type { GeneratorSongFacts } from './generator-protocol';
 
-/** What Sync needs to know about a vault song to notice that a generated song is the same song. */
-export interface VaultSongIdentity {
-  vaultSongId: string;
+/** What Sync needs to know about a library song to notice that a generated song is the same song. */
+export interface LibrarySongIdentity {
+  librarySongId: string;
   title: string;
   artist: string;
   youtubeId: string | null;
@@ -17,11 +17,11 @@ export function getGeneratedSongKey(song: Pick<GeneratorSongFacts, 'title' | 'ar
   return `song:${getTitleAndArtistKey(song)}`;
 }
 
-/** The vault song that is the same song as this generated one: the same video (youtubeId), or the same title and artist. */
-export function findSameVaultSong({ song, vaultSongs }: { song: Pick<GeneratorSongFacts, 'title' | 'artist' | 'youtubeId'>; vaultSongs: readonly VaultSongIdentity[] }): VaultSongIdentity | null {
+/** The library song that is the same song as this generated one: the same video (youtubeId), or the same title and artist. */
+export function findSameLibrarySong({ song, librarySongs }: { song: Pick<GeneratorSongFacts, 'title' | 'artist' | 'youtubeId'>; librarySongs: readonly LibrarySongIdentity[] }): LibrarySongIdentity | null {
   const titleAndArtistKey = getTitleAndArtistKey(song);
-  const sameVideoSong = song.youtubeId ? vaultSongs.find((vaultSong) => vaultSong.youtubeId === song.youtubeId) : undefined;
-  return sameVideoSong ?? vaultSongs.find((vaultSong) => getTitleAndArtistKey(vaultSong) === titleAndArtistKey) ?? null;
+  const sameVideoSong = song.youtubeId ? librarySongs.find((librarySong) => librarySong.youtubeId === song.youtubeId) : undefined;
+  return sameVideoSong ?? librarySongs.find((librarySong) => getTitleAndArtistKey(librarySong) === titleAndArtistKey) ?? null;
 }
 
 function getTitleAndArtistKey(song: { title: string; artist: string }): string {

@@ -1,6 +1,6 @@
 # dancedance.studio Sync — plan
 
-dancedance.studio Sync puts the songs in a player's dancedance.studio vault into their own StepMania `Songs` folder, using **the
+dancedance.studio Sync puts the songs in a player's dancedance.studio library into their own StepMania `Songs` folder, using **the
 player's own copy of each song's music**, and lines the steps up with that copy. Sync sends a player's music only to a generator the player chose, after telling
 them where it goes.
 
@@ -50,7 +50,7 @@ The website (a private repo) installs `sync-core` and `sync-ui` from npm under t
    types into a song source's fields. They never see the player's account, files or anything else. The player agrees once per addon. dancedance.studio lists no addons and
    promotes none.
 4. **One clear status per song** (icon + word, never colour alone): Synced, Syncing…, Needs audio, Different edit,
-   Update available, You edited this, Removed from vault.
+   Update available, You edited this, Removed from library.
 
 ## How one song syncs
 
@@ -105,7 +105,7 @@ own repo.
 1. Repo setup: pnpm workspace, TypeScript, Vitest, lint, CI, contributor docs.
 2. Core: the songs-folder port, the record of owned folders and the marker files.
 3. Core: folder layout and group names (prefix only on a clash).
-4. Core: the sync planner, from the vault and the folder to a list of actions and a status per song.
+4. Core: the sync planner, from the library and the folder to a list of actions and a status per song.
 5. Core: `.ssc` editing (`#MUSIC`, `#OFFSET`) and writing a song safely.
 6. Core: audio matching (onset envelope + cross-correlation), checked against the engine's own numbers.
 7. Core: audio sources (music folders, picked files).

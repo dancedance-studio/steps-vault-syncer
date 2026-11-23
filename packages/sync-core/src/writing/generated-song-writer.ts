@@ -1,5 +1,5 @@
 import { checkGeneratedSsc, type CheckedGeneratedSsc } from '../generators/generated-song-check';
-import { findSameVaultSong, getGeneratedSongKey, type VaultSongIdentity } from '../generators/generated-song-identity';
+import { findSameLibrarySong, getGeneratedSongKey, type LibrarySongIdentity } from '../generators/generated-song-identity';
 import { getGeneratedSongFolderNames } from '../generators/generated-song-folder-name';
 import { buildGeneratedSongSsc, type GeneratedSongFileNames } from '../generators/generated-song-ssc';
 import type { GeneratedSongFiles } from '../generators/generator-files';
@@ -21,8 +21,8 @@ import { SongWriteError, toSongWriteError } from './song-write-error';
 export const GENERATED_SONGS_GROUP_NAME = 'My generated songs';
 const REPLACED_FOLDER_PREFIX = '.dancedance-old-';
 
-/** The player's answer to "keep the vault song, or the generated one?" */
-export type VaultSongChoice = 'keep-vault-song' | 'keep-generated-song';
+/** The player's answer to "keep the library song, or the generated one?" */
+export type LibrarySongChoice = 'keep-library-song' | 'keep-generated-song';
 
 export interface GeneratedSongWriterDependencies {
   songsFolder: SongsFolder;
@@ -49,19 +49,19 @@ export interface GeneratedSongRequest {
 
 export type GeneratedSongWriteResult =
   | { kind: 'written'; record: InstalledSongsRecord; generatedSong: GeneratedSong; wasReplaced: boolean }
-  /** Nothing was written: ask the player `question`, then call again with their VaultSongChoice. */
-  | { kind: 'needs-vault-choice'; vaultSongId: string; question: string }
-  /** The player kept the vault song, so nothing was written. */
-  | { kind: 'kept-vault-song'; record: InstalledSongsRecord };
+  /** Nothing was written: ask the player `question`, then call again with their LibrarySongChoice. */
+  | { kind: 'needs-library-choice'; librarySongId: string; question: string }
+  /** The player kept the library song, so nothing was written. */
+  | { kind: 'kept-library-song'; record: InstalledSongsRecord };
 
 export interface WriteGeneratedSongOptions {
   dependencies: GeneratedSongWriterDependencies;
   record: InstalledSongsRecord;
   request: GeneratedSongRequest;
-  /** The player's vault, to notice the same song there. */
-  vaultSongs: readonly VaultSongIdentity[];
-  /** Given on the second call, after a 'needs-vault-choice' result. */
-  vaultSongChoice?: VaultSongChoice | null;
+  /** The player's library, to notice the same song there. */
+  librarySongs: readonly LibrarySongIdentity[];
+  /** Given on the second call, after a 'needs-library-choice' result. */
+  librarySongChoice?: LibrarySongChoice | null;
 }
 
 /**
@@ -70,19 +70,19 @@ export interface WriteGeneratedSongOptions {
  * refused and SongWriteError when the song couldn't be written; either way the game is left as it was.
  */
 export async function writeGeneratedSong(options: WriteGeneratedSongOptions): Promise<GeneratedSongWriteResult> {
-  const { request, record, vaultSongChoice } = options;
+  const { request, record, librarySongChoice } = options;
   const checkedSsc = checkGeneratedSsc({ chartText: request.files.chartText, difficulties: request.difficulties, generatorName: request.generator.name });
-  const sameVaultSong = findSameVaultSong({ song: request.song, vaultSongs: options.vaultSongs });
-  if (sameVaultSong && !vaultSongChoice) return { kind: 'needs-vault-choice', vaultSongId: sameVaultSong.vaultSongId, question: `“${sameVaultSong.title}” is already in the library. Keep the library song, or the one you made?` };
-  if (sameVaultSong && vaultSongChoice === 'keep-vault-song') return { kind: 'kept-vault-song', record };
-  return writeCheckedSong({ options, checkedSsc, inPlaceOfVaultSongId: sameVaultSong?.vaultSongId ?? null });
+  const sameLibrarySong = findSameLibrarySong({ song: request.song, librarySongs: options.librarySongs });
+  if (sameLibrarySong && !librarySongChoice) return { kind: 'needs-library-choice', librarySongId: sameLibrarySong.librarySongId, question: `“${sameLibrarySong.title}” is already in the library. Keep the library song, or the one you made?` };
+  if (sameLibrarySong && librarySongChoice === 'keep-library-song') return { kind: 'kept-library-song', record };
+  return writeCheckedSong({ options, checkedSsc, inPlaceOfLibrarySongId: sameLibrarySong?.librarySongId ?? null });
 }
 
-async function writeCheckedSong({ options, checkedSsc, inPlaceOfVaultSongId }: { options: WriteGeneratedSongOptions; checkedSsc: CheckedGeneratedSsc; inPlaceOfVaultSongId: string | null }): Promise<GeneratedSongWriteResult> {
+async function writeCheckedSong({ options, checkedSsc, inPlaceOfLibrarySongId }: { options: WriteGeneratedSongOptions; checkedSsc: CheckedGeneratedSsc; inPlaceOfLibrarySongId: string | null }): Promise<GeneratedSongWriteResult> {
   const { dependencies, record, request } = options;
   const replacedSong = await getReplaceableSong({ songsFolder: dependencies.songsFolder, record, songKey: getGeneratedSongKey(request.song) });
   const folderPath = replacedSong?.folderPath ?? (await chooseNewFolderPath({ songsFolder: dependencies.songsFolder, record, songNames: getGeneratedSongFolderNames({ headerText: checkedSsc.headerText, song: request.song, now: dependencies.getNow() }) }));
-  const generatedSong = { ...buildGeneratedSong({ dependencies, request, folderPath, inPlaceOfVaultSongId }), levelsByDifficulty: getLevelsByDifficulty({ checkedSsc, difficulties: request.difficulties }) };
+  const generatedSong = { ...buildGeneratedSong({ dependencies, request, folderPath, inPlaceOfLibrarySongId }), levelsByDifficulty: getLevelsByDifficulty({ checkedSsc, difficulties: request.difficulties }) };
   await writeSongFolder({ dependencies, request, checkedSsc, generatedSong, isReplacing: replacedSong !== null });
   const recordWithSong = withGeneratedSong({ record, generatedSong });
   return { kind: 'written', record: withOwnedGroup({ record: recordWithSong, groupName: folderPath[0] ?? GENERATED_SONGS_GROUP_NAME }), generatedSong, wasReplaced: replacedSong !== null };
@@ -110,9 +110,9 @@ async function chooseNewFolderPath({ songsFolder, record, songNames }: { songsFo
   return buildSongsPath(groupName, getNewSongFolderName({ song: songNames, takenNameKeys: new Set(entries.map((entry) => getNameKey(entry.name))) }));
 }
 
-function buildGeneratedSong({ dependencies, request, folderPath, inPlaceOfVaultSongId }: { dependencies: GeneratedSongWriterDependencies; request: GeneratedSongRequest; folderPath: SongsPath; inPlaceOfVaultSongId: string | null }): GeneratedSong {
+function buildGeneratedSong({ dependencies, request, folderPath, inPlaceOfLibrarySongId }: { dependencies: GeneratedSongWriterDependencies; request: GeneratedSongRequest; folderPath: SongsPath; inPlaceOfLibrarySongId: string | null }): GeneratedSong {
   const { generator, song, difficulties, source = null } = request;
-  return { songKey: getGeneratedSongKey(song), song, generatorId: generator.id, generatorVersion: generator.version, generatorName: generator.name, difficulties: [...difficulties], installId: dependencies.createId(), folderPath, inPlaceOfVaultSongId, source, generatedAt: dependencies.getNow() };
+  return { songKey: getGeneratedSongKey(song), song, generatorId: generator.id, generatorVersion: generator.version, generatorName: generator.name, difficulties: [...difficulties], installId: dependencies.createId(), folderPath, inPlaceOfLibrarySongId, source, generatedAt: dependencies.getNow() };
 }
 
 /** Everything goes into a hidden folder first and is renamed into place last, so the game never sees a half-written song. */

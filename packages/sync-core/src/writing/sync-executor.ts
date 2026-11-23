@@ -9,7 +9,7 @@ export type ActivityKind = 'added' | 'updated' | 'moved' | 'removed' | 'failed';
 
 /** One line of the Activity screen. */
 export interface ActivityEvent {
-  vaultSongId: string;
+  librarySongId: string;
   kind: ActivityKind;
   at: string;
   folderPath: readonly string[];
@@ -22,7 +22,7 @@ export interface ActivityEvent {
 export interface SyncProgress {
   doneSongCount: number;
   totalSongCount: number;
-  vaultSongId: string;
+  librarySongId: string;
 }
 
 export interface SyncResult {
@@ -42,7 +42,7 @@ export async function carryOutSyncPlan(options: {
   onRecordChange?: (record: InstalledSongsRecord) => Promise<void>;
 }): Promise<SyncResult> {
   const partyFolderPlans = options.plan.partyFolderPlans ?? [];
-  const layoutRecord = options.plan.forgetActions.reduce((current, action) => withoutInstalledSong({ record: current, vaultSongId: action.vaultSongId }), options.record);
+  const layoutRecord = options.plan.forgetActions.reduce((current, action) => withoutInstalledSong({ record: current, librarySongId: action.librarySongId }), options.record);
   let record = withPartyFolderForgetActions({ record: layoutRecord, partyFolderPlans });
   const events: ActivityEvent[] = [];
   const songWorks = getSongWorks(options.plan);
@@ -53,7 +53,7 @@ export async function carryOutSyncPlan(options: {
     record = result.record;
     events.push(...result.events);
     await options.onRecordChange?.(record);
-    options.onProgress?.({ doneSongCount: index + 1, totalSongCount: songWorks.length, vaultSongId: songWork.songPlan.vaultSongId });
+    options.onProgress?.({ doneSongCount: index + 1, totalSongCount: songWorks.length, librarySongId: songWork.songPlan.librarySongId });
   }
   return { record: await removeEmptyOwnedGroups({ record, dependencies: options.dependencies }), events };
 }
@@ -75,7 +75,7 @@ function getSongWorks(plan: SyncPlan): SongWork[] {
 function withPartyFolderForgetActions({ record, partyFolderPlans }: { record: InstalledSongsRecord; partyFolderPlans: readonly PartyFolderPlan[] }): InstalledSongsRecord {
   return partyFolderPlans.reduce((current, partyFolderPlan) => {
     if (!findPartyFolder({ record: current, partyListId: partyFolderPlan.partyListId })) return current;
-    const songsRecord = partyFolderPlan.forgetActions.reduce((songs, action) => withoutInstalledSong({ record: songs, vaultSongId: action.vaultSongId }), buildPartyFolderSongsRecord({ record: current, partyListId: partyFolderPlan.partyListId }));
+    const songsRecord = partyFolderPlan.forgetActions.reduce((songs, action) => withoutInstalledSong({ record: songs, librarySongId: action.librarySongId }), buildPartyFolderSongsRecord({ record: current, partyListId: partyFolderPlan.partyListId }));
     return withPartyFolder({ record: current, partyFolder: buildPartyFolder({ partyFolderPlan, installedSongs: songsRecord.installedSongs }) });
   }, record);
 }
@@ -107,7 +107,7 @@ async function carryOutSongPlan({ songPlan, record, dependencies }: { songPlan: 
       if (action.kind !== 'forget') events.push(buildSuccessEvent({ action, record: currentRecord, at: dependencies.getNow() }));
     } catch (error) {
       const writeError = toSongWriteError(error);
-      events.push({ vaultSongId: songPlan.vaultSongId, kind: 'failed', at: dependencies.getNow(), folderPath: getActionPath(action), failure: writeError.failure, message: writeError.message });
+      events.push({ librarySongId: songPlan.librarySongId, kind: 'failed', at: dependencies.getNow(), folderPath: getActionPath(action), failure: writeError.failure, message: writeError.message });
       break;
     }
   }
@@ -116,14 +116,14 @@ async function carryOutSongPlan({ songPlan, record, dependencies }: { songPlan: 
 
 async function carryOutAction({ action, record, dependencies }: { action: SyncAction; record: InstalledSongsRecord; dependencies: SongWriterDependencies }): Promise<InstalledSongsRecord> {
   const { songsFolder } = dependencies;
-  if (action.kind === 'forget') return withoutInstalledSong({ record, vaultSongId: action.vaultSongId });
+  if (action.kind === 'forget') return withoutInstalledSong({ record, librarySongId: action.librarySongId });
   if (action.kind === 'add') return withSongInGroup({ record, installedSong: await addSong({ dependencies, action }) });
-  const installedSong = findInstalledSong({ record, vaultSongId: action.vaultSongId });
+  const installedSong = findInstalledSong({ record, librarySongId: action.librarySongId });
   if (!installedSong) throw new SongWriteError({ failure: 'other', message: 'Sync lost track of this song. Sync again.' });
   if (action.kind === 'update') return withSongInGroup({ record, installedSong: await updateSong({ dependencies, action, installedSong }) });
   if (action.kind === 'move') return withSongInGroup({ record, installedSong: await moveSong({ songsFolder, installedSong, to: action.to }) });
   await removeSong({ songsFolder, installedSong });
-  return withoutInstalledSong({ record, vaultSongId: action.vaultSongId });
+  return withoutInstalledSong({ record, librarySongId: action.librarySongId });
 }
 
 function withSongInGroup({ record, installedSong }: { record: InstalledSongsRecord; installedSong: InstalledSong }): InstalledSongsRecord {
@@ -150,8 +150,8 @@ const ACTIVITY_KIND_BY_ACTION_KIND = { add: 'added', update: 'updated', move: 'm
 
 function buildSuccessEvent({ action, record, at }: { action: Exclude<SyncAction, { kind: 'forget' }>; record: InstalledSongsRecord; at: string }): ActivityEvent {
   const kind = ACTIVITY_KIND_BY_ACTION_KIND[action.kind];
-  const folderPath = findInstalledSong({ record, vaultSongId: action.vaultSongId })?.folderPath ?? getActionPath(action);
-  return { vaultSongId: action.vaultSongId, kind, at, folderPath };
+  const folderPath = findInstalledSong({ record, librarySongId: action.librarySongId })?.folderPath ?? getActionPath(action);
+  return { librarySongId: action.librarySongId, kind, at, folderPath };
 }
 
 function getActionPath(action: SyncAction): readonly string[] {

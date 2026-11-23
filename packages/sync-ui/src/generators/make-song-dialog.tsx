@@ -186,11 +186,11 @@ function JobStep(props: MakeSongDialogProps & { music: MusicChoiceView; jobKey: 
       </>
     );
   }
-  if (job?.state === 'needs-vault-choice') {
+  if (job?.state === 'needs-library-choice') {
     return (
       <>
         <DialogHeading titleId="sv-sync-make-song-title" title="Already in the library" stepText="Step 3 of 3" />
-        <GeneratorJobProgress job={job} onCancelJob={props.onCancelJob} onAnswerVaultChoice={props.onAnswerVaultChoice} />
+        <GeneratorJobProgress job={job} onCancelJob={props.onCancelJob} onAnswerLibraryChoice={props.onAnswerLibraryChoice} />
       </>
     );
   }
@@ -207,7 +207,7 @@ function JobStep(props: MakeSongDialogProps & { music: MusicChoiceView; jobKey: 
     <>
       <DialogHeading titleId="sv-sync-make-song-title" title="Making the steps" stepText="Step 3 of 3" />
       <span className="sv-sync-text"><b className="sv-sync-strong" dir="auto">{props.music.title} · {props.music.artist}</b>{job ? ` · with ${job.generatorName}` : ''}</span>
-      {job ? <GeneratorJobProgress job={job} onCancelJob={props.onCancelJob} onAnswerVaultChoice={props.onAnswerVaultChoice} isPercentOnStageLine /> : <ReceptorLoader label="Starting…" isSmall />}
+      {job ? <GeneratorJobProgress job={job} onCancelJob={props.onCancelJob} onAnswerLibraryChoice={props.onAnswerLibraryChoice} isPercentOnStageLine /> : <ReceptorLoader label="Starting…" isSmall />}
       {job?.state === 'working' && <span className="sv-sync-small sv-sync-muted">You can close this. Sync tells you when it&apos;s done.</span>}
       {job?.state === 'working' && <div className="sv-sync-dialog-buttons"><CancelJobButton job={job} onCancelJob={props.onCancelJob} isDanger /></div>}
       {job && job.state !== 'working' && <div className="sv-sync-dialog-buttons"><button className="sv-sync-button" type="button" onClick={props.onClose}>Close</button></div>}

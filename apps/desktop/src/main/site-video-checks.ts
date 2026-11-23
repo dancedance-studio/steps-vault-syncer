@@ -30,7 +30,7 @@ export interface SiteVideoCheckPorts {
   addonHttpClient: HttpClient;
   /** Into the folder where Sync already keeps addons' files, so a verify adds no storage of its own. A sourceId. */
   downloadAddonFile(options: { url: string; fileName: string | null; addonName: string }): Promise<string>;
-  fetchFingerprint(vaultSongId: string): Promise<AudioFingerprint>;
+  fetchFingerprint(librarySongId: string): Promise<AudioFingerprint>;
   /** Off the main thread: the file decoded, then compared with the fingerprint. */
   compareVideoAudio(options: { sourceId: string; fingerprint: AudioFingerprint }): Promise<VideoAudioComparison>;
 }

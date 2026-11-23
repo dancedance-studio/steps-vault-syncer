@@ -10,7 +10,7 @@ const CHART_TEXT = '#TITLE:Cheap Thrills;\n#OFFSET:-0.120;\n';
 
 function buildInstalledSong(overrides: Partial<InstalledSong> = {}): InstalledSong {
   return {
-    vaultSongId: 'song-1',
+    librarySongId: 'song-1',
     chartVersion: 'v3',
     installId: 'install-a',
     folderPath: buildSongsPath('dancedance.studio', 'Cheap Thrills'),

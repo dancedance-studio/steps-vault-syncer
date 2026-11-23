@@ -11,7 +11,7 @@ export interface DesktopSettings {
   layout: FolderLayout;
   shouldUpdateAutomatically: boolean;
   isBackgroundSyncOn: boolean;
-  /** Files the player chose with "Choose audio…", by vault song id. */
+  /** Files the player chose with "Choose audio…", by library song id. */
   pickedFilePathsBySongId: Record<string, string>;
   addons: InstalledAddon[];
   /** Community generators, each with the time the player agreed to send it their music (when it isn't on this computer). */

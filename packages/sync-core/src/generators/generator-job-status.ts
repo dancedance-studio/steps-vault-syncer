@@ -2,7 +2,7 @@ import type { HttpResponse } from '../network/http-client';
 import { getRetryAfterSeconds } from '../network/retry-after';
 import { isAllowedServiceLinkUrl, isOnThisComputer } from '../network/service-address';
 import { GeneratorError } from './generator-error';
-import { getGeneratorErrorSentence, getVaultSongIdOrNull, MAX_GENERATOR_MUSIC_BYTES, MAX_GENERATOR_VIDEO_BYTES, type GeneratorReference } from './generator-protocol';
+import { getGeneratorErrorSentence, getLibrarySongIdOrNull, MAX_GENERATOR_MUSIC_BYTES, MAX_GENERATOR_VIDEO_BYTES, type GeneratorReference } from './generator-protocol';
 
 const MAX_STAGE_LENGTH = 60;
 const MAX_FILE_LINKS = 20;
@@ -33,10 +33,10 @@ export type GeneratorJobStatus =
   /** The message is a full sentence for the player, with the generator's own reason when it gave one. */
   | { state: 'failed'; message: string }
   /**
-   * At most one file of each kind, always with a chart unless vaultSongId is set. vaultSongId: the vault song dancedance.studio's
-   * own generator made (null from any other generator, which can't plant a vault song).
+   * At most one file of each kind, always with a chart unless librarySongId is set. librarySongId: the library song dancedance.studio's
+   * own generator made (null from any other generator, which can't plant a library song).
    */
-  | { state: 'done'; files: GeneratorFileLink[]; vaultSongId: string | null };
+  | { state: 'done'; files: GeneratorFileLink[]; librarySongId: string | null };
 
 export function parseJobStatusAnswer({ answer, generator, isFromDancedance = false }: { answer: HttpResponse<unknown>; generator: GeneratorReference; isFromDancedance?: boolean }): GeneratorJobStatus {
   const { status, body } = answer;
@@ -76,11 +76,11 @@ function describeFailedJob({ body, generator }: { body: unknown; generator: Gene
   return `${generator.name} couldn’t make this song. Try again, or ask its maker why.`;
 }
 
-/** A song dancedance.studio's generator put in the vault installs from the vault, so its files aren't needed. */
+/** A song dancedance.studio's generator put in the library installs from the library, so its files aren't needed. */
 function parseDoneStatus({ body, generator, isFromDancedance }: { body: Record<string, unknown>; generator: GeneratorReference; isFromDancedance: boolean }): GeneratorJobStatus {
-  const vaultSongId = isFromDancedance ? getVaultSongIdOrNull(body) : null;
-  if (vaultSongId !== null && !Array.isArray(body.files)) return { state: 'done', files: [], vaultSongId };
-  return { state: 'done', files: parseFileLinks({ value: body.files, generator, isChartNeeded: vaultSongId === null }), vaultSongId };
+  const librarySongId = isFromDancedance ? getLibrarySongIdOrNull(body) : null;
+  if (librarySongId !== null && !Array.isArray(body.files)) return { state: 'done', files: [], librarySongId };
+  return { state: 'done', files: parseFileLinks({ value: body.files, generator, isChartNeeded: librarySongId === null }), librarySongId };
 }
 
 /** Unknown kinds are ignored, so a newer generator still works; a broken link or size refuses the whole song. */

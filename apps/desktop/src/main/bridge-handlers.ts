@@ -1,5 +1,5 @@
-import { FOLDER_LAYOUTS, GENERATOR_DIFFICULTIES, type FolderLayout, type GeneratorDifficulty, type VaultSongChoice } from '@dancedance/sync-core';
-import type { AddonInstallPreview, AddonOptionView, GeneratorInstallPreview, MakeSongRequest, ServiceLocationView, ServiceLookupRequest, SongAction, SongSourceSearchRequest, VaultChoiceAnswer } from '@dancedance/sync-ui';
+import { FOLDER_LAYOUTS, GENERATOR_DIFFICULTIES, type FolderLayout, type GeneratorDifficulty, type LibrarySongChoice } from '@dancedance/sync-core';
+import type { AddonInstallPreview, AddonOptionView, GeneratorInstallPreview, MakeSongRequest, ServiceLocationView, ServiceLookupRequest, SongAction, SongSourceSearchRequest, LibraryChoiceAnswer } from '@dancedance/sync-ui';
 import type { DesktopSyncBridge } from '../shared/bridge-types';
 import type { SyncController } from './sync-controller';
 
@@ -11,7 +11,7 @@ const MAX_TEXT_LENGTH = 2_000;
 const MAX_ADDON_OPTIONS = 8;
 const MAX_ADDON_OPTION_CHOICES = 6;
 const MAX_SONG_SOURCE_INPUTS = 3;
-const VAULT_SONG_CHOICES: readonly string[] = ['keep-vault-song', 'keep-generated-song'];
+const LIBRARY_SONG_CHOICES: readonly string[] = ['keep-library-song', 'keep-generated-song'];
 
 export class InvalidBridgeArgumentError extends Error {}
 
@@ -49,7 +49,7 @@ export function buildBridgeHandlers(controller: SyncController): BridgeHandlers 
     makeSong: (argument) => controller.makeSong(getMakeSongRequest(argument)),
     dismissPreselectedSong: (argument) => controller.dismissPreselectedSong(getText(argument)),
     cancelGeneratorJob: (argument) => controller.cancelGeneratorJob(getText(argument)),
-    answerVaultChoice: (argument) => controller.answerVaultChoice(getVaultChoiceAnswer(argument)),
+    answerLibraryChoice: (argument) => controller.answerLibraryChoice(getLibraryChoiceAnswer(argument)),
     dismissGeneratorJob: (argument) => controller.dismissGeneratorJob(getText(argument)),
     fetchGeneratedSongReport: (argument) => controller.fetchGeneratedSongReport(getText(argument)),
     startBrowserPairing: () => controller.startBrowserPairing(),
@@ -114,10 +114,10 @@ function getMakeSongRequest(value: unknown): MakeSongRequest {
   return makeSongRequest;
 }
 
-function getVaultChoiceAnswer(value: unknown): VaultChoiceAnswer {
+function getLibraryChoiceAnswer(value: unknown): LibraryChoiceAnswer {
   const answer = getRecord(value);
-  if (typeof answer.choice !== 'string' || !VAULT_SONG_CHOICES.includes(answer.choice)) throw new InvalidBridgeArgumentError('Expected the vault song or the generated one.');
-  return { jobKey: getText(answer.jobKey), choice: answer.choice as VaultSongChoice };
+  if (typeof answer.choice !== 'string' || !LIBRARY_SONG_CHOICES.includes(answer.choice)) throw new InvalidBridgeArgumentError('Expected the library song or the generated one.');
+  return { jobKey: getText(answer.jobKey), choice: answer.choice as LibrarySongChoice };
 }
 
 function getText(value: unknown): string {
@@ -140,10 +140,10 @@ function getLayout(value: unknown): FolderLayout {
   return value as FolderLayout;
 }
 
-function getSongActionRequest(value: unknown): { vaultSongId: string; action: SongAction } {
+function getSongActionRequest(value: unknown): { librarySongId: string; action: SongAction } {
   const request = getRecord(value);
   if (typeof request.action !== 'string' || !SONG_ACTIONS.includes(request.action)) throw new InvalidBridgeArgumentError('Expected a song action.');
-  return { vaultSongId: getText(request.vaultSongId), action: request.action as SongAction };
+  return { librarySongId: getText(request.librarySongId), action: request.action as SongAction };
 }
 
 function getAddonPreview(value: unknown): AddonInstallPreview {

@@ -102,7 +102,7 @@ describe('SyncHomeScreen', () => {
   it('passes the status choices of a row to the caller', () => {
     const props = renderHomeScreen();
     fireEvent.click(screen.getByRole('button', { name: 'Use library version' }));
-    expect(props.onSongAction).toHaveBeenCalledWith({ vaultSongId: 'neon-overdrive', action: 'replace-with-dancedance' });
+    expect(props.onSongAction).toHaveBeenCalledWith({ librarySongId: 'neon-overdrive', action: 'replace-with-dancedance' });
   });
 
   it('shows the life bar and each row’s step while syncing, and hides the status choices', () => {
@@ -149,7 +149,7 @@ describe('SyncHomeScreen', () => {
     expect(within(confirm).getByText('Songs/dancedance.studio - Pop/Paper Thrills')).toBeDefined();
     expect(onSongAction).not.toHaveBeenCalled();
     fireEvent.click(within(confirm).getByRole('button', { name: 'Remove' }));
-    expect(onSongAction).toHaveBeenCalledWith({ vaultSongId: 'paper-thrills', action: 'remove-from-game' });
+    expect(onSongAction).toHaveBeenCalledWith({ librarySongId: 'paper-thrills', action: 'remove-from-game' });
   });
 
   it('shows the background sync switch on the desktop only', () => {
@@ -157,9 +157,9 @@ describe('SyncHomeScreen', () => {
     expect(screen.getByRole('switch', { name: 'Background sync: On' }).getAttribute('aria-checked')).toBe('true');
   });
 
-  it('shows the empty state when the vault has no songs', () => {
-    renderHomeScreen({ songs: [], emptyState: <p>Your vault is empty</p> });
-    expect(screen.getByText('Your vault is empty')).toBeDefined();
+  it('shows the empty state when the library has no songs', () => {
+    renderHomeScreen({ songs: [], emptyState: <p>Your library is empty</p> });
+    expect(screen.getByText('Your library is empty')).toBeDefined();
     expect(screen.queryByRole('list')).toBeNull();
   });
 });

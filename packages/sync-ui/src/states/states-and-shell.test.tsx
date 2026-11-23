@@ -6,21 +6,21 @@ import { PhoneStatusView } from '../phone/phone-status-view';
 import { SyncShell } from '../shell/sync-shell';
 import { SyncLoadingPanel } from '../songs/sync-home-screen';
 import syncUiCss from '../styles/sync-ui.css?raw';
-import { DiskFullState, EmptyVaultState, NeedsAudioBanner, PermissionLostState, SongFolderLockedState, SongsFolderMissingState } from './empty-and-error-states';
+import { DiskFullState, EmptyLibraryState, NeedsAudioBanner, PermissionLostState, SongFolderLockedState, SongsFolderMissingState } from './empty-and-error-states';
 
 describe('empty and error states', () => {
   it('each says what happened and offers the next step', () => {
     const onAction = vi.fn();
     render(
       <>
-        <EmptyVaultState vaultHref="https://dancedance.example/vault" />
+        <EmptyLibraryState libraryHref="https://dancedance.example/library" />
         <PermissionLostState onReconnect={onAction} />
         <SongsFolderMissingState previousSongsFolderPath={FAKE_GAME.songsFolderPath} onChooseFolder={onAction} />
         <DiskFullState neededSpaceText="48 MB" songCount={3} driveName="C:" onTryAgain={onAction} />
         <SongFolderLockedState songTitle="Watch Me Glow" onTryAgain={onAction} />
       </>,
     );
-    expect(screen.getByRole('link', { name: 'Browse the library' }).getAttribute('href')).toBe('https://dancedance.example/vault');
+    expect(screen.getByRole('link', { name: 'Browse the library' }).getAttribute('href')).toBe('https://dancedance.example/library');
     expect(screen.getByRole('heading', { name: 'Permission needed' })).toBeDefined();
     expect(screen.getByText(FAKE_GAME.songsFolderPath)).toBeDefined();
     expect(screen.getByText(/Nothing was half-written/).textContent).toContain('3 songs');

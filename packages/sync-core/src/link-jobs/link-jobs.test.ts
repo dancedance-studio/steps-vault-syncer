@@ -64,10 +64,10 @@ describe('reading link jobs', () => {
     expect(parseLinkJobOrNull({ id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/night-drive', expiresAt: '2026-11-21T12:00:20.000Z' })).toEqual({ id: 'lj_1', kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/night-drive', expiresAt: '2026-11-21T12:00:20.000Z' });
     expect(parseLinkJobOrNull({ id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' })).toEqual({ id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' });
     expect(parseLinkJobOrNull({ id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' })).toEqual({ id: 'lj_9', kind: 'install', addonId: 'open-audio-links', songId: 'song_42', expiresAt: '2026-11-21T12:10:00.000Z' });
-    const vaultSong = { vaultSongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, youtubeId: null, chartVersion: 'v1' };
-    expect(parseLinkJobOrNull({ id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z', song: vaultSong })).toEqual({
+    const librarySong = { librarySongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, youtubeId: null, chartVersion: 'v1' };
+    expect(parseLinkJobOrNull({ id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z', song: librarySong })).toEqual({
       id: 'lj_12', kind: 'verify', addonId: 'open-audio-links', songId: 'song_42', videoId: 'Vid3o1d-x_Z', expiresAt: '2026-11-21T12:03:00.000Z',
-      song: { vaultSongId: 'song_42', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221 },
+      song: { librarySongId: 'song_42', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221 },
     });
   });
 

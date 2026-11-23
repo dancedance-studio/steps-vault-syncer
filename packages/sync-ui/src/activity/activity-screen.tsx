@@ -31,14 +31,14 @@ const ACTIVITY_KIND_DISPLAYS: Readonly<Record<ActivityKind, ActivityKindDisplay>
   'different-edit': { iconName: 'wave', toneClassName: 'sv-sync-tone--different-edit', filter: 'skipped' },
   'kept-edits': { iconName: 'pencil', toneClassName: 'sv-sync-tone--you-edited-this', filter: 'skipped' },
   'addon-not-answering': { iconName: 'plug', toneClassName: 'sv-sync-tone--needs-audio', filter: 'skipped' },
-  'removed': { iconName: 'archive', toneClassName: 'sv-sync-tone--removed-from-vault', filter: 'removed' },
+  'removed': { iconName: 'archive', toneClassName: 'sv-sync-tone--removed-from-library', filter: 'removed' },
   'moved': { iconName: 'folder', toneClassName: 'sv-sync-tone--update-available', filter: 'everything' },
   'connected': { iconName: 'check', toneClassName: 'sv-sync-tone--syncing', filter: 'everything' },
   'write-failed': { iconName: 'warning', toneClassName: 'sv-sync-tone--different-edit', filter: 'skipped' },
   'generating': { iconName: 'sparkle', toneClassName: 'sv-sync-tone--syncing', filter: 'made' },
   'generated': { iconName: 'sparkle', toneClassName: 'sv-sync-tone--synced', filter: 'made' },
   'generate-failed': { iconName: 'close', toneClassName: 'sv-sync-tone--different-edit', filter: 'made' },
-  'generate-cancelled': { iconName: 'close', toneClassName: 'sv-sync-tone--removed-from-vault', filter: 'made' },
+  'generate-cancelled': { iconName: 'close', toneClassName: 'sv-sync-tone--removed-from-library', filter: 'made' },
 };
 
 export function getVisibleActivityEntries({ entries, filter }: { entries: readonly ActivityEntryView[]; filter: ActivityFilter }): ActivityEntryView[] {

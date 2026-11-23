@@ -11,7 +11,7 @@ const ISO_MINUTE_PATTERN = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/;
 
 /**
  * The names a generated song's folder is named from, always in English letters: StepMania 5 on Windows can't open a
- * folder in another script. Unlike vault songs, a title with no English spelling never keeps its own script; it falls
+ * folder in another script. Unlike library songs, a title with no English spelling never keeps its own script; it falls
  * back to "Song <youtubeId>", else "Generated song <date> <time>".
  */
 export function getGeneratedSongFolderNames({ headerText, song, now }: { headerText: string; song: GeneratorSongFacts; now: string }): SongFolderNames {

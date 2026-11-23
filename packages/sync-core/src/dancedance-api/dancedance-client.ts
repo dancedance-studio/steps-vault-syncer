@@ -4,9 +4,9 @@ import { ENVELOPE_RATE_HERTZ } from '../audio-matching/onset-envelope';
 import { PARTY_FOLDER_PREFIX } from '../layout/party-folder-names';
 import { LINK_JOB_WAIT_MILLISECONDS, parseLinkJobOrNull, parseLinkJobState, type LinkJob, type LinkJobAnswer, type LinkJobAudio, type LinkJobDelivery, type LinkJobsApi, type LinkJobState, type SyncPresence } from '../link-jobs/link-job-protocol';
 import type { FileUploadHttpClient, HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
-import type { SongFiles, VaultFiles } from '../writing/song-writer';
+import type { SongFiles, LibraryFiles } from '../writing/song-writer';
 import type { ComputerSongReport } from './computer-songs';
-import { SignedOutError, DancedanceApiError, type DeviceCode, type DeviceDescription, type DeviceSignInPoll, type SyncAccount, type SyncPartyList, type VaultSongDetails } from './dancedance-api-types';
+import { SignedOutError, DancedanceApiError, type DeviceCode, type DeviceDescription, type DeviceSignInPoll, type SyncAccount, type SyncPartyList, type LibrarySongDetails } from './dancedance-api-types';
 
 const TIMEOUT_MILLISECONDS = 30_000;
 // The site answers the long poll within LINK_JOB_WAIT_MILLISECONDS; the margin covers a slow network on the way back.
@@ -19,7 +19,7 @@ const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_FINGERPRINT_BYTES = 16 * 1024 * 1024;
 const BYTES_PER_FLOAT = 4;
 const YOUTUBE_WATCH_URL = 'https://www.youtube.com/watch?v=';
-/** Every dancedance.studio song has these; used when the vault hasn't been read in this session yet. */
+/** Every dancedance.studio song has these; used when the library hasn't been read in this session yet. */
 const DEFAULT_IMAGE_KINDS = ['banner', 'background', 'jacket'];
 
 /**
@@ -27,7 +27,7 @@ const DEFAULT_IMAGE_KINDS = ['banner', 'background', 'jacket'];
  * HttpClient sends the player's session cookie instead. Link jobs are the app's only: it alone uploads files, through
  * fileUploadClient.
  */
-export class DancedanceClient implements VaultFiles, LinkJobsApi {
+export class DancedanceClient implements LibraryFiles, LinkJobsApi {
   private readonly httpClient: HttpClient;
   private readonly fileUploadClient: FileUploadHttpClient | null;
   private readonly siteApiUrl: string;
@@ -43,12 +43,12 @@ export class DancedanceClient implements VaultFiles, LinkJobsApi {
     this.deviceToken = deviceToken;
   }
 
-  async fetchVault(): Promise<VaultSongDetails[]> {
-    const response = await this.httpClient.requestJson(this.buildRequest({ path: '/vault', maxResponseBytes: MAX_JSON_BYTES }));
+  async fetchLibrary(): Promise<LibrarySongDetails[]> {
+    const response = await this.httpClient.requestJson(this.buildRequest({ path: '/library', maxResponseBytes: MAX_JSON_BYTES }));
     assertOk(response);
     if (!Array.isArray(response.body)) throw new DancedanceApiError({ status: response.status, message: 'dancedance.studio sent a song list Sync can’t read. Update Sync to the latest version.' });
-    const songs = response.body.map((song) => parseVaultSong(song));
-    for (const song of songs) this.imageKindsBySongId.set(song.vaultSongId, song.imageKinds);
+    const songs = response.body.map((song) => parseLibrarySong(song));
+    for (const song of songs) this.imageKindsBySongId.set(song.librarySongId, song.imageKinds);
     return songs;
   }
 
@@ -65,16 +65,16 @@ export class DancedanceClient implements VaultFiles, LinkJobsApi {
     const partyLists = asRecord(body).partyLists;
     if (!Array.isArray(partyLists)) throw new DancedanceApiError({ status: response.status, message: 'dancedance.studio sent party lists Sync can’t read. Update Sync to the latest version.' });
     const parsedLists = partyLists.map((partyList) => parsePartyList(partyList));
-    for (const song of parsedLists.flatMap((partyList) => partyList.songs)) this.imageKindsBySongId.set(song.vaultSongId, song.imageKinds);
+    for (const song of parsedLists.flatMap((partyList) => partyList.songs)) this.imageKindsBySongId.set(song.librarySongId, song.imageKinds);
     return parsedLists;
   }
 
   /**
-   * Adds a song that is already in dancedance.studio to the player's vault (free, and fine to repeat), for example the one
+   * Adds a song that is already in dancedance.studio to the player's library (free, and fine to repeat), for example the one
    * dancedance.studio's generator said it already has. The next sync installs it.
    */
-  async addToVault(vaultSongId: string): Promise<void> {
-    const response = await this.httpClient.requestJson(this.buildRequest({ path: `/vault/${encodeURIComponent(vaultSongId)}`, method: 'POST', maxResponseBytes: MAX_JSON_BYTES }));
+  async addToLibrary(librarySongId: string): Promise<void> {
+    const response = await this.httpClient.requestJson(this.buildRequest({ path: `/library/${encodeURIComponent(librarySongId)}`, method: 'POST', maxResponseBytes: MAX_JSON_BYTES }));
     assertOk(response);
   }
 
@@ -88,18 +88,18 @@ export class DancedanceClient implements VaultFiles, LinkJobsApi {
     return { tokenBalance: body.tokenBalance, player: { handle: getString(player.handle), initial: getString(player.initial), avatarColor: getString(player.avatarColor) } };
   }
 
-  /** The files of the song's current steps; if they changed since the vault was read, the next sync updates the song. */
-  async fetchSongFiles({ vaultSongId }: { vaultSongId: string; chartVersion: string }): Promise<SongFiles> {
-    const songPath = `/songs/${encodeURIComponent(vaultSongId)}`;
+  /** The files of the song's current steps; if they changed since the library was read, the next sync updates the song. */
+  async fetchSongFiles({ librarySongId }: { librarySongId: string; chartVersion: string }): Promise<SongFiles> {
+    const songPath = `/songs/${encodeURIComponent(librarySongId)}`;
     const sscResponse = await this.httpClient.requestText(this.buildRequest({ path: `${songPath}/ssc`, maxResponseBytes: MAX_SSC_BYTES }));
     assertOk(sscResponse);
-    const imageKinds = this.imageKindsBySongId.get(vaultSongId) ?? DEFAULT_IMAGE_KINDS;
+    const imageKinds = this.imageKindsBySongId.get(librarySongId) ?? DEFAULT_IMAGE_KINDS;
     const images = await Promise.all(imageKinds.map(async (kind) => ({ fileName: `${kind}.png`, bytes: await this.fetchImage({ songPath, kind }) })));
     return { sscText: sscResponse.body, images };
   }
 
-  async fetchFingerprint(vaultSongId: string): Promise<AudioFingerprint> {
-    const response = await this.httpClient.requestBytes(this.buildRequest({ path: `/songs/${encodeURIComponent(vaultSongId)}/fingerprint`, maxResponseBytes: MAX_FINGERPRINT_BYTES }));
+  async fetchFingerprint(librarySongId: string): Promise<AudioFingerprint> {
+    const response = await this.httpClient.requestBytes(this.buildRequest({ path: `/songs/${encodeURIComponent(librarySongId)}/fingerprint`, maxResponseBytes: MAX_FINGERPRINT_BYTES }));
     assertOk(response);
     return { envelope: readLittleEndianFloats(response.body), rateHertz: ENVELOPE_RATE_HERTZ };
   }
@@ -184,7 +184,7 @@ export async function pollDeviceSignIn({ httpClient, siteUrl, pollingId }: { htt
 }
 
 /** Exactly the facts an addon may see (docs/addons.md). */
-export function buildAddonSongFacts(song: Pick<VaultSongDetails, 'title' | 'artist' | 'album' | 'genre' | 'lengthSeconds' | 'youtubeId'>): AddonSongFacts {
+export function buildAddonSongFacts(song: Pick<LibrarySongDetails, 'title' | 'artist' | 'album' | 'genre' | 'lengthSeconds' | 'youtubeId'>): AddonSongFacts {
   return {
     title: song.title,
     artist: song.artist,
@@ -227,10 +227,10 @@ function getErrorSentenceOrNull(body: unknown): string | null {
   return sentence.trim() === '' ? null : sentence.trim();
 }
 
-function parseVaultSong(value: unknown): VaultSongDetails {
+function parseLibrarySong(value: unknown): LibrarySongDetails {
   const song = asRecord(value);
   return {
-    vaultSongId: getString(song.vaultSongId),
+    librarySongId: getString(song.librarySongId),
     slug: getString(song.slug),
     title: getString(song.title),
     artist: getString(song.artist),
@@ -259,7 +259,7 @@ function parsePartyList(value: unknown): SyncPartyList {
     name,
     gameFolderName: typeof partyList.gameFolderName === 'string' && partyList.gameFolderName.trim() !== '' ? partyList.gameFolderName : `${PARTY_FOLDER_PREFIX}${name}`,
     endsAt: typeof partyList.endsAt === 'string' ? partyList.endsAt : null,
-    songs: Array.isArray(partyList.songs) ? partyList.songs.map((song) => parseVaultSong(song)) : [],
+    songs: Array.isArray(partyList.songs) ? partyList.songs.map((song) => parseLibrarySong(song)) : [],
   };
 }
 

@@ -4,10 +4,10 @@ import type { InstalledSongCheck } from '../ownership/installed-song-check';
 import type { InstalledSongsRecord } from '../ownership/installed-songs';
 import { getPartyFolders, type PartyFolder, type PartyFolderCheck } from '../ownership/party-folders';
 import { getNameKey, isSamePath, type SongsPath } from '../songs-folder/songs-path';
-import type { AudioMatch, PartyFolderPlan, PartyListToSync, PlayerChoices, SongPlan, SyncAction, SyncPlan, VaultSong } from './sync-plan-types';
+import type { AudioMatch, PartyFolderPlan, PartyListToSync, PlayerChoices, SongPlan, SyncAction, SyncPlan, LibrarySong } from './sync-plan-types';
 
 export interface SyncPlanInput {
-  vaultSongs: readonly VaultSong[];
+  librarySongs: readonly LibrarySong[];
   record: InstalledSongsRecord;
   /** checkInstalledSongs() for every song in the record. */
   checks: readonly InstalledSongCheck[];
@@ -41,66 +41,66 @@ export function buildSyncPlan(input: SyncPlanInput): SyncPlan {
 }
 
 function buildLayoutPlan(input: SyncPlanInput): SyncPlan {
-  const checksBySongId = new Map(input.checks.map((check) => [check.installedSong.vaultSongId, check]));
+  const checksBySongId = new Map(input.checks.map((check) => [check.installedSong.librarySongId, check]));
   const targetPathsBySongId = getTargetFolderPaths({
-    songs: input.vaultSongs,
+    songs: input.librarySongs,
     layout: input.layout,
     playerGroupNames: input.playerGroupNames,
     record: { ...input.record, installedSongs: input.checks.filter(isStillOurs).map((check) => check.installedSong) },
     foreignFolderNamesByGroupKey: withLostFoldersAsForeign({ foreignFolderNamesByGroupKey: input.foreignFolderNamesByGroupKey, checks: input.checks }),
   });
-  const vaultSongPlans = input.vaultSongs.map((song) => planVaultSong({ song, check: checksBySongId.get(song.vaultSongId), target: targetPathsBySongId.get(song.vaultSongId), input }));
-  const vaultSongIds = new Set(input.vaultSongs.map((song) => song.vaultSongId));
-  const leftChecks = input.checks.filter((check) => !vaultSongIds.has(check.installedSong.vaultSongId));
+  const librarySongPlans = input.librarySongs.map((song) => planLibrarySong({ song, check: checksBySongId.get(song.librarySongId), target: targetPathsBySongId.get(song.librarySongId), input }));
+  const librarySongIds = new Set(input.librarySongs.map((song) => song.librarySongId));
+  const leftChecks = input.checks.filter((check) => !librarySongIds.has(check.installedSong.librarySongId));
   return {
-    songPlans: [...vaultSongPlans, ...leftChecks.filter(isStillOurs).map((check) => planSongLeftTheVault({ check, choices: input.choices }))],
+    songPlans: [...librarySongPlans, ...leftChecks.filter(isStillOurs).map((check) => planSongLeftTheLibrary({ check, choices: input.choices }))],
     forgetActions: leftChecks.filter((check) => !isStillOurs(check)).map((check) => buildForgetAction(check)),
   };
 }
 
-function planVaultSong({ song, check, target, input }: { song: VaultSong; check: InstalledSongCheck | undefined; target: SongsPath | undefined; input: SyncPlanInput }): SongPlan {
-  if (!target) throw new Error(`No folder was chosen for the vault song ${song.vaultSongId}. This is a bug in Sync; please report it.`);
+function planLibrarySong({ song, check, target, input }: { song: LibrarySong; check: InstalledSongCheck | undefined; target: SongsPath | undefined; input: SyncPlanInput }): SongPlan {
+  if (!target) throw new Error(`No folder was chosen for the library song ${song.librarySongId}. This is a bug in Sync; please report it.`);
   if (!check || !isStillOurs(check)) {
     const forgetActions = check ? [buildForgetAction(check)] : [];
-    return planNewSong({ song, target, match: input.audioMatchesBySongId.get(song.vaultSongId), forgetActions });
+    return planNewSong({ song, target, match: input.audioMatchesBySongId.get(song.librarySongId), forgetActions });
   }
-  const isReplacingEdits = input.choices.replaceEditedSongIds.has(song.vaultSongId);
+  const isReplacingEdits = input.choices.replaceEditedSongIds.has(song.librarySongId);
   if (check.state === 'edited' && !isReplacingEdits) return planEditedSong({ song, check, target });
-  return planInstalledSong({ song, check, target, isUpdateWanted: isReplacingEdits || input.shouldUpdateAutomatically || input.choices.updateSongIds.has(song.vaultSongId), isReplacingEdits });
+  return planInstalledSong({ song, check, target, isUpdateWanted: isReplacingEdits || input.shouldUpdateAutomatically || input.choices.updateSongIds.has(song.librarySongId), isReplacingEdits });
 }
 
-function planNewSong({ song, target, match, forgetActions }: { song: VaultSong; target: SongsPath; match: AudioMatch | undefined; forgetActions: SyncAction[] }): SongPlan {
-  const vaultSongId = song.vaultSongId;
+function planNewSong({ song, target, match, forgetActions }: { song: LibrarySong; target: SongsPath; match: AudioMatch | undefined; forgetActions: SyncAction[] }): SongPlan {
+  const librarySongId = song.librarySongId;
   if (match?.kind === 'matched') {
-    const addAction: SyncAction = { kind: 'add', vaultSongId, to: target, chartVersion: song.chartVersion, audio: { sourceId: match.sourceId, shiftSeconds: match.shiftSeconds, videoSourceId: match.videoSourceId ?? null } };
-    return { vaultSongId, status: 'syncing', actions: [...forgetActions, addAction], isWaitingForAddon: false };
+    const addAction: SyncAction = { kind: 'add', librarySongId, to: target, chartVersion: song.chartVersion, audio: { sourceId: match.sourceId, shiftSeconds: match.shiftSeconds, videoSourceId: match.videoSourceId ?? null } };
+    return { librarySongId, status: 'syncing', actions: [...forgetActions, addAction], isWaitingForAddon: false };
   }
-  if (match?.kind === 'different-edit') return { vaultSongId, status: 'different-edit', actions: forgetActions, isWaitingForAddon: false };
-  return { vaultSongId, status: 'needs-audio', actions: forgetActions, isWaitingForAddon: match?.isWaitingForAddon ?? false };
+  if (match?.kind === 'different-edit') return { librarySongId, status: 'different-edit', actions: forgetActions, isWaitingForAddon: false };
+  return { librarySongId, status: 'needs-audio', actions: forgetActions, isWaitingForAddon: match?.isWaitingForAddon ?? false };
 }
 
 /** The player's edits stay: the song can still move with a layout change (its files move untouched), never update. */
-function planEditedSong({ song, check, target }: { song: VaultSong; check: InstalledSongCheck; target: SongsPath }): SongPlan {
-  const actions = getMoveActions({ vaultSongId: song.vaultSongId, from: check.installedSong.folderPath, to: target });
-  return { vaultSongId: song.vaultSongId, status: actions.length > 0 ? 'syncing' : 'you-edited-this', actions, isWaitingForAddon: false };
+function planEditedSong({ song, check, target }: { song: LibrarySong; check: InstalledSongCheck; target: SongsPath }): SongPlan {
+  const actions = getMoveActions({ librarySongId: song.librarySongId, from: check.installedSong.folderPath, to: target });
+  return { librarySongId: song.librarySongId, status: actions.length > 0 ? 'syncing' : 'you-edited-this', actions, isWaitingForAddon: false };
 }
 
-function planInstalledSong(options: { song: VaultSong; check: InstalledSongCheck; target: SongsPath; isUpdateWanted: boolean; isReplacingEdits: boolean }): SongPlan {
+function planInstalledSong(options: { song: LibrarySong; check: InstalledSongCheck; target: SongsPath; isUpdateWanted: boolean; isReplacingEdits: boolean }): SongPlan {
   const { song, check, target } = options;
-  const vaultSongId = song.vaultSongId;
+  const librarySongId = song.librarySongId;
   const hasNewSteps = check.installedSong.chartVersion !== song.chartVersion;
   const shouldUpdate = options.isReplacingEdits || (hasNewSteps && options.isUpdateWanted);
-  const updateActions: SyncAction[] = shouldUpdate ? [{ kind: 'update', vaultSongId, at: target, chartVersion: song.chartVersion }] : [];
-  const actions = [...getMoveActions({ vaultSongId, from: check.installedSong.folderPath, to: target }), ...updateActions];
-  if (actions.length > 0) return { vaultSongId, status: 'syncing', actions, isWaitingForAddon: false };
-  return { vaultSongId, status: hasNewSteps ? 'update-available' : 'synced', actions, isWaitingForAddon: false };
+  const updateActions: SyncAction[] = shouldUpdate ? [{ kind: 'update', librarySongId, at: target, chartVersion: song.chartVersion }] : [];
+  const actions = [...getMoveActions({ librarySongId, from: check.installedSong.folderPath, to: target }), ...updateActions];
+  if (actions.length > 0) return { librarySongId, status: 'syncing', actions, isWaitingForAddon: false };
+  return { librarySongId, status: hasNewSteps ? 'update-available' : 'synced', actions, isWaitingForAddon: false };
 }
 
-/** Removing a song from the vault never removes it from the game unless the player says so. */
-function planSongLeftTheVault({ check, choices }: { check: InstalledSongCheck; choices: PlayerChoices }): SongPlan {
-  const { vaultSongId, folderPath } = check.installedSong;
-  if (!choices.removeFromGameSongIds.has(vaultSongId)) return { vaultSongId, status: 'removed-from-vault', actions: [], isWaitingForAddon: false };
-  return { vaultSongId, status: 'syncing', actions: [{ kind: 'remove', vaultSongId, at: folderPath }], isWaitingForAddon: false };
+/** Removing a song from the library never removes it from the game unless the player says so. */
+function planSongLeftTheLibrary({ check, choices }: { check: InstalledSongCheck; choices: PlayerChoices }): SongPlan {
+  const { librarySongId, folderPath } = check.installedSong;
+  if (!choices.removeFromGameSongIds.has(librarySongId)) return { librarySongId, status: 'removed-from-library', actions: [], isWaitingForAddon: false };
+  return { librarySongId, status: 'syncing', actions: [{ kind: 'remove', librarySongId, at: folderPath }], isWaitingForAddon: false };
 }
 
 function buildPartyFolderPlans({ input, partyLists, partyFolderNamesById }: { input: SyncPlanInput; partyLists: readonly PartyListToSync[]; partyFolderNamesById: ReadonlyMap<string, string> }): PartyFolderPlan[] {
@@ -122,13 +122,13 @@ function planSyncedPartyFolder({ partyList, groupName, checks, input }: { partyL
   const songs = getSongsOnce(partyList.songs);
   const targetPathsBySongId = getSongFolderPaths({
     songs,
-    groupNamesBySongId: new Map(songs.map((song) => [song.vaultSongId, groupName])),
+    groupNamesBySongId: new Map(songs.map((song) => [song.librarySongId, groupName])),
     record: { version: 1, installedSongs: checks.filter(isStillOurs).map((check) => check.installedSong), ownedGroupNames: [] },
     foreignFolderNamesByGroupKey: withLostFoldersAsForeign({ foreignFolderNamesByGroupKey: input.foreignFolderNamesByGroupKey, checks }),
   });
-  const checksBySongId = new Map(checks.map((check) => [check.installedSong.vaultSongId, check]));
-  const songIds = new Set(songs.map((song) => song.vaultSongId));
-  const leftChecks = checks.filter((check) => !songIds.has(check.installedSong.vaultSongId));
+  const checksBySongId = new Map(checks.map((check) => [check.installedSong.librarySongId, check]));
+  const songIds = new Set(songs.map((song) => song.librarySongId));
+  const leftChecks = checks.filter((check) => !songIds.has(check.installedSong.librarySongId));
   return {
     partyListId: partyList.partyListId,
     listName: partyList.name,
@@ -136,7 +136,7 @@ function planSyncedPartyFolder({ partyList, groupName, checks, input }: { partyL
     groupName,
     isSynced: true,
     songPlans: [
-      ...songs.map((song) => planVaultSong({ song, check: checksBySongId.get(song.vaultSongId), target: targetPathsBySongId.get(song.vaultSongId), input })),
+      ...songs.map((song) => planLibrarySong({ song, check: checksBySongId.get(song.librarySongId), target: targetPathsBySongId.get(song.librarySongId), input })),
       ...leftChecks.filter(isStillOurs).map((check) => planCopyLeftTheList(check)),
     ],
     forgetActions: leftChecks.filter((check) => !isStillOurs(check)).map((check) => buildForgetAction(check)),
@@ -158,27 +158,27 @@ function planGonePartyFolder({ partyFolder, checks }: { partyFolder: PartyFolder
 
 /** A copy goes with its list. One the player edited stays in the game as theirs: Sync never deletes the player's edits. */
 function planCopyLeftTheList(check: InstalledSongCheck): SongPlan {
-  const { vaultSongId, folderPath } = check.installedSong;
-  if (check.state === 'edited') return { vaultSongId, status: 'you-edited-this', actions: [buildForgetAction(check)], isWaitingForAddon: false };
-  return { vaultSongId, status: 'syncing', actions: [{ kind: 'remove', vaultSongId, at: folderPath }], isWaitingForAddon: false };
+  const { librarySongId, folderPath } = check.installedSong;
+  if (check.state === 'edited') return { librarySongId, status: 'you-edited-this', actions: [buildForgetAction(check)], isWaitingForAddon: false };
+  return { librarySongId, status: 'syncing', actions: [{ kind: 'remove', librarySongId, at: folderPath }], isWaitingForAddon: false };
 }
 
 /** A list holds each song once; should the site ever send one twice, the first one counts. */
-function getSongsOnce(songs: readonly VaultSong[]): VaultSong[] {
+function getSongsOnce(songs: readonly LibrarySong[]): LibrarySong[] {
   const seenSongIds = new Set<string>();
   return songs.filter((song) => {
-    if (seenSongIds.has(song.vaultSongId)) return false;
-    seenSongIds.add(song.vaultSongId);
+    if (seenSongIds.has(song.librarySongId)) return false;
+    seenSongIds.add(song.librarySongId);
     return true;
   });
 }
 
-function getMoveActions({ vaultSongId, from, to }: { vaultSongId: string; from: SongsPath; to: SongsPath }): SyncAction[] {
-  return isSamePath({ first: from, second: to }) ? [] : [{ kind: 'move', vaultSongId, from, to }];
+function getMoveActions({ librarySongId, from, to }: { librarySongId: string; from: SongsPath; to: SongsPath }): SyncAction[] {
+  return isSamePath({ first: from, second: to }) ? [] : [{ kind: 'move', librarySongId, from, to }];
 }
 
 function buildForgetAction(check: InstalledSongCheck): SyncAction {
-  return { kind: 'forget', vaultSongId: check.installedSong.vaultSongId };
+  return { kind: 'forget', librarySongId: check.installedSong.librarySongId };
 }
 
 function isStillOurs(check: InstalledSongCheck): boolean {

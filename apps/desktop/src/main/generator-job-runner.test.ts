@@ -17,7 +17,7 @@ import {
   type MultipartHttpRequest,
   type MultipartPart,
   type SavedGeneratorJob,
-  type VaultSongIdentity,
+  type LibrarySongIdentity,
 } from '@dancedance/sync-core';
 import { GeneratorJobRunner, type GeneratorJobStart, type JobGenerator } from './generator-job-runner';
 
@@ -64,19 +64,19 @@ class RecordedGenerators implements HttpClient, MultipartHttpClient {
   }
 }
 
-/** The app around the runner: a game in memory, saved jobs, the Activity log and the vault. */
+/** The app around the runner: a game in memory, saved jobs, the Activity log and the library. */
 class FakeApp {
   readonly generators = new RecordedGenerators();
   readonly songsFolder = new MemorySongsFolder();
   readonly activity: GeneratedSongActivityEvent[] = [];
   readonly removedJobKeys: string[] = [];
-  readonly vaultSongsAddedForJobs: [string, string | null][] = [];
-  readonly songsAddedToVault: string[] = [];
+  readonly librarySongsAddedForJobs: [string, string | null][] = [];
+  readonly songsAddedToLibrary: string[] = [];
   readonly reportsBySongKey = new Map<string, string>();
   readonly collectedFilesByLocation = new Map<string, GeneratedSongFiles>();
   savedJobs: SavedGeneratorJob[] = [];
   record: InstalledSongsRecord = buildEmptyInstalledSongsRecord();
-  vaultSongs: VaultSongIdentity[] = [];
+  librarySongs: LibrarySongIdentity[] = [];
   generatorsByAddress = new Map<string, JobGenerator>([
     [COMMUNITY_ADDRESS, { generator: buildInstalledGenerator({ baseUrl: COMMUNITY_ADDRESS, manifest: MANIFEST }), signIn: null, isDancedance: false }],
     [DANCEDANCE_ADDRESS, { generator: withMusicUploadConsent({ generator: buildInstalledGenerator({ baseUrl: DANCEDANCE_ADDRESS, manifest: DANCEDANCE_MANIFEST }), consentedAt: '2026-10-25T09:00:00.000Z' }), signIn: SIGN_IN, isDancedance: true }],
@@ -100,18 +100,18 @@ class FakeApp {
       },
       findGenerator: (baseUrl) => this.generatorsByAddress.get(baseUrl) ?? null,
       registerPlayerFile: (location) => `file:${location}`,
-      writeSong: async ({ request, vaultSongChoice }) => {
-        const result = await writeGeneratedSong({ dependencies: { songsFolder: this.songsFolder, readDownloadedPicture: () => Promise.resolve(new Uint8Array()), pictureMaker: null, createId: () => `install-${String(this.changeCount)}`, getNow: () => '2026-10-25T10:00:00.000Z' }, record: this.record, request, vaultSongs: this.vaultSongs, vaultSongChoice });
-        if (result.kind !== 'needs-vault-choice') this.record = result.record;
+      writeSong: async ({ request, librarySongChoice }) => {
+        const result = await writeGeneratedSong({ dependencies: { songsFolder: this.songsFolder, readDownloadedPicture: () => Promise.resolve(new Uint8Array()), pictureMaker: null, createId: () => `install-${String(this.changeCount)}`, getNow: () => '2026-10-25T10:00:00.000Z' }, record: this.record, request, librarySongs: this.librarySongs, librarySongChoice });
+        if (result.kind !== 'needs-library-choice') this.record = result.record;
         return result;
       },
       saveReport: ({ songKey, reportText }) => { this.reportsBySongKey.set(songKey, reportText); return Promise.resolve(); },
-      addSongToVault: (vaultSongId) => {
-        if (vaultSongId === 'song_unknown') return Promise.reject(new Error('This song isn’t in dancedance.studio.'));
-        this.songsAddedToVault.push(vaultSongId);
+      addSongToLibrary: (librarySongId) => {
+        if (librarySongId === 'song_unknown') return Promise.reject(new Error('This song isn’t in dancedance.studio.'));
+        this.songsAddedToLibrary.push(librarySongId);
         return Promise.resolve();
       },
-      addVaultSongToGame: ({ job, vaultSongId }) => { this.vaultSongsAddedForJobs.push([job.jobKey, vaultSongId]); return Promise.resolve(); },
+      addLibrarySongToGame: ({ job, librarySongId }) => { this.librarySongsAddedForJobs.push([job.jobKey, librarySongId]); return Promise.resolve(); },
       logActivity: (event) => { this.activity.push(event); return Promise.resolve(); },
       // A real turn of the event loop, so a job that keeps waiting never starves the test's own timers.
       waitMilliseconds: () => new Promise((resolve) => setTimeout(resolve, 0)),
@@ -198,21 +198,21 @@ describe('GeneratorJobRunner', () => {
     expect(getGeneratedSongs(app.record)[0]?.source).toBeNull();
   });
 
-  it('sends dancedance.studio’s generator the device token, and lets the vault install its song instead of writing it', async () => {
+  it('sends dancedance.studio’s generator the device token, and lets the library install its song instead of writing it', async () => {
     const app = new FakeApp();
     app.routeFinishedJob({ address: DANCEDANCE_ADDRESS });
-    app.generators.route({ method: 'GET', url: `${DANCEDANCE_ADDRESS}/jobs/job-a1`, answer: { status: 200, body: { state: 'done', vaultSongId: 'song_9' } } });
+    app.generators.route({ method: 'GET', url: `${DANCEDANCE_ADDRESS}/jobs/job-a1`, answer: { status: 200, body: { state: 'done', librarySongId: 'song_9' } } });
     const runner = app.buildRunner();
     await runner.initialize();
     await runner.startJob(buildStart({ generatorBaseUrl: DANCEDANCE_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
-    expect(runner.jobs[0]).toMatchObject({ isDancedance: true, generatorName: 'dancedance.studio generator', result: 'added-to-vault' });
-    expect(app.vaultSongsAddedForJobs).toEqual([['job-1', 'song_9']]);
-    expect(app.songsAddedToVault).toEqual(['song_9']);
+    expect(runner.jobs[0]).toMatchObject({ isDancedance: true, generatorName: 'dancedance.studio generator', result: 'added-to-library' });
+    expect(app.librarySongsAddedForJobs).toEqual([['job-1', 'song_9']]);
+    expect(app.songsAddedToLibrary).toEqual(['song_9']);
     expect(getGeneratedSongs(app.record)).toEqual([]);
     expect(app.generators.requests.map((request) => request.url)).not.toContain(`${DANCEDANCE_ADDRESS}/files/chart.ssc`);
     expect(app.generators.requests.every((request) => request.headers.Authorization === 'Bearer device-token-1')).toBe(true);
-    expect(app.activity.map((event) => event.step)).toEqual(['started', 'added-to-vault']);
+    expect(app.activity.map((event) => event.step)).toEqual(['started', 'added-to-library']);
   });
 
   it('never sends the token to a community generator', async () => {
@@ -224,62 +224,62 @@ describe('GeneratorJobRunner', () => {
     expect(app.generators.requests.some((request) => 'Authorization' in request.headers)).toBe(false);
   });
 
-  it('finds the vault song by its facts when dancedance.studio’s done answer doesn’t name it', async () => {
+  it('finds the library song by its facts when dancedance.studio’s done answer doesn’t name it', async () => {
     const app = new FakeApp();
     app.routeFinishedJob({ address: DANCEDANCE_ADDRESS });
     const runner = app.buildRunner();
     await runner.startJob(buildStart({ generatorBaseUrl: DANCEDANCE_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
-    expect(app.vaultSongsAddedForJobs).toEqual([['job-1', null]]);
+    expect(app.librarySongsAddedForJobs).toEqual([['job-1', null]]);
   });
 
-  it('fails with the site’s sentence when the song dancedance.studio named can’t be added to the vault', async () => {
+  it('fails with the site’s sentence when the song dancedance.studio named can’t be added to the library', async () => {
     const app = new FakeApp();
-    app.generators.route({ method: 'POST', url: `${DANCEDANCE_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the vault.', vaultSongId: 'song_unknown' } } });
+    app.generators.route({ method: 'POST', url: `${DANCEDANCE_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the library.', librarySongId: 'song_unknown' } } });
     const runner = app.buildRunner();
     await runner.startJob(buildStart({ generatorBaseUrl: DANCEDANCE_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'failed');
     expect(runner.jobs[0]?.message).toBe('This song isn’t in dancedance.studio.');
-    expect(app.vaultSongsAddedForJobs).toEqual([]);
+    expect(app.librarySongsAddedForJobs).toEqual([]);
   });
 
-  it('adds the vault song when dancedance.studio already has the song, so no token is spent', async () => {
+  it('adds the library song when dancedance.studio already has the song, so no token is spent', async () => {
     const app = new FakeApp();
-    app.generators.route({ method: 'POST', url: `${DANCEDANCE_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the vault.', vaultSongId: 'song_7' } } });
+    app.generators.route({ method: 'POST', url: `${DANCEDANCE_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the library.', librarySongId: 'song_7' } } });
     const runner = app.buildRunner();
     await runner.startJob(buildStart({ generatorBaseUrl: DANCEDANCE_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
-    expect(runner.jobs[0]).toMatchObject({ result: 'already-in-vault', message: 'This song is already in the vault.' });
-    expect(app.songsAddedToVault).toEqual(['song_7']);
-    expect(app.vaultSongsAddedForJobs).toEqual([['job-1', 'song_7']]);
+    expect(runner.jobs[0]).toMatchObject({ result: 'already-in-library', message: 'This song is already in the library.' });
+    expect(app.songsAddedToLibrary).toEqual(['song_7']);
+    expect(app.librarySongsAddedForJobs).toEqual([['job-1', 'song_7']]);
   });
 
-  it('asks which song to keep when the vault has the same song, then writes the player’s choice', async () => {
+  it('asks which song to keep when the library has the same song, then writes the player’s choice', async () => {
     const app = new FakeApp();
-    app.vaultSongs = [{ vaultSongId: 'song_7', title: 'Night Drive', artist: 'Lumen Park', youtubeId: null }];
+    app.librarySongs = [{ librarySongId: 'song_7', title: 'Night Drive', artist: 'Lumen Park', youtubeId: null }];
     app.routeFinishedJob({ address: COMMUNITY_ADDRESS });
     const runner = app.buildRunner();
     await runner.startJob(buildStart());
-    await waitUntil(() => runner.jobs[0]?.state === 'needs-vault-choice');
-    expect(runner.jobs[0]?.vaultChoice).toEqual({ vaultSongId: 'song_7', question: '“Night Drive” is already in the library. Keep the library song, or the one you made?' });
+    await waitUntil(() => runner.jobs[0]?.state === 'needs-library-choice');
+    expect(runner.jobs[0]?.libraryChoice).toEqual({ librarySongId: 'song_7', question: '“Night Drive” is already in the library. Keep the library song, or the one you made?' });
     expect(getGeneratedSongs(app.record)).toEqual([]);
-    await runner.answerVaultChoice({ jobKey: 'job-1', choice: 'keep-generated-song' });
-    expect(runner.jobs[0]).toMatchObject({ state: 'done', result: 'written', vaultChoice: null });
-    expect(getGeneratedSongs(app.record)[0]?.inPlaceOfVaultSongId).toBe('song_7');
+    await runner.answerLibraryChoice({ jobKey: 'job-1', choice: 'keep-generated-song' });
+    expect(runner.jobs[0]).toMatchObject({ state: 'done', result: 'written', libraryChoice: null });
+    expect(getGeneratedSongs(app.record)[0]?.inPlaceOfLibrarySongId).toBe('song_7');
     expect(app.removedJobKeys).toEqual(['job-1']);
   });
 
-  it('writes nothing when the player keeps the vault song', async () => {
+  it('writes nothing when the player keeps the library song', async () => {
     const app = new FakeApp();
-    app.vaultSongs = [{ vaultSongId: 'song_7', title: 'Night Drive', artist: 'Lumen Park', youtubeId: null }];
+    app.librarySongs = [{ librarySongId: 'song_7', title: 'Night Drive', artist: 'Lumen Park', youtubeId: null }];
     app.routeFinishedJob({ address: COMMUNITY_ADDRESS });
     const runner = app.buildRunner();
     await runner.startJob(buildStart());
-    await waitUntil(() => runner.jobs[0]?.state === 'needs-vault-choice');
-    await runner.answerVaultChoice({ jobKey: 'job-1', choice: 'keep-vault-song' });
-    expect(runner.jobs[0]).toMatchObject({ state: 'done', result: 'kept-vault-song' });
+    await waitUntil(() => runner.jobs[0]?.state === 'needs-library-choice');
+    await runner.answerLibraryChoice({ jobKey: 'job-1', choice: 'keep-library-song' });
+    expect(runner.jobs[0]).toMatchObject({ state: 'done', result: 'kept-library-song' });
     expect(getGeneratedSongs(app.record)).toEqual([]);
-    expect(app.activity.map((event) => event.step)).toEqual(['started', 'kept-vault-song']);
+    expect(app.activity.map((event) => event.step)).toEqual(['started', 'kept-library-song']);
   });
 
   it('shows the generator’s sentence when it can’t stop a job, and still finishes the song', async () => {
@@ -325,7 +325,7 @@ describe('GeneratorJobRunner', () => {
     app.routeFinishedJob({ address: COMMUNITY_ADDRESS });
     const waitingJob: SavedGeneratorJob = {
       jobKey: 'job-1', generatorBaseUrl: COMMUNITY_ADDRESS, generatorId: 'stepcat.tap-forge', generatorName: 'Tap Forge', generatorVersion: '1.2.0', isDancedance: false, jobId: 'job-a1', song: NIGHT_DRIVE, difficulties: ['Easy'],
-      state: 'waiting', progress: 0.5, stage: 'Placing the steps', retryAfterSeconds: 1, message: null, vaultChoice: null, result: null, playerMusicLocation: buildStart().playerMusicLocation, playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null, source: null,
+      state: 'waiting', progress: 0.5, stage: 'Placing the steps', retryAfterSeconds: 1, message: null, libraryChoice: null, result: null, playerMusicLocation: buildStart().playerMusicLocation, playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null, source: null,
       startedAt: '2026-10-25T09:00:00.000Z', updatedAt: '2026-10-25T09:00:00.000Z',
     };
     app.savedJobs = [waitingJob, { ...waitingJob, jobKey: 'job-2', jobId: null, state: 'sending' }];

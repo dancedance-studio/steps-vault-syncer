@@ -21,8 +21,8 @@ export interface SongDetailsDrawerProps {
 export function SongDetailsDrawer({ details, onClose, onSongAction }: SongDetailsDrawerProps): ReactElement {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const song = details.song;
-  const handleAction = (action: SongAction): void => { onSongAction({ vaultSongId: song.vaultSongId, action }); };
-  useEffect(() => { headingRef.current?.focus(); }, [song.vaultSongId]);
+  const handleAction = (action: SongAction): void => { onSongAction({ librarySongId: song.librarySongId, action }); };
+  useEffect(() => { headingRef.current?.focus(); }, [song.librarySongId]);
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
     if (event.key !== 'Escape') return;
     event.stopPropagation();
@@ -108,7 +108,7 @@ function RemoveSection({ details, onAction }: { details: SongDetailsView; onActi
   const [isConfirming, setIsConfirming] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (isConfirming) confirmRef.current?.querySelector('button')?.focus(); }, [isConfirming]);
-  useEffect(() => { setIsConfirming(false); }, [details.song.vaultSongId]);
+  useEffect(() => { setIsConfirming(false); }, [details.song.librarySongId]);
   return (
     <section className="sv-sync-drawer-section sv-sync-danger-zone" aria-labelledby="sv-sync-drawer-danger">
       <h3 id="sv-sync-drawer-danger" className="sv-sync-visually-hidden">Remove song</h3>

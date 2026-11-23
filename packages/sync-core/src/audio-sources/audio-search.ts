@@ -14,7 +14,7 @@ export type CheckAudioSource = (options: { sourceId: string }) => Promise<AudioM
 export type DownloadAddonFile = (options: { url: string; fileName: string | null; addonName: string }) => Promise<string>;
 
 export interface AudioSearchSong extends AddonSongFacts {
-  vaultSongId: string;
+  librarySongId: string;
 }
 
 export interface AudioSearchOptions {

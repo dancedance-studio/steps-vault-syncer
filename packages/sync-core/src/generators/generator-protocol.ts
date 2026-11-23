@@ -9,7 +9,7 @@ export const GENERATOR_DIFFICULTIES = ['Beginner', 'Easy', 'Medium', 'Hard', 'Ch
 const MUSIC_TYPE_PATTERN = /^audio\/[a-z0-9][a-z0-9.+-]{0,39}$/;
 const MAX_MUSIC_TYPES = 10;
 const JOB_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
-const VAULT_SONG_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const LIBRARY_SONG_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const MAX_GENERATOR_ERROR_LENGTH = 300;
 const MEBIBYTE = 1024 * 1024;
 /** The largest music file Sync ever sends, and the default when a manifest doesn't say. */
@@ -63,9 +63,9 @@ export type GeneratorStartResult =
   | { kind: 'started'; job: GeneratorJob }
   /**
    * 409: the song already exists, or is being made right now. The message is a full sentence for the player.
-   * vaultSongId is set only by dancedance.studio's own generator: add that vault song instead.
+   * librarySongId is set only by dancedance.studio's own generator: add that library song instead.
    */
-  | { kind: 'already-exists'; message: string; vaultSongId: string | null };
+  | { kind: 'already-exists'; message: string; librarySongId: string | null };
 
 /** Only the facts a message or a link check needs, so these functions don't depend on how a generator is saved. */
 export interface GeneratorReference {
@@ -103,10 +103,10 @@ export type GeneratorCancelResult =
   /** No answer Sync understands (offline, an error page): the job may or may not have stopped. */
   | { kind: 'unknown' };
 
-/** vaultSongId is trusted only from dancedance.studio's own generator (isFromDancedance), so another can't plant a vault song. */
+/** librarySongId is trusted only from dancedance.studio's own generator (isFromDancedance), so another can't plant a library song. */
 export function parseStartJobAnswer({ answer, generator, isFromDancedance }: { answer: HttpResponse<unknown>; generator: GeneratorReference; isFromDancedance: boolean }): GeneratorStartResult {
   const { status, body } = answer;
-  if (status === 409) return { kind: 'already-exists', message: describeExistingSong({ body, generatorName: generator.name }), vaultSongId: isFromDancedance ? getVaultSongIdOrNull(body) : null };
+  if (status === 409) return { kind: 'already-exists', message: describeExistingSong({ body, generatorName: generator.name }), librarySongId: isFromDancedance ? getLibrarySongIdOrNull(body) : null };
   if (status !== 202) throw new GeneratorError({ reason: 'refused-job', message: describeRefusedJob({ status, body, generatorName: generator.name }) });
   const jobId = isRecord(body) ? body.jobId : undefined;
   if (typeof jobId !== 'string' || !JOB_ID_PATTERN.test(jobId)) throw new GeneratorError({ reason: 'invalid-answer', message: `${generator.name} took the song but sent no valid job id. Ask its maker to fix it.` });
@@ -136,10 +136,10 @@ function describeExistingSong({ body, generatorName }: { body: unknown; generato
   return getGeneratorErrorSentence(body) ?? `${generatorName} already has this song, or is making it right now.`;
 }
 
-/** A vault song id in a generator's answer; only ever trusted from dancedance.studio's own generator. */
-export function getVaultSongIdOrNull(body: unknown): string | null {
-  const vaultSongId = isRecord(body) ? body.vaultSongId : undefined;
-  return typeof vaultSongId === 'string' && VAULT_SONG_ID_PATTERN.test(vaultSongId) ? vaultSongId : null;
+/** A library song id in a generator's answer; only ever trusted from dancedance.studio's own generator. */
+export function getLibrarySongIdOrNull(body: unknown): string | null {
+  const librarySongId = isRecord(body) ? body.librarySongId : undefined;
+  return typeof librarySongId === 'string' && LIBRARY_SONG_ID_PATTERN.test(librarySongId) ? librarySongId : null;
 }
 
 function describeRefusedJob({ status, body, generatorName }: { status: number; body: unknown; generatorName: string }): string {

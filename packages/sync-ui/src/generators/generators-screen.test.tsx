@@ -16,7 +16,7 @@ function buildGeneratorsProps(overrides: Partial<GeneratorsScreenProps> = {}): G
     onLookUpGenerator: vi.fn(() => Promise.resolve<GeneratorLookupResult>({ kind: 'found', generator: FAKE_GENERATOR_PREVIEW })), onAddGenerator: vi.fn(), onRemoveGenerator: vi.fn(), onSetGeneratorOption: vi.fn(),
     onChooseMusicFile: vi.fn(() => Promise.resolve(PICKED_FILE)), onSearchMusic: vi.fn(() => Promise.resolve(FAKE_MUSIC_CHOICES)),
     onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'found', musics: [{ musicId: 'found', title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Clip Songs', lengthText: '4:02', hasVideo: true }] })),
-    onStopFindingSong: vi.fn(), onMakeSong: vi.fn(() => Promise.resolve<MakeSongResult>({ kind: 'started', jobKey: 'job-1' })), onCancelJob: vi.fn(), onAnswerVaultChoice: vi.fn(), onDismissJob: vi.fn(), onFetchSongReport: vi.fn(() => Promise.resolve('Made with onsets.')),
+    onStopFindingSong: vi.fn(), onMakeSong: vi.fn(() => Promise.resolve<MakeSongResult>({ kind: 'started', jobKey: 'job-1' })), onCancelJob: vi.fn(), onAnswerLibraryChoice: vi.fn(), onDismissJob: vi.fn(), onFetchSongReport: vi.fn(() => Promise.resolve('Made with onsets.')),
     ...overrides,
   };
 }
@@ -219,7 +219,7 @@ describe('GeneratorsScreen', () => {
     expect(screen.getByRole('alert').textContent).toBe('Make it shorter: at most 200 characters.');
   });
 
-  it('shows a job’s stage and lets the player cancel it, or answer the vault question', () => {
+  it('shows a job’s stage and lets the player cancel it, or answer the library question', () => {
     const props = renderGenerators({ jobs: FAKE_GENERATOR_JOBS });
     const workingJob = screen.getByRole('listitem', { name: 'Night Drive' });
     expect(workingJob.textContent).toContain('Placing the steps');
@@ -228,7 +228,7 @@ describe('GeneratorsScreen', () => {
     const choiceJob = screen.getByRole('listitem', { name: 'Low Tide' });
     fireEvent.click(within(choiceJob).getByRole('button', { name: 'Use generated' }));
     expect(props.onCancelJob).toHaveBeenCalledWith('job-night-drive');
-    expect(props.onAnswerVaultChoice).toHaveBeenCalledWith({ jobKey: 'job-low-tide', choice: 'keep-generated-song' });
+    expect(props.onAnswerLibraryChoice).toHaveBeenCalledWith({ jobKey: 'job-low-tide', choice: 'keep-generated-song' });
   });
 
   it('shows the sentence when the generator can’t stop the job', () => {
@@ -253,7 +253,7 @@ describe('GeneratorsScreen', () => {
   });
 
   it('says where a finished dancedance.studio song went', async () => {
-    const doneJob: GeneratorJobView = { jobKey: 'job-1', songTitle: 'my new song', songArtist: 'Unknown artist', generatorName: 'dancedance.studio generator', isDancedance: true, state: 'done', stageText: 'Done', progressPercent: null, message: null, vaultChoiceQuestion: null, doneText: 'Added to the library. It comes to your game, with your music, on your next sync.' };
+    const doneJob: GeneratorJobView = { jobKey: 'job-1', songTitle: 'my new song', songArtist: 'Unknown artist', generatorName: 'dancedance.studio generator', isDancedance: true, state: 'done', stageText: 'Done', progressPercent: null, message: null, libraryChoiceQuestion: null, doneText: 'Added to the library. It comes to your game, with your music, on your next sync.' };
     renderGenerators({ jobs: [doneJob], dancedanceGenerator: { ...FAKE_DANCEDANCE_GENERATOR, musicUploadWarning: null } });
     const setupDialog = await goToSetupStep();
     await settle(() => { fireEvent.click(within(setupDialog).getByRole('button', { name: 'Make the steps · 1 token' })); });

@@ -9,7 +9,7 @@ import { getStatusToneClassName } from '../status/song-status';
 import { StatusChip } from '../status/status-chip';
 
 export interface PhoneSongView {
-  vaultSongId: string;
+  librarySongId: string;
   title: string;
   coverArtUrl: string | null;
   status: SongSyncStatus;
@@ -50,7 +50,7 @@ export function PhoneStatusView(props: PhoneStatusViewProps): ReactElement {
         </div>
         <ul className="sv-sync-phone-songs" aria-label={`Your ${SITE_NAME} songs`}>
           {props.songs.map((song) => (
-            <li key={song.vaultSongId} className="sv-sync-phone-song">
+            <li key={song.librarySongId} className="sv-sync-phone-song">
               <CoverArt coverArtUrl={song.coverArtUrl} className="sv-sync-cover--small" />
               <div className="sv-sync-stack-tiny sv-sync-min-width-0">
                 <span className="sv-sync-phone-song-title" dir="auto">{song.title}</span>

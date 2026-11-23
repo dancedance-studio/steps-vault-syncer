@@ -53,7 +53,7 @@ An addon's address is `https://…`. The only exception is an addon running on t
   an address belongs in. A manifest without it is refused.
 - `id`: lower-case letters, digits, `.` and `-`, 2–64 characters.
 - `name` and `author`: up to 60 characters. `description`: up to 300 characters.
-- `provides`: one or more of `audio-links` (music for a song in the vault), `video-links` (with `audio-links`: the
+- `provides`: one or more of `audio-links` (music for a song in the library), `video-links` (with `audio-links`: the
   song's video too), and `song-source` (brings a new song to make with a generator; see below).
 - `options` (optional): see below.
 
@@ -114,7 +114,7 @@ be `https`. Sync drops any link that breaks these rules.
 
 ## Song sources: `provides: ["song-source"]`
 
-A song source brings a song that isn't in the vault yet, so the player can make it with a generator. Sync's
+A song source brings a song that isn't in the library yet, so the player can make it with a generator. Sync's
 **Make a song** page draws it from the addon's `inputs`: an addon never brings its own screens or code. A `link` input
 joins the one **Links** tab, which every link addon that is on shares; `search` inputs get a tab of the addon's own.
 

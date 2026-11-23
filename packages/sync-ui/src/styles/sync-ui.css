@@ -66,7 +66,7 @@
 .sv-sync-tone--different-edit { --sv-sync-tone: var(--sv-sync-miss); }
 .sv-sync-tone--update-available { --sv-sync-tone: var(--sv-sync-light-blue); }
 .sv-sync-tone--you-edited-this { --sv-sync-tone: var(--sv-sync-pink); }
-.sv-sync-tone--removed-from-vault { --sv-sync-tone: var(--sv-sync-grey); }
+.sv-sync-tone--removed-from-library { --sv-sync-tone: var(--sv-sync-grey); }
 .sv-sync-difficulty--beginner { --sv-sync-difficulty: var(--sv-sync-beginner); }
 .sv-sync-difficulty--easy { --sv-sync-difficulty: var(--sv-sync-easy); }
 .sv-sync-difficulty--medium { --sv-sync-difficulty: var(--sv-sync-medium); }

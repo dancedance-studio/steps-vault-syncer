@@ -14,7 +14,7 @@ const SONG_SOURCE_MANIFEST: AddonManifest = {
 };
 const JOB: SavedGeneratorJob = {
   jobKey: 'job-1', generatorBaseUrl: 'http://127.0.0.1:7700', generatorId: 'stepcat.tap-forge', generatorName: 'Tap Forge', generatorVersion: '1.2.0', isDancedance: false, jobId: 'a1', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null },
-  difficulties: ['Easy'], state: 'waiting', progress: 0.456, stage: 'Placing the steps', retryAfterSeconds: 10, message: null, vaultChoice: null, result: null, playerMusicLocation: 'C:\\Music\\a.mp3', playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null, source: null,
+  difficulties: ['Easy'], state: 'waiting', progress: 0.456, stage: 'Placing the steps', retryAfterSeconds: 10, message: null, libraryChoice: null, result: null, playerMusicLocation: 'C:\\Music\\a.mp3', playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null, source: null,
   startedAt: '2026-10-25T10:00:00.000Z', updatedAt: '2026-10-25T10:00:00.000Z',
 };
 
@@ -36,16 +36,16 @@ describe('generator views', () => {
     [{ state: 'sending' }, { state: 'working', stageText: 'Sending the music', progressPercent: null }],
     [{}, { state: 'working', stageText: 'Placing the steps', progressPercent: 46 }],
     [{ stage: null, progress: null }, { state: 'working', stageText: 'Waiting for Tap Forge', progressPercent: null }],
-    [{ state: 'needs-vault-choice', vaultChoice: { vaultSongId: 'v1', question: 'Which one?' } }, { state: 'needs-vault-choice', vaultChoiceQuestion: 'Which one?' }],
+    [{ state: 'needs-library-choice', libraryChoice: { librarySongId: 'v1', question: 'Which one?' } }, { state: 'needs-library-choice', libraryChoiceQuestion: 'Which one?' }],
     [{ state: 'done', result: 'written' }, { state: 'done', doneText: 'Done. It’s in My generated songs.' }],
-    [{ state: 'done', result: 'added-to-vault', isDancedance: true }, { state: 'done', doneText: 'Added to the library. It comes to your game, with your music, on your next sync.' }],
+    [{ state: 'done', result: 'added-to-library', isDancedance: true }, { state: 'done', doneText: 'Added to the library. It comes to your game, with your music, on your next sync.' }],
     [{ state: 'failed', message: 'Tap Forge couldn’t make this song.' }, { state: 'failed', stageText: 'Not made', message: 'Tap Forge couldn’t make this song.' }],
   ] as [Partial<SavedGeneratorJob>, object][])('shows a job %j as %j', (overrides, expected) => {
     expect(buildGeneratorJobView({ ...JOB, ...overrides })).toMatchObject(expected);
   });
 
   it('lists generated songs newest first, with their folder and whether they say how they were made', () => {
-    const generatedSong: GeneratedSong = { songKey: 'song:a', song: JOB.song, generatorId: 'stepcat.tap-forge', generatorVersion: '1.2.0', generatorName: 'Tap Forge', difficulties: ['Easy', 'Medium', 'Hard'], installId: 'i1', folderPath: ['My generated songs', 'Night Drive'], inPlaceOfVaultSongId: null, generatedAt: '2026-10-24T10:00:00.000Z' };
+    const generatedSong: GeneratedSong = { songKey: 'song:a', song: JOB.song, generatorId: 'stepcat.tap-forge', generatorVersion: '1.2.0', generatorName: 'Tap Forge', difficulties: ['Easy', 'Medium', 'Hard'], installId: 'i1', folderPath: ['My generated songs', 'Night Drive'], inPlaceOfLibrarySongId: null, generatedAt: '2026-10-24T10:00:00.000Z' };
     const newerSong: GeneratedSong = { ...generatedSong, songKey: 'song:b', song: { ...JOB.song, title: 'Low Tide' }, levelsByDifficulty: { Easy: 3, Hard: 9 }, generatedAt: '2026-10-25T10:00:00.000Z' };
     const views = buildGeneratedSongViews({ generatedSongs: [generatedSong, newerSong], reportSongKeys: new Set(['song:a']) });
     expect(views.map((view) => [view.title, view.hasReport])).toEqual([['Low Tide', false], ['Night Drive', true]]);
@@ -55,7 +55,7 @@ describe('generator views', () => {
   });
 
   it('says where a generated song’s music came from: the addon, and the link the player typed', () => {
-    const generatedSong: GeneratedSong = { songKey: 'song:a', song: JOB.song, generatorId: 'stepcat.tap-forge', generatorVersion: '1.2.0', generatorName: 'Tap Forge', difficulties: ['Easy'], installId: 'i1', folderPath: ['My generated songs', 'Night Drive'], inPlaceOfVaultSongId: null, generatedAt: '2026-10-24T10:00:00.000Z' };
+    const generatedSong: GeneratedSong = { songKey: 'song:a', song: JOB.song, generatorId: 'stepcat.tap-forge', generatorVersion: '1.2.0', generatorName: 'Tap Forge', difficulties: ['Easy'], installId: 'i1', folderPath: ['My generated songs', 'Night Drive'], inPlaceOfLibrarySongId: null, generatedAt: '2026-10-24T10:00:00.000Z' };
     const fromLink = { ...generatedSong, source: { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' } };
     const fromSearch = { ...generatedSong, songKey: 'song:b', source: { addonId: 'song.scout', addonName: 'Song Scout', link: null }, generatedAt: '2026-10-23T10:00:00.000Z' };
     const views = buildGeneratedSongViews({ generatedSongs: [fromLink, fromSearch], reportSongKeys: new Set() });
@@ -63,11 +63,11 @@ describe('generator views', () => {
   });
 
   it('tells each step of making a song in the Activity log', () => {
-    const entries = buildActivityEntries({ vaultSongs: [], events: [
+    const entries = buildActivityEntries({ librarySongs: [], events: [
       { kind: 'generated-song', step: 'started', at: '2026-10-25T10:00:00.000Z', songTitle: 'Night Drive', generatorName: 'Tap Forge', folderPath: [] },
       { kind: 'generated-song', step: 'written', at: '2026-10-25T10:05:00.000Z', songTitle: 'Night Drive', generatorName: 'Tap Forge', folderPath: ['My generated songs', 'Night Drive'] },
       { kind: 'generated-song', step: 'failed', at: '2026-10-25T10:06:00.000Z', songTitle: 'Low Tide', generatorName: 'Tap Forge', folderPath: [], message: 'Tap Forge isn’t answering.' },
-      { vaultSongId: 'v1', kind: 'added', at: '2026-10-25T10:07:00.000Z', folderPath: ['dancedance.studio', 'Paris'] },
+      { librarySongId: 'v1', kind: 'added', at: '2026-10-25T10:07:00.000Z', folderPath: ['dancedance.studio', 'Paris'] },
     ] });
     expect(entries.map((entry) => [entry.kind, `${entry.textBefore}${entry.highlightedText}${entry.textAfter}`, entry.summaryText])).toEqual([
       ['added', 'Added Paris to dancedance.studio', 'Songs/dancedance.studio/Paris'],

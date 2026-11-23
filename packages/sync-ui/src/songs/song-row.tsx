@@ -18,7 +18,7 @@ export const SONG_SYNC_STEP_LABELS: Readonly<Record<SongSyncStep, string>> = {
 const SONG_SYNC_STEPS: readonly SongSyncStep[] = ['finding-audio', 'checking-edit', 'lining-up', 'writing-to-game'];
 
 export interface SongActionRequest {
-  vaultSongId: string;
+  librarySongId: string;
   action: SongAction;
 }
 
@@ -26,17 +26,17 @@ export interface SongRowProps {
   row: SongRowView;
   isSelected: boolean;
   isSyncing: boolean;
-  onOpenDetails: (vaultSongId: string) => void;
+  onOpenDetails: (librarySongId: string) => void;
   onSongAction: (request: SongActionRequest) => void;
 }
 
 export function SongRow({ row, isSelected, isSyncing, onOpenDetails, onSongAction }: SongRowProps): ReactElement {
-  const handleAction = (action: SongAction): void => { onSongAction({ vaultSongId: row.vaultSongId, action }); };
+  const handleAction = (action: SongAction): void => { onSongAction({ librarySongId: row.librarySongId, action }); };
   return (
-    <li className={joinClassNames('sv-sync-song-row', isSelected && 'sv-sync-song-row--selected', row.status === 'removed-from-vault' && 'sv-sync-song-row--gone')}>
+    <li className={joinClassNames('sv-sync-song-row', isSelected && 'sv-sync-song-row--selected', row.status === 'removed-from-library' && 'sv-sync-song-row--gone')}>
       <CoverArt coverArtUrl={row.coverArtUrl} />
       <div className="sv-sync-song-title-block">
-        <button className="sv-sync-song-title" type="button" dir="auto" aria-label={`${row.title} — details`} aria-expanded={isSelected} onClick={() => { onOpenDetails(row.vaultSongId); }}>{row.title}</button>
+        <button className="sv-sync-song-title" type="button" dir="auto" aria-label={`${row.title} — details`} aria-expanded={isSelected} onClick={() => { onOpenDetails(row.librarySongId); }}>{row.title}</button>
         <span className="sv-sync-song-artist" dir="auto">{[row.artist, row.genre].filter(Boolean).join(' · ')}</span>
       </div>
       <DifficultyLevelBadges levels={row.levels} />
@@ -49,7 +49,7 @@ export function SongRow({ row, isSelected, isSyncing, onOpenDetails, onSongActio
           <Icon name="spin" size={14} />Sync
         </button>
         <button className="sv-sync-icon-button" type="button" onClick={() => { handleAction('choose-audio'); }} aria-label={`Choose audio for ${row.title}`}>Choose audio…</button>
-        <button className="sv-sync-icon-button" type="button" onClick={() => { onOpenDetails(row.vaultSongId); }} aria-label={`Details for ${row.title}`}>
+        <button className="sv-sync-icon-button" type="button" onClick={() => { onOpenDetails(row.librarySongId); }} aria-label={`Details for ${row.title}`}>
           Details<Icon name="chevron" size={14} />
         </button>
       </div>

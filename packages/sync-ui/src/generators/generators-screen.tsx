@@ -68,7 +68,7 @@ export function GeneratorsScreen(props: GeneratorsScreenProps): ReactElement {
       <GeneratorsHeading makeSongAction={<button className="sv-sync-button" type="button" onClick={openMakeSong}><Icon name="sparkle" strokeWidth={2.4} />Make a song</button>} />
       {preselectedSong && !makeSongDialog.isOpen && <PreselectedSongNote preselectedSong={preselectedSong} hasOwnGenerator={hasOwnGenerator} onDismiss={props.onDismissPreselectedSong} />}
       <DancedanceGeneratorCard generator={props.dancedanceGenerator} />
-      <GeneratorJobList jobs={props.jobs} onCancelJob={props.onCancelJob} onAnswerVaultChoice={props.onAnswerVaultChoice} onDismissJob={props.onDismissJob} />
+      <GeneratorJobList jobs={props.jobs} onCancelJob={props.onCancelJob} onAnswerLibraryChoice={props.onAnswerLibraryChoice} onDismissJob={props.onDismissJob} />
       <CommunityGenerators {...props} onAdd={() => { setIsAddingGenerator(true); }} />
       <GeneratedSongList songs={props.generatedSongs} onFetchSongReport={props.onFetchSongReport} onMakeSong={openMakeSong} />
       {props.playOnWebsite && <PlayOnWebsite {...props.playOnWebsite} />}

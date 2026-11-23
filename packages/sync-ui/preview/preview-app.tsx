@@ -1,7 +1,7 @@
 import { FOLDER_LAYOUTS, type FolderLayout } from '@dancedance/sync-core';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import {
-  ADDON_AGENT_SKILL, ActivityScreen, AgentBox, AudioSourcesScreen, FourArrowLoader, GENERATOR_AGENT_SKILL, GreenPillButton, Icon, SiteLogo, SquareIconTile, WebsiteGeneratorsScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyVaultState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
+  ADDON_AGENT_SKILL, ActivityScreen, AgentBox, AudioSourcesScreen, FourArrowLoader, GENERATOR_AGENT_SKILL, GreenPillButton, Icon, SiteLogo, SquareIconTile, WebsiteGeneratorsScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyLibraryState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
   PermissionLostState, PhoneStatusView, SongFolderLockedState, SongsFolderMissingState, SongsFolderPreview, StatusChip, SyncHomeScreen, SyncShell, UpdateBanner, SONG_STATUSES, SONG_STATUS_DISPLAYS,
   type LinkCodeState, type SyncPlatform, type SyncScreen,
 } from '../src/index';
@@ -132,7 +132,7 @@ function AudioSourcesPreview({ onNavigate }: { onNavigate: (screen: SyncScreen) 
       musicFolders={FAKE_MUSIC_FOLDERS}
       scan={{ scannedFileCount: 241, percent: 62 }}
       matchedSongCount={8}
-      vaultSongCount={12}
+      librarySongCount={12}
       pickedFiles={FAKE_PICKED_FILES}
       addons={addons}
       onAddMusicFolder={noop}
@@ -169,7 +169,7 @@ function GeneratorsPreview(): ReactElement {
       onStopFindingSong={noop}
       onMakeSong={() => Promise.resolve({ kind: 'started', jobKey: 'job-night-drive' })}
       onCancelJob={noop}
-      onAnswerVaultChoice={noop}
+      onAnswerLibraryChoice={noop}
       onDismissJob={noop}
       onFetchSongReport={() => Promise.resolve('# How it was made\n\nOnsets found with a simple energy rule, arrows by flow.')}
       mySongsHref="#my-songs"
@@ -235,7 +235,7 @@ function StatesBoard(): ReactElement {
         <section>
           <h2 className="preview-section-title">Empty + error states</h2>
           <div className="preview-grid">
-            <EmptyVaultState vaultHref="#vault" />
+            <EmptyLibraryState libraryHref="#library" />
             <PermissionLostState onReconnect={noop} />
             <SongsFolderMissingState previousSongsFolderPath={FAKE_GAME.songsFolderPath} onChooseFolder={noop} />
             <DiskFullState neededSpaceText="48 MB" songCount={3} driveName="C:" onTryAgain={noop} />
@@ -257,7 +257,7 @@ function PhoneBoard(): ReactElement {
       <div className="preview-board">
         <div className="preview-phone">
           <div>
-            <PhoneStatusView computerName="LIVING-ROOM-PC" gameName="StepMania 5 LTEK" overallStatus="synced" lastSyncText="2 hours ago" syncedCount={8} needsAudioCount={2} updateCount={2} songs={FAKE_SONG_ROWS.slice(0, 4).map((row) => ({ vaultSongId: row.vaultSongId, title: row.title, coverArtUrl: row.coverArtUrl, status: row.status }))} />
+            <PhoneStatusView computerName="LIVING-ROOM-PC" gameName="StepMania 5 LTEK" overallStatus="synced" lastSyncText="2 hours ago" syncedCount={8} needsAudioCount={2} updateCount={2} songs={FAKE_SONG_ROWS.slice(0, 4).map((row) => ({ librarySongId: row.librarySongId, title: row.title, coverArtUrl: row.coverArtUrl, status: row.status }))} />
           </div>
         </div>
       </div>

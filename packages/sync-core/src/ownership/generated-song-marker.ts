@@ -3,7 +3,7 @@ import { buildSongsPath, getNameKey } from '../songs-folder/songs-path';
 import type { GeneratedSong } from './generated-songs';
 import { SONG_FOLDER_MARKER_FILE_NAME } from './song-folder-marker';
 
-/** Not the vault marker's format, so the vault sync never takes a generated song's folder for one of its own. */
+/** Not the library marker's format, so the library sync never takes a generated song's folder for one of its own. */
 const GENERATED_MARKER_FORMAT = 'dancedance-generated-song';
 
 export interface GeneratedSongFolderMarker {

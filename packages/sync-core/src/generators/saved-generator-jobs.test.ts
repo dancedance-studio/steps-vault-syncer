@@ -5,7 +5,7 @@ function buildJob(overrides: Partial<SavedGeneratorJob> = {}): SavedGeneratorJob
   return {
     jobKey: 'job-1', generatorBaseUrl: 'http://127.0.0.1:7700', generatorId: 'stepcat.tap-forge', generatorName: 'Tap Forge', generatorVersion: '1.2.0', isDancedance: false, jobId: 'a1b2c3',
     song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null },
-    difficulties: ['Easy', 'Medium'], state: 'waiting', progress: 0.4, stage: 'Placing the steps', retryAfterSeconds: 10, message: null, vaultChoice: null, result: null,
+    difficulties: ['Easy', 'Medium'], state: 'waiting', progress: 0.4, stage: 'Placing the steps', retryAfterSeconds: 10, message: null, libraryChoice: null, result: null,
     playerMusicLocation: 'C:\\Music\\Night Drive.mp3', playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null, source: null, startedAt: '2026-10-25T10:00:00.000Z', updatedAt: '2026-10-25T10:01:00.000Z',
     ...overrides,
   };
@@ -13,7 +13,7 @@ function buildJob(overrides: Partial<SavedGeneratorJob> = {}): SavedGeneratorJob
 
 describe('saved generator jobs', () => {
   it('loads what it saved and drops broken entries', () => {
-    const job = buildJob({ vaultChoice: { vaultSongId: 'song_7', question: 'Which one?' }, state: 'needs-vault-choice' });
+    const job = buildJob({ libraryChoice: { librarySongId: 'song_7', question: 'Which one?' }, state: 'needs-library-choice' });
     const saved: unknown = JSON.parse(JSON.stringify([job, { jobKey: 'broken' }, buildJob({ jobKey: 'no-difficulties', difficulties: [] }), 'nonsense']));
     expect(loadSavedGeneratorJobs(saved)).toEqual([job]);
     expect(loadSavedGeneratorJobs({ jobs: [] })).toEqual([]);

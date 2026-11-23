@@ -43,8 +43,8 @@ export interface StartGeneratorJobOptions extends Omit<GeneratorCallOptions, 'ht
   video: GeneratorUploadFile | null;
 }
 
-/** vaultSongId: the vault song dancedance.studio's own generator made; null from any other generator. */
-export type GeneratorJobOutcome = { kind: 'done'; files: GeneratorFileLink[]; vaultSongId: string | null } | { kind: 'cancelled'; cancelResult: GeneratorCancelResult };
+/** librarySongId: the library song dancedance.studio's own generator made; null from any other generator. */
+export type GeneratorJobOutcome = { kind: 'done'; files: GeneratorFileLink[]; librarySongId: string | null } | { kind: 'cancelled'; cancelResult: GeneratorCancelResult };
 
 export interface WaitForGeneratorJobOptions extends GeneratorCallOptions {
   job: GeneratorJob;
@@ -100,7 +100,7 @@ export async function waitForGeneratorJob(options: WaitForGeneratorJobOptions): 
     progress.waitedSeconds += progress.retryAfterSeconds;
     if (shouldStop()) return cancelAndReport(options);
     const status = await fetchStatusOrNullWhenMissed({ options, progress });
-    if (status?.state === 'done') return { kind: 'done', files: status.files, vaultSongId: status.vaultSongId };
+    if (status?.state === 'done') return { kind: 'done', files: status.files, librarySongId: status.librarySongId };
     if (status?.state === 'failed') throw new GeneratorError({ reason: 'job-failed', message: status.message });
     if (status) {
       progress.retryAfterSeconds = status.retryAfterSeconds;

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildEmptyInstalledSongsRecord, buildSongsPath, type InstalledSong, type PartyFolderPlan, type SyncPartyList, type VaultSongDetails } from '@dancedance/sync-core';
+import { buildEmptyInstalledSongsRecord, buildSongsPath, type InstalledSong, type PartyFolderPlan, type SyncPartyList, type LibrarySongDetails } from '@dancedance/sync-core';
 import { buildActivityEntries } from './build-sync-views';
 import { buildPartyFolderPreview, buildPartyFolderViews, getPartyListEndText } from './build-party-folder-views';
 
 const NOW = new Date('2026-10-31T12:00:00Z');
-const CHEAP_THRILLS: VaultSongDetails = { vaultSongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, youtubeId: null, chartVersion: 'v1', imageKinds: [], hasFingerprint: true };
-const LEVITATING: VaultSongDetails = { ...CHEAP_THRILLS, vaultSongId: 'd', slug: 'levitating', title: 'Levitating', artist: 'Dua Lipa' };
+const CHEAP_THRILLS: LibrarySongDetails = { librarySongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, youtubeId: null, chartVersion: 'v1', imageKinds: [], hasFingerprint: true };
+const LEVITATING: LibrarySongDetails = { ...CHEAP_THRILLS, librarySongId: 'd', slug: 'levitating', title: 'Levitating', artist: 'Dua Lipa' };
 const MAYA: SyncPartyList = { partyListId: 'party_maya', slug: 'maya-bday-7q2xk', name: 'Maya bday', gameFolderName: 'Party - Maya bday', endsAt: '2026-11-02T13:00:00Z', songs: [CHEAP_THRILLS, LEVITATING] };
 const MAYA_PLAN: PartyFolderPlan = {
   partyListId: 'party_maya',
@@ -13,10 +13,10 @@ const MAYA_PLAN: PartyFolderPlan = {
   baseName: 'Party - Maya bday',
   groupName: 'Party - Maya bday',
   isSynced: true,
-  songPlans: [{ vaultSongId: 'a', status: 'synced', actions: [], isWaitingForAddon: false }, { vaultSongId: 'd', status: 'needs-audio', actions: [], isWaitingForAddon: false }],
+  songPlans: [{ librarySongId: 'a', status: 'synced', actions: [], isWaitingForAddon: false }, { librarySongId: 'd', status: 'needs-audio', actions: [], isWaitingForAddon: false }],
   forgetActions: [],
 };
-const COPY: InstalledSong = { vaultSongId: 'a', chartVersion: 'v1', installId: 'i', folderPath: buildSongsPath('Party - Old night', 'Cheap Thrills'), chartHashesByFileName: {}, music: { fileName: 'music.ogg', shiftSeconds: 0 }, installedAt: '2026-10-24T10:00:00Z' };
+const COPY: InstalledSong = { librarySongId: 'a', chartVersion: 'v1', installId: 'i', folderPath: buildSongsPath('Party - Old night', 'Cheap Thrills'), chartHashesByFileName: {}, music: { fileName: 'music.ogg', shiftSeconds: 0 }, installedAt: '2026-10-24T10:00:00Z' };
 
 describe('party folder views', () => {
   it('lists each synced list’s folder with its songs in the game, the songs that need audio and its end', () => {
@@ -25,7 +25,7 @@ describe('party folder views', () => {
   });
 
   it('shows a gone list while its folder is still being removed, and drops it once it is gone', () => {
-    const leaving: PartyFolderPlan = { ...MAYA_PLAN, isSynced: false, songPlans: [{ vaultSongId: 'a', status: 'syncing', actions: [], isWaitingForAddon: false }] };
+    const leaving: PartyFolderPlan = { ...MAYA_PLAN, isSynced: false, songPlans: [{ librarySongId: 'a', status: 'syncing', actions: [], isWaitingForAddon: false }] };
     expect(buildPartyFolderViews({ partyFolderPlans: [leaving], partyLists: [], record: buildEmptyInstalledSongsRecord(), now: NOW })[0]).toMatchObject({ isLeaving: true, endsText: null });
     expect(buildPartyFolderViews({ partyFolderPlans: [{ ...leaving, songPlans: [] }], partyLists: [], record: buildEmptyInstalledSongsRecord(), now: NOW })).toEqual([]);
   });
@@ -48,7 +48,7 @@ describe('party folder views', () => {
   });
 
   it('says a party copy was removed from its folder, not from the game', () => {
-    const entries = buildActivityEntries({ events: [{ vaultSongId: 'a', kind: 'removed', at: '2026-10-31T12:00:00Z', folderPath: ['Party - Maya bday', 'Cheap Thrills'], partyListId: 'party_maya' }], vaultSongs: [CHEAP_THRILLS] });
+    const entries = buildActivityEntries({ events: [{ librarySongId: 'a', kind: 'removed', at: '2026-10-31T12:00:00Z', folderPath: ['Party - Maya bday', 'Cheap Thrills'], partyListId: 'party_maya' }], librarySongs: [CHEAP_THRILLS] });
     expect(`${entries[0]?.textBefore ?? ''}${entries[0]?.highlightedText ?? ''}${entries[0]?.textAfter ?? ''}`).toBe('Removed Cheap Thrills from Party - Maya bday');
   });
 });

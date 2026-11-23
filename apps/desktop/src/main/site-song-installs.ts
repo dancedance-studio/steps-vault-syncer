@@ -34,16 +34,16 @@ export interface SiteSongInstallPorts {
  * Sync syncs again until the music comes, for up to 8 minutes. It answers installed only once the music is really in
  * the song's folder.
  */
-export async function installSongForSite({ ports, vaultSongId }: { ports: SiteSongInstallPorts; vaultSongId: string }): Promise<SiteSongInstallResult> {
+export async function installSongForSite({ ports, librarySongId }: { ports: SiteSongInstallPorts; librarySongId: string }): Promise<SiteSongInstallResult> {
   if (!ports.hasGame()) return { kind: 'failed', reason: NO_GAME_REASON };
   const untilMilliseconds = ports.getNowMilliseconds() + MAX_INSTALL_MILLISECONDS;
   const runningOutcome = await ports.waitForRunningSync();
-  if (runningOutcome && (await checkSongInstall({ songsFolder: ports.getSongsFolder(), outcome: runningOutcome, vaultSongId, isAddonFile: ports.isAddonFile })).kind === 'installed') return { kind: 'installed' };
+  if (runningOutcome && (await checkSongInstall({ songsFolder: ports.getSongsFolder(), outcome: runningOutcome, librarySongId, isAddonFile: ports.isAddonFile })).kind === 'installed') return { kind: 'installed' };
   for (;;) {
     if (await ports.isGameRunning()) return { kind: 'failed', reason: GAME_RUNNING_REASON };
     const outcome = await ports.syncNow();
     if (!outcome) return { kind: 'failed', reason: getPlainReasonOrNull(ports.getProblem()) ?? SYNC_STOPPED_REASON };
-    const check = await checkSongInstall({ songsFolder: ports.getSongsFolder(), outcome, vaultSongId, isAddonFile: ports.isAddonFile });
+    const check = await checkSongInstall({ songsFolder: ports.getSongsFolder(), outcome, librarySongId, isAddonFile: ports.isAddonFile });
     if (check.kind !== 'waiting-for-addon') return check;
     if (ports.getNowMilliseconds() + ADDON_RETRY_MILLISECONDS > untilMilliseconds) return { kind: 'failed', reason: check.reason };
     await ports.waitMilliseconds(ADDON_RETRY_MILLISECONDS);

@@ -6,8 +6,8 @@ import { buildComputerSongReports, MAX_COMPUTER_SONGS_PER_REPORT } from './compu
 import { buildAddonSongFacts, pollDeviceSignIn, startDeviceSignIn, DancedanceClient } from './dancedance-client';
 
 const SITE_URL = 'https://dancedance.studio/';
-const VAULT_SONG = {
-  vaultSongId: 'song_7',
+const LIBRARY_SONG = {
+  librarySongId: 'song_7',
   slug: 'sakura-drive',
   title: '桜ドライブ',
   titleTransliteration: 'Sakura Drive',
@@ -72,25 +72,25 @@ describe('signing the app in by code', () => {
 });
 
 describe('DancedanceClient', () => {
-  it('reads the vault with the device token', async () => {
-    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/vault': { status: 200, body: [VAULT_SONG] } });
+  it('reads the library with the device token', async () => {
+    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/library': { status: 200, body: [LIBRARY_SONG] } });
     const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
-    expect(await client.fetchVault()).toEqual([VAULT_SONG]);
+    expect(await client.fetchLibrary()).toEqual([LIBRARY_SONG]);
     expect(api.requests[0]?.headers).toEqual({ Authorization: 'Bearer device-token' });
   });
 
   it('reads a song from a site without groups as in no group', async () => {
-    const songFromOlderSite = Object.fromEntries(Object.entries(VAULT_SONG).filter(([key]) => key !== 'groupFolderName'));
-    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/vault': { status: 200, body: [songFromOlderSite] } });
+    const songFromOlderSite = Object.fromEntries(Object.entries(LIBRARY_SONG).filter(([key]) => key !== 'groupFolderName'));
+    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/library': { status: 200, body: [songFromOlderSite] } });
     const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
-    expect((await client.fetchVault())[0]?.groupFolderName).toBeNull();
+    expect((await client.fetchLibrary())[0]?.groupFolderName).toBeNull();
   });
 
   it('reads a song from a site without group colours as having no colour', async () => {
-    const songFromOlderSite = Object.fromEntries(Object.entries(VAULT_SONG).filter(([key]) => key !== 'groupColorKey'));
-    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/vault': { status: 200, body: [songFromOlderSite] } });
+    const songFromOlderSite = Object.fromEntries(Object.entries(LIBRARY_SONG).filter(([key]) => key !== 'groupColorKey'));
+    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/library': { status: 200, body: [songFromOlderSite] } });
     const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
-    const [song] = await client.fetchVault();
+    const [song] = await client.fetchLibrary();
     expect(song?.groupFolderName).toBe('Warm-up');
     expect(song?.groupColorKey).toBeNull();
   });
@@ -98,14 +98,14 @@ describe('DancedanceClient', () => {
   it('fetches a song’s files for the writer: the song file and each image', async () => {
     const png = new Uint8Array([137, 80, 78, 71]);
     const api = new RecordedApi({
-      'GET https://dancedance.studio/api/sync/vault': { status: 200, body: [{ ...VAULT_SONG, imageKinds: ['banner', 'jacket'] }] },
+      'GET https://dancedance.studio/api/sync/library': { status: 200, body: [{ ...LIBRARY_SONG, imageKinds: ['banner', 'jacket'] }] },
       'GET https://dancedance.studio/api/sync/songs/song_7/ssc': { status: 200, body: '#TITLE:Sakura Drive;\n#OFFSET:-0.1;\n' },
       'GET https://dancedance.studio/api/sync/songs/song_7/images/banner': { status: 200, body: png },
       'GET https://dancedance.studio/api/sync/songs/song_7/images/jacket': { status: 200, body: png },
     });
     const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: null });
-    await client.fetchVault();
-    const files = await client.fetchSongFiles({ vaultSongId: 'song_7', chartVersion: VAULT_SONG.chartVersion });
+    await client.fetchLibrary();
+    const files = await client.fetchSongFiles({ librarySongId: 'song_7', chartVersion: LIBRARY_SONG.chartVersion });
     expect(files.sscText).toContain('#OFFSET:-0.1;');
     expect(files.images.map((image) => image.fileName)).toEqual(['banner.png', 'jacket.png']);
   });
@@ -120,23 +120,23 @@ describe('DancedanceClient', () => {
 
   it('asks to sign in again on 401, and passes on the site’s own message otherwise', async () => {
     const api = new RecordedApi({
-      'GET https://dancedance.studio/api/sync/vault': { status: 401, body: { message: 'This computer is signed out.' } },
-      'GET https://dancedance.studio/api/sync/songs/song_9/ssc': { status: 404, body: { message: 'This song is not in your vault. Sync again to get your current list of songs.' } },
+      'GET https://dancedance.studio/api/sync/library': { status: 401, body: { message: 'This computer is signed out.' } },
+      'GET https://dancedance.studio/api/sync/songs/song_9/ssc': { status: 404, body: { message: 'This song is not in your library. Sync again to get your current list of songs.' } },
     });
     const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'old-token' });
-    await expect(client.fetchVault()).rejects.toThrow(SignedOutError);
-    await expect(client.fetchSongFiles({ vaultSongId: 'song_9', chartVersion: 'x' })).rejects.toThrow(new DancedanceApiError({ status: 404, message: 'This song is not in your vault. Sync again to get your current list of songs.' }));
+    await expect(client.fetchLibrary()).rejects.toThrow(SignedOutError);
+    await expect(client.fetchSongFiles({ librarySongId: 'song_9', chartVersion: 'x' })).rejects.toThrow(new DancedanceApiError({ status: 404, message: 'This song is not in your library. Sync again to get your current list of songs.' }));
   });
 
-  it('adds a song dancedance.studio already has to the vault, passing on the site’s sentence when it can’t', async () => {
+  it('adds a song dancedance.studio already has to the library, passing on the site’s sentence when it can’t', async () => {
     const api = new RecordedApi({
-      'POST https://dancedance.studio/api/sync/vault/song_7': { status: 200, body: { isAdded: true } },
-      'POST https://dancedance.studio/api/sync/vault/song_9': { status: 404, body: { error: 'This song isn’t in dancedance.studio.' } },
+      'POST https://dancedance.studio/api/sync/library/song_7': { status: 200, body: { isAdded: true } },
+      'POST https://dancedance.studio/api/sync/library/song_9': { status: 404, body: { error: 'This song isn’t in dancedance.studio.' } },
     });
     const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
-    await client.addToVault('song_7');
+    await client.addToLibrary('song_7');
     expect(api.requests[0]).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer device-token' }, jsonBody: undefined });
-    await expect(client.addToVault('song_9')).rejects.toThrow(new DancedanceApiError({ status: 404, message: 'This song isn’t in dancedance.studio.' }));
+    await expect(client.addToLibrary('song_9')).rejects.toThrow(new DancedanceApiError({ status: 404, message: 'This song isn’t in dancedance.studio.' }));
   });
 
   it('reads the player’s token balance, and asks to sign in again on 401', async () => {
@@ -172,7 +172,7 @@ describe('reportComputerSongs', () => {
 
 describe('buildComputerSongReports', () => {
   it('lists the generated songs newest first, with the facts the site shows (never where the music came from), and at most 500', () => {
-    const older = { songKey: 'song:a', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null }, generatorId: 'tap', generatorVersion: '1.0.0', generatorName: 'Tap Forge', difficulties: ['Easy' as const], installId: 'i1', folderPath: buildSongsPath('My generated songs', 'Night Drive'), inPlaceOfVaultSongId: null, generatedAt: '2026-10-21T10:00:00.000Z' };
+    const older = { songKey: 'song:a', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null }, generatorId: 'tap', generatorVersion: '1.0.0', generatorName: 'Tap Forge', difficulties: ['Easy' as const], installId: 'i1', folderPath: buildSongsPath('My generated songs', 'Night Drive'), inPlaceOfLibrarySongId: null, generatedAt: '2026-10-21T10:00:00.000Z' };
     const newer = { ...older, songKey: 'song:b', song: { ...older.song, title: 'Low Tide' }, source: { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' }, generatedAt: '2026-10-24T10:00:00.000Z' };
     expect(buildComputerSongReports([older, newer])).toEqual([
       { localId: 'song:b', title: 'Low Tide', artistName: 'Lumen Park', generatorName: 'Tap Forge', difficulties: ['Easy'], madeAt: '2026-10-24T10:00:00.000Z' },
@@ -185,13 +185,13 @@ describe('buildComputerSongReports', () => {
 
 describe('buildAddonSongFacts', () => {
   it('passes only the facts addons may see, with the video link built from the id', () => {
-    expect(buildAddonSongFacts(VAULT_SONG)).toEqual({ title: '桜ドライブ', artist: 'Rei Hoshino', album: null, genre: 'J-Pop', lengthSeconds: 212, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' });
+    expect(buildAddonSongFacts(LIBRARY_SONG)).toEqual({ title: '桜ドライブ', artist: 'Rei Hoshino', album: null, genre: 'J-Pop', lengthSeconds: 212, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' });
   });
 });
 
 describe('reading party lists', () => {
-  it('reads the lists the player syncs with their ready songs, and fetches those songs like vault songs', async () => {
-    const partyLists = { partyLists: [{ id: 'party_1', slug: 'maya-bday-7q2xk', name: 'Maya’s birthday', gameFolderName: 'Party - Maya’s birthday', endsAt: '2026-11-02T06:00:00.000Z', songs: [{ ...VAULT_SONG, imageKinds: ['jacket'] }] }] };
+  it('reads the lists the player syncs with their ready songs, and fetches those songs like library songs', async () => {
+    const partyLists = { partyLists: [{ id: 'party_1', slug: 'maya-bday-7q2xk', name: 'Maya’s birthday', gameFolderName: 'Party - Maya’s birthday', endsAt: '2026-11-02T06:00:00.000Z', songs: [{ ...LIBRARY_SONG, imageKinds: ['jacket'] }] }] };
     const api = new RecordedApi({
       'GET https://dancedance.studio/api/sync/party-lists': { status: 200, body: JSON.stringify(partyLists) },
       'GET https://dancedance.studio/api/sync/songs/song_7/ssc': { status: 200, body: '#TITLE:Sakura Drive;' },
@@ -200,9 +200,9 @@ describe('reading party lists', () => {
     const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
     const [partyList] = (await client.fetchPartyLists()) ?? [];
     expect(partyList).toMatchObject({ partyListId: 'party_1', slug: 'maya-bday-7q2xk', name: 'Maya’s birthday', gameFolderName: 'Party - Maya’s birthday', endsAt: '2026-11-02T06:00:00.000Z' });
-    expect(partyList?.songs.map((song) => [song.vaultSongId, song.titleTransliteration])).toEqual([['song_7', 'Sakura Drive']]);
+    expect(partyList?.songs.map((song) => [song.librarySongId, song.titleTransliteration])).toEqual([['song_7', 'Sakura Drive']]);
     expect(api.requests[0]?.headers).toEqual({ Authorization: 'Bearer device-token' });
-    const files = await client.fetchSongFiles({ vaultSongId: 'song_7', chartVersion: VAULT_SONG.chartVersion });
+    const files = await client.fetchSongFiles({ librarySongId: 'song_7', chartVersion: LIBRARY_SONG.chartVersion });
     expect(files.images.map((image) => image.fileName)).toEqual(['jacket.png']);
   });
 

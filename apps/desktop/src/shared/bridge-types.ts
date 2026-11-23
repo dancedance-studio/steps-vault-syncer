@@ -32,7 +32,7 @@ import type {
   DancedanceGeneratorView,
   SyncRunView,
   TrayStatus,
-  VaultChoiceAnswer,
+  LibraryChoiceAnswer,
 } from '@dancedance/sync-ui';
 
 export type DesktopSignIn =
@@ -100,7 +100,7 @@ export interface DesktopSyncBridge {
   syncNow(): Promise<void>;
   dismissFinishedSync(): Promise<void>;
   setBackgroundSync(isOn: boolean): Promise<void>;
-  runSongAction(request: { vaultSongId: string; action: SongAction }): Promise<void>;
+  runSongAction(request: { librarySongId: string; action: SongAction }): Promise<void>;
   /** A start command is confirmed by the player in the app's own dialog before Sync ever runs it. */
   lookUpAddon(request: ServiceLookupRequest): Promise<AddonLookupResult>;
   installAddon(preview: AddonInstallPreview): Promise<void>;
@@ -119,7 +119,7 @@ export interface DesktopSyncBridge {
   makeSong(request: MakeSongRequest): Promise<MakeSongResult>;
   dismissPreselectedSong(preselectionKey: string): Promise<void>;
   cancelGeneratorJob(jobKey: string): Promise<void>;
-  answerVaultChoice(answer: VaultChoiceAnswer): Promise<void>;
+  answerLibraryChoice(answer: LibraryChoiceAnswer): Promise<void>;
   dismissGeneratorJob(jobKey: string): Promise<void>;
   fetchGeneratedSongReport(songKey: string): Promise<string | null>;
   /** Shows a new pairing code; the website trades it for its own token straight with Sync, never through a server. */
@@ -186,7 +186,7 @@ export const BRIDGE_METHOD_NAMES = [
   'makeSong',
   'dismissPreselectedSong',
   'cancelGeneratorJob',
-  'answerVaultChoice',
+  'answerLibraryChoice',
   'dismissGeneratorJob',
   'fetchGeneratedSongReport',
   'startBrowserPairing',

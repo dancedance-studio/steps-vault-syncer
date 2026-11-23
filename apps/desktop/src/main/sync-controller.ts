@@ -6,7 +6,7 @@ import {
   buildEmptyInstalledSongsRecord,
   buildInstalledAddon,
   fetchAddonManifest,
-  findSameVaultSong,
+  findSameLibrarySong,
   getAddonBaseUrl,
   getGeneratedSongs,
   getPlayerGroupNames,
@@ -35,10 +35,10 @@ import {
   type SavedGeneratorJob,
   type SyncOutcome,
   type SyncPorts,
-  type SyncVault,
+  type SyncLibrary,
   type VerifyLinkJob,
-  type VaultSongChoice,
-  type VaultSongIdentity,
+  type LibrarySongChoice,
+  type LibrarySongIdentity,
 } from '@dancedance/sync-core';
 import {
   buildActivityEntries,
@@ -67,7 +67,7 @@ import {
   type SongAction,
   type SongSourceSearchRequest,
   type SongSourceSearchResult,
-  type VaultChoiceAnswer,
+  type LibraryChoiceAnswer,
 } from '@dancedance/sync-ui';
 import { APP_DISPLAY_NAME } from '../shared/app-name';
 import type { DesktopSignIn, DesktopSyncBridge, DesktopSyncState } from '../shared/bridge-types';
@@ -318,14 +318,14 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     await this.saveSettings({ ...this.settings, isBackgroundSyncOn: isOn });
   }
 
-  async runSongAction({ vaultSongId, action }: { vaultSongId: string; action: SongAction }): Promise<void> {
+  async runSongAction({ librarySongId, action }: { librarySongId: string; action: SongAction }): Promise<void> {
     if (action === 'choose-audio' || action === 'use-different-file') {
       const filePath = await this.options.services.chooseAudioFile();
       if (!filePath) return;
       this.musicSources.register(filePath);
-      await this.saveSettings({ ...this.settings, pickedFilePathsBySongId: { ...this.settings.pickedFilePathsBySongId, [vaultSongId]: filePath } });
+      await this.saveSettings({ ...this.settings, pickedFilePathsBySongId: { ...this.settings.pickedFilePathsBySongId, [librarySongId]: filePath } });
     } else {
-      await this.saveSettings(withSongChoice({ settings: this.settings, vaultSongId, action }));
+      await this.saveSettings(withSongChoice({ settings: this.settings, librarySongId, action }));
     }
     await this.syncNow();
   }
@@ -440,8 +440,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     return this.jobRunner.cancelJob(jobKey);
   }
 
-  answerVaultChoice(answer: VaultChoiceAnswer): Promise<void> {
-    return this.jobRunner.answerVaultChoice(answer);
+  answerLibraryChoice(answer: LibraryChoiceAnswer): Promise<void> {
+    return this.jobRunner.answerLibraryChoice(answer);
   }
 
   dismissGeneratorJob(jobKey: string): Promise<void> {
@@ -507,8 +507,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       registerPlayerFile: (location) => this.musicSources.register(location),
       writeSong: (options) => this.takeRecordTurn(() => this.writeGeneratedSongIntoGame(options)),
       saveReport: (report) => this.saveReport(report),
-      addSongToVault: (vaultSongId) => this.buildClient().addToVault(vaultSongId),
-      addVaultSongToGame: (options) => this.addVaultSongToGame(options),
+      addSongToLibrary: (librarySongId) => this.buildClient().addToLibrary(librarySongId),
+      addLibrarySongToGame: (options) => this.addLibrarySongToGame(options),
       logActivity: (event) => this.saveSettings(withActivity({ settings: this.settings, events: [event] })),
       waitMilliseconds: delay,
       getNow: () => new Date().toISOString(),
@@ -531,15 +531,15 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       waitMilliseconds: delay,
       log: (line) => { this.options.logSupportLine(line); },
       onSignedOut: () => { void this.handleSignedOutFromLinkJobs(); },
-      installSong: ({ vaultSongId }) => this.installSongForSite(vaultSongId),
+      installSong: ({ librarySongId }) => this.installSongForSite(librarySongId),
       checkVideo: ({ job, wait }) => this.checkVideoForSite({ job, wait }),
     });
   }
 
   /** "Into my game" from the website: the song is already in the library list, so this is a sync now, then a check. */
-  private installSongForSite(vaultSongId: string): Promise<SiteSongInstallResult> {
+  private installSongForSite(librarySongId: string): Promise<SiteSongInstallResult> {
     return installSongForSite({
-      vaultSongId,
+      librarySongId,
       ports: {
         hasGame: () => this.settings.game !== null,
         isGameRunning: () => this.options.services.isGameRunning(),
@@ -567,7 +567,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
         getAddons: () => this.settings.addons,
         addonHttpClient: this.serviceClient,
         downloadAddonFile: (download) => this.downloadAddonFile(download),
-        fetchFingerprint: (vaultSongId) => this.buildClient().fetchFingerprint(vaultSongId),
+        fetchFingerprint: (librarySongId) => this.buildClient().fetchFingerprint(librarySongId),
         compareVideoAudio: async ({ sourceId, fingerprint }) => {
           const source = this.musicSources.getSource(sourceId);
           if (!source) throw new Error('The music from that video is gone. Try again.');
@@ -592,22 +592,22 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     return turn;
   }
 
-  private async writeGeneratedSongIntoGame({ request, vaultSongChoice }: { request: GeneratedSongRequest; vaultSongChoice: VaultSongChoice | null }): Promise<GeneratedSongWriteResult> {
+  private async writeGeneratedSongIntoGame({ request, librarySongChoice }: { request: GeneratedSongRequest; librarySongChoice: LibrarySongChoice | null }): Promise<GeneratedSongWriteResult> {
     const dependencies = { songsFolder: this.buildSongsFolder(), readDownloadedPicture: (sourceId: string) => this.jobFiles.readDownloadedPicture(sourceId), pictureMaker: this.options.audioBridge, createId: randomUUID, getNow: () => new Date().toISOString() };
-    const result = await writeGeneratedSong({ dependencies, record: this.record, request, vaultSongs: await this.fetchVaultSongIdentities(), vaultSongChoice });
-    if (result.kind === 'needs-vault-choice') return result;
+    const result = await writeGeneratedSong({ dependencies, record: this.record, request, librarySongs: await this.fetchLibrarySongIdentities(), librarySongChoice });
+    if (result.kind === 'needs-library-choice') return result;
     this.record = result.record;
     await this.recordStore.save(result.record);
     if (result.kind === 'written') void this.reportComputerSongs();
-    const replacedVaultSongId = result.kind === 'written' ? result.generatedSong.inPlaceOfVaultSongId : null;
-    // The vault song the player chose to replace leaves the game on the next sync, like a song removed from the vault.
-    if (replacedVaultSongId !== null) await this.saveSettings(withSongChoice({ settings: this.settings, vaultSongId: replacedVaultSongId, action: 'remove-from-game' }));
+    const replacedLibrarySongId = result.kind === 'written' ? result.generatedSong.inPlaceOfLibrarySongId : null;
+    // The library song the player chose to replace leaves the game on the next sync, like a song removed from the library.
+    if (replacedLibrarySongId !== null) await this.saveSettings(withSongChoice({ settings: this.settings, librarySongId: replacedLibrarySongId, action: 'remove-from-game' }));
     return result;
   }
 
-  private async fetchVaultSongIdentities(): Promise<VaultSongIdentity[]> {
-    const vaultSongs = this.lastOutcome?.vaultSongs ?? (await this.buildVault().fetchVault().catch(() => []));
-    return vaultSongs.map(({ vaultSongId, title, artist, youtubeId }) => ({ vaultSongId, title, artist, youtubeId }));
+  private async fetchLibrarySongIdentities(): Promise<LibrarySongIdentity[]> {
+    const librarySongs = this.lastOutcome?.librarySongs ?? (await this.buildLibrary().fetchLibrary().catch(() => []));
+    return librarySongs.map(({ librarySongId, title, artist, youtubeId }) => ({ librarySongId, title, artist, youtubeId }));
   }
 
   private async saveReport({ songKey, reportText }: { songKey: string; reportText: string }): Promise<void> {
@@ -624,30 +624,30 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   }
 
   /**
-   * dancedance.studio's generator put the song in the vault, so a sync installs it like any vault song, with the music the
+   * dancedance.studio's generator put the song in the library, so a sync installs it like any library song, with the music the
    * player gave when the song still needs audio. The song is the one dancedance.studio named; an older dancedance.studio that names
    * none is matched by the song's facts.
    */
-  private async addVaultSongToGame({ job, vaultSongId }: { job: SavedGeneratorJob; vaultSongId: string | null }): Promise<void> {
+  private async addLibrarySongToGame({ job, librarySongId }: { job: SavedGeneratorJob; librarySongId: string | null }): Promise<void> {
     void this.refreshTokenBalance();
     while (this.syncRun) await delay(1000);
     await this.syncNow();
-    const vaultSongs = this.lastOutcome?.vaultSongs ?? [];
-    const vaultSong = vaultSongs.find((song) => song.vaultSongId === vaultSongId) ?? findSameVaultSong({ song: job.song, vaultSongs });
-    const songPlan = this.lastOutcome?.finalPlan.songPlans.find((plan) => plan.vaultSongId === vaultSong?.vaultSongId);
-    if (!vaultSong || songPlan?.status !== 'needs-audio') return;
+    const librarySongs = this.lastOutcome?.librarySongs ?? [];
+    const librarySong = librarySongs.find((song) => song.librarySongId === librarySongId) ?? findSameLibrarySong({ song: job.song, librarySongs });
+    const songPlan = this.lastOutcome?.finalPlan.songPlans.find((plan) => plan.librarySongId === librarySong?.librarySongId);
+    if (!librarySong || songPlan?.status !== 'needs-audio') return;
     this.musicSources.register(job.playerMusicLocation);
-    await this.saveSettings({ ...this.settings, pickedFilePathsBySongId: { ...this.settings.pickedFilePathsBySongId, [vaultSong.vaultSongId]: job.playerMusicLocation } });
+    await this.saveSettings({ ...this.settings, pickedFilePathsBySongId: { ...this.settings.pickedFilePathsBySongId, [librarySong.librarySongId]: job.playerMusicLocation } });
     await this.syncNow();
     if (!job.playerMusicLocation.startsWith(this.jobFiles.getJobFolder(job.jobKey))) return;
     // A song source's download is removed with the job; the song keeps its own copy in the game.
-    const pickedFilePathsBySongId = Object.fromEntries(Object.entries(this.settings.pickedFilePathsBySongId).filter(([vaultSongId]) => vaultSongId !== vaultSong.vaultSongId));
+    const pickedFilePathsBySongId = Object.fromEntries(Object.entries(this.settings.pickedFilePathsBySongId).filter(([librarySongId]) => librarySongId !== librarySong.librarySongId));
     await this.saveSettings({ ...this.settings, pickedFilePathsBySongId });
   }
 
   private async runOneSync(): Promise<void> {
     const outcome = await runSync({ ports: this.buildPorts(), settings: this.buildSyncSettings(), onPhase: (phase) => {
-      this.syncRun = phase.kind === 'reading-vault'
+      this.syncRun = phase.kind === 'reading-library'
         ? { currentSongNumber: 0, totalSongCount: 0, currentStepText: 'Reading your library…' }
         : phase.kind === 'finding-audio'
           ? { currentSongNumber: phase.doneSongCount + 1, totalSongCount: phase.totalSongCount, currentStepText: 'Finding audio and checking it’s the same edit' }
@@ -737,7 +737,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private buildPorts(): SyncPorts {
     return {
       songsFolder: this.buildSongsFolder(),
-      vault: this.buildVault(),
+      library: this.buildLibrary(),
       recordStore: this.recordStore,
       httpClient: this.serviceClient,
       checkAudioSource: async ({ sourceId, fingerprint }) => {
@@ -751,21 +751,21 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     };
   }
 
-  /** The vault without the songs the player replaced with one they made: those stay out of the game. */
-  private buildVault(): SyncVault {
+  /** The library without the songs the player replaced with one they made: those stay out of the game. */
+  private buildLibrary(): SyncLibrary {
     const client = this.buildClient();
-    const replacedVaultSongIds = new Set(getGeneratedSongs(this.record).flatMap((generatedSong) => generatedSong.inPlaceOfVaultSongId ?? []));
+    const replacedLibrarySongIds = new Set(getGeneratedSongs(this.record).flatMap((generatedSong) => generatedSong.inPlaceOfLibrarySongId ?? []));
     return {
-      fetchVault: async () => (await client.fetchVault()).filter((song) => !replacedVaultSongIds.has(song.vaultSongId)),
+      fetchLibrary: async () => (await client.fetchLibrary()).filter((song) => !replacedLibrarySongIds.has(song.librarySongId)),
       // Party copies stay even for a song the player replaced with their own: the list is shared with other players.
       fetchPartyLists: () => client.fetchPartyLists(),
-      fetchFingerprint: (vaultSongId) => client.fetchFingerprint(vaultSongId),
+      fetchFingerprint: (librarySongId) => client.fetchFingerprint(librarySongId),
       fetchSongFiles: (request) => client.fetchSongFiles(request),
     };
   }
 
   private buildSyncSettings() {
-    const pickedSourceIdsBySongId = new Map(Object.entries(this.settings.pickedFilePathsBySongId).map(([vaultSongId, filePath]) => [vaultSongId, this.musicSources.register(filePath)]));
+    const pickedSourceIdsBySongId = new Map(Object.entries(this.settings.pickedFilePathsBySongId).map(([librarySongId, filePath]) => [librarySongId, this.musicSources.register(filePath)]));
     return {
       layout: this.settings.layout,
       shouldUpdateAutomatically: this.settings.shouldUpdateAutomatically,
@@ -813,7 +813,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private buildState(): DesktopSyncState {
     const outcome = this.lastOutcome;
     const songViewInput = {
-      vaultSongs: outcome?.vaultSongs ?? [],
+      librarySongs: outcome?.librarySongs ?? [],
       songPlans: outcome?.finalPlan.songPlans ?? [],
       audioResultsBySongId: outcome?.audioResultsBySongId ?? new Map(),
       record: this.record,
@@ -821,7 +821,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       addonNamesBySourceId: this.addonNamesBySourceId,
     };
     const songs = buildSongRows(songViewInput);
-    const layoutViews = buildLayoutViews({ vaultSongs: outcome?.vaultSongs ?? [], record: this.record, playerGroupNames: this.playerGroupNames });
+    const layoutViews = buildLayoutViews({ librarySongs: outcome?.librarySongs ?? [], record: this.record, playerGroupNames: this.playerGroupNames });
     const partyFolderInput = { partyFolderPlans: outcome?.finalPlan.partyFolderPlans, partyLists: outcome?.partyLists ?? null, record: this.record, now: new Date() };
     return {
       appVersion: this.options.appVersion,
@@ -832,7 +832,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       searchedPlacesText: 'checked every drive’s Games and Program Files folders',
       musicFolders: this.settings.musicFolders.map((folderPath) => ({ folderPath, scanState: this.scannedFileCount === null ? 'waiting' : 'scanned', summaryText: `${(this.musicIndex?.fileCount ?? 0).toLocaleString('en-US')} music files` })),
       scannedFileCount: this.scannedFileCount,
-      pickedFiles: Object.entries(this.settings.pickedFilePathsBySongId).map(([vaultSongId, filePath]) => ({ vaultSongId, title: songs.find((song) => song.vaultSongId === vaultSongId)?.title ?? 'A song', fileName: path.basename(filePath), status: songs.find((song) => song.vaultSongId === vaultSongId)?.status ?? 'needs-audio' })),
+      pickedFiles: Object.entries(this.settings.pickedFilePathsBySongId).map(([librarySongId, filePath]) => ({ librarySongId, title: songs.find((song) => song.librarySongId === librarySongId)?.title ?? 'A song', fileName: path.basename(filePath), status: songs.find((song) => song.librarySongId === librarySongId)?.status ?? 'needs-audio' })),
       addons: this.settings.addons.map((addon) => buildAddonView(addon)),
       dancedanceGenerator: this.generatorSettings.buildDancedanceGeneratorView(),
       generators: this.settings.generators.map((generator) => buildGeneratorView({ generator, startCommand: this.settings.startCommandsByBaseUrl[generator.baseUrl] ?? null })),
@@ -854,7 +854,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       syncRun: this.syncRun,
       finishedSync: this.finishedSync,
       lastSyncAt: this.settings.lastSyncAt,
-      activity: buildActivityEntries({ events: this.settings.activity, vaultSongs: outcome?.vaultSongs ?? [] }),
+      activity: buildActivityEntries({ events: this.settings.activity, librarySongs: outcome?.librarySongs ?? [] }),
       trayStatus: getTrayStatus({ isSyncing: this.syncRun !== null, isPaused: !this.settings.isBackgroundSyncOn, songPlans: outcome?.finalPlan.songPlans ?? [] }),
       updateVersion: this.readyUpdateVersion !== null && this.readyUpdateVersion !== this.dismissedUpdateVersion ? this.readyUpdateVersion : null,
       problem: this.problem,
@@ -872,9 +872,9 @@ function describeActivityKind(event: ActivityLogEvent): string {
 }
 
 /** A choice on a song's row, remembered until a sync has acted on it. */
-function withSongChoice({ settings, vaultSongId, action }: { settings: DesktopSettings; vaultSongId: string; action: SongAction }): DesktopSettings {
-  const add = (ids: string[]) => [...ids.filter((id) => id !== vaultSongId), vaultSongId];
-  const drop = (ids: string[]) => ids.filter((id) => id !== vaultSongId);
+function withSongChoice({ settings, librarySongId, action }: { settings: DesktopSettings; librarySongId: string; action: SongAction }): DesktopSettings {
+  const add = (ids: string[]) => [...ids.filter((id) => id !== librarySongId), librarySongId];
+  const drop = (ids: string[]) => ids.filter((id) => id !== librarySongId);
   if (action === 'update') return { ...settings, updateSongIds: add(settings.updateSongIds) };
   if (action === 'replace-with-dancedance') return { ...settings, replaceEditedSongIds: add(settings.replaceEditedSongIds) };
   if (action === 'keep-mine') return { ...settings, replaceEditedSongIds: drop(settings.replaceEditedSongIds) };
@@ -885,8 +885,8 @@ function withSongChoice({ settings, vaultSongId, action }: { settings: DesktopSe
 
 /** Once a song is synced again (or gone), its one-off choices are done, so they never repeat by surprise. */
 function withSettledChoices({ settings, outcome }: { settings: DesktopSettings; outcome: SyncOutcome }): DesktopSettings {
-  const settledIds = new Set(outcome.finalPlan.songPlans.filter((songPlan) => songPlan.status === 'synced').map((songPlan) => songPlan.vaultSongId));
-  const remainingIds = new Set(outcome.finalPlan.songPlans.map((songPlan) => songPlan.vaultSongId));
+  const settledIds = new Set(outcome.finalPlan.songPlans.filter((songPlan) => songPlan.status === 'synced').map((songPlan) => songPlan.librarySongId));
+  const remainingIds = new Set(outcome.finalPlan.songPlans.map((songPlan) => songPlan.librarySongId));
   const isOpen = (id: string) => remainingIds.has(id) && !settledIds.has(id);
   return { ...settings, updateSongIds: settings.updateSongIds.filter(isOpen), replaceEditedSongIds: settings.replaceEditedSongIds.filter(isOpen), removeFromGameSongIds: settings.removeFromGameSongIds.filter(isOpen) };
 }

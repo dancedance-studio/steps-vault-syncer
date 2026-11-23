@@ -32,10 +32,10 @@ export interface SyncHomeScreenProps {
   onDismissFinishedSync: () => void;
   needsAudioBanner?: NeedsAudioBannerProps | null;
   songs: readonly SongRowView[];
-  /** Shown instead of the list when there are no songs, for example EmptyVaultState. */
+  /** Shown instead of the list when there are no songs, for example EmptyLibraryState. */
   emptyState?: ReactNode;
   selectedSongDetails: SongDetailsView | null;
-  onOpenSongDetails: (vaultSongId: string) => void;
+  onOpenSongDetails: (librarySongId: string) => void;
   onCloseSongDetails: () => void;
   onSongAction: (request: SongActionRequest) => void;
   /** True while Sync reads the songs for the first time: the screen shows only the loader. */
@@ -50,9 +50,9 @@ export interface SyncHomeScreenProps {
 export function SyncHomeScreen(props: SyncHomeScreenProps): ReactElement {
   const detailsOpenerRef = useRef<HTMLElement | null>(null);
   const isSyncing = props.syncRun !== null;
-  const handleOpenDetails = (vaultSongId: string): void => {
+  const handleOpenDetails = (librarySongId: string): void => {
     if (document.activeElement instanceof HTMLElement) detailsOpenerRef.current = document.activeElement;
-    props.onOpenSongDetails(vaultSongId);
+    props.onOpenSongDetails(librarySongId);
   };
   const handleCloseDetails = (): void => {
     props.onCloseSongDetails();
@@ -72,7 +72,7 @@ export function SyncHomeScreen(props: SyncHomeScreenProps): ReactElement {
         <SongList
           rows={props.songs}
           isSyncing={isSyncing}
-          selectedSongId={props.selectedSongDetails?.song.vaultSongId ?? null}
+          selectedSongId={props.selectedSongDetails?.song.librarySongId ?? null}
           onOpenSongDetails={handleOpenDetails}
           onSongAction={props.onSongAction}
           drawer={props.selectedSongDetails && (

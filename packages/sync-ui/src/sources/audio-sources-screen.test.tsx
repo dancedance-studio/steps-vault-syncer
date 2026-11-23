@@ -7,7 +7,7 @@ import { AudioSourcesScreen, type AudioSourcesScreenProps } from './audio-source
 
 function renderAudioSources(overrides: Partial<AudioSourcesScreenProps> = {}): AudioSourcesScreenProps {
   const props: AudioSourcesScreenProps = {
-    musicFolders: FAKE_MUSIC_FOLDERS, scan: { scannedFileCount: 241, percent: 62 }, matchedSongCount: 8, vaultSongCount: 12, pickedFiles: FAKE_PICKED_FILES, addons: FAKE_ADDONS,
+    musicFolders: FAKE_MUSIC_FOLDERS, scan: { scannedFileCount: 241, percent: 62 }, matchedSongCount: 8, librarySongCount: 12, pickedFiles: FAKE_PICKED_FILES, addons: FAKE_ADDONS,
     onAddMusicFolder: vi.fn(), onRemoveMusicFolder: vi.fn(), onScanAgain: vi.fn(), onGoToSongs: vi.fn(), onToggleAddon: vi.fn(), onRemoveAddon: vi.fn(), onSetAddonOption: vi.fn(),
     onLookUpAddon: vi.fn(() => Promise.resolve<AddonLookupResult>({ kind: 'found', addon: FAKE_ADDON_PREVIEW })), onInstallAddon: vi.fn(),
     ...overrides,
