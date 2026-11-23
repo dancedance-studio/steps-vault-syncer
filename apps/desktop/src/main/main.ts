@@ -26,9 +26,9 @@ let syncController: SyncController | null = null;
 /** A link that arrived before the controller was ready (a cold start, or macOS's open-url before ready). */
 let waitingMakeSongLink: MakeSongLink | null = null;
 
-/** STEPSVAULT_SITE_URL points the app at a test site (for example the site running on this computer). */
+/** DANCEDANCE_SITE_URL points the app at a test site (for example the site running on this computer). */
 function getSiteUrl(): string {
-  return process.env.STEPSVAULT_SITE_URL ?? DEFAULT_SITE_URL;
+  return process.env.DANCEDANCE_SITE_URL ?? DEFAULT_SITE_URL;
 }
 
 function showMainWindow(): void {
@@ -56,7 +56,7 @@ function handleSyncLink(link: string | null): void {
 
 /**
  * The installer registers the link scheme for the installed app; registering again at every start keeps it pointing at
- * this copy. A development run registers only when asked (STEPSVAULT_REGISTER_LINKS=1), so it never takes the links
+ * this copy. A development run registers only when asked (DANCEDANCE_REGISTER_LINKS=1), so it never takes the links
  * away from the installed app by surprise.
  */
 function registerSyncLinkScheme(): void {
@@ -65,7 +65,7 @@ function registerSyncLinkScheme(): void {
     return;
   }
   const appFolder = process.argv[1];
-  if (process.env.STEPSVAULT_REGISTER_LINKS && appFolder) app.setAsDefaultProtocolClient(SYNC_LINK_SCHEME, process.execPath, [path.resolve(appFolder)]);
+  if (process.env.DANCEDANCE_REGISTER_LINKS && appFolder) app.setAsDefaultProtocolClient(SYNC_LINK_SCHEME, process.execPath, [path.resolve(appFolder)]);
 }
 
 function getAudioWindow(): BrowserWindow {
@@ -93,7 +93,7 @@ function createController(tray: Pick<SyncTray, 'show'>): SyncController {
     systemName: getSystemName(),
     tokenStore: new DeviceTokenStore({ dataFolder: app.getPath('userData') }),
     pairedBrowserStore: new SafePairedBrowserStore({ dataFolder: app.getPath('userData') }),
-    bridgeOrigins: getLocalBridgeOrigins({ isPackaged: app.isPackaged, siteUrl: getSiteUrl(), developmentOriginsText: process.env.STEPSVAULT_BRIDGE_DEV_ORIGINS }),
+    bridgeOrigins: getLocalBridgeOrigins({ isPackaged: app.isPackaged, siteUrl: getSiteUrl(), developmentOriginsText: process.env.DANCEDANCE_BRIDGE_DEV_ORIGINS }),
     audioBridge: new AudioBridge({ ipcMain, getAudioWindow }),
     services: {
       chooseFolder: async (title) => (await dialog.showOpenDialog({ title, properties: ['openDirectory'] })).filePaths[0] ?? null,
@@ -124,16 +124,16 @@ It runs in ${folder}, and Sync stops it after 10 minutes without use. Only allow
     },
     onStateChange: (state) => {
       tray.show({ status: state.trayStatus, lastSyncAt: state.lastSyncAt });
-      if (process.env.STEPSVAULT_LOG_STATE) logStateSummary(state);
+      if (process.env.DANCEDANCE_LOG_STATE) logStateSummary(state);
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(STATE_CHANNEL, state);
     },
     logSupportLine: (line) => {
-      if (process.env.STEPSVAULT_LOG_STATE) console.log(line);
+      if (process.env.DANCEDANCE_LOG_STATE) console.log(line);
     },
   });
 }
 
-/** STEPSVAULT_LOG_STATE=1 prints one line per change, for support and end-to-end tests. Never includes the token. */
+/** DANCEDANCE_LOG_STATE=1 prints one line per change, for support and end-to-end tests. Never includes the token. */
 function logStateSummary(state: DesktopSyncState): void {
   const signIn = state.signIn.kind === 'waiting-for-code' ? `code ${state.signIn.code}` : state.signIn.kind;
   const songs = state.songs.map((song) => `${song.title}=${song.status}`).join(', ');
@@ -201,8 +201,8 @@ async function start(): Promise<void> {
   }, BACKGROUND_SYNC_MINUTES * 60 * 1000);
 }
 
-// STEPSVAULT_USER_DATA_DIR keeps a test run's settings, record and token apart from the player's own.
-if (process.env.STEPSVAULT_USER_DATA_DIR) app.setPath('userData', process.env.STEPSVAULT_USER_DATA_DIR);
+// DANCEDANCE_USER_DATA_DIR keeps a test run's settings, record and token apart from the player's own.
+if (process.env.DANCEDANCE_USER_DATA_DIR) app.setPath('userData', process.env.DANCEDANCE_USER_DATA_DIR);
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

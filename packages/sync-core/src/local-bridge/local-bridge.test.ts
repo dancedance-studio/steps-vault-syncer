@@ -4,7 +4,7 @@ import type { GeneratedSong } from '../ownership/generated-songs';
 import { buildEmptyInstalledSongsRecord, type InstalledSongsRecord } from '../ownership/installed-songs';
 import { MemorySongsFolder } from '../songs-folder/memory-songs-folder';
 import { encodeBase64Url, isSameSecret, LocalBridgePairing, MAX_PAIRING_TRIES_PER_MINUTE, MAX_WRONG_CODES_PER_PAIRING, PAIRING_CODE_LIFETIME_MILLISECONDS, type PairedBrowser } from './local-bridge-pairing';
-import { STEPSVAULT_SITE_ORIGIN } from './local-bridge-protocol';
+import { DANCEDANCE_SITE_ORIGIN } from './local-bridge-protocol';
 import { handleLocalBridgeRequest, type LocalBridgeRequest, type LocalBridgeResponse } from './local-bridge-requests';
 
 const PORT = 47821;
@@ -55,9 +55,9 @@ async function buildBridge({ record, songsFolder = new MemorySongsFolder() }: { 
     getNowMilliseconds: () => clock.nowMilliseconds,
   });
   await pairing.initialize();
-  const dependencies = { pairing, getRecord: () => bridgeRecord, getSongsFolder: () => songsFolder, allowedOrigins: [STEPSVAULT_SITE_ORIGIN], port: PORT };
+  const dependencies = { pairing, getRecord: () => bridgeRecord, getSongsFolder: () => songsFolder, allowedOrigins: [DANCEDANCE_SITE_ORIGIN], port: PORT };
   const send = (request: Partial<LocalBridgeRequest>): Promise<LocalBridgeResponse> =>
-    handleLocalBridgeRequest({ request: { method: 'GET', target: '/v1/songs', origin: STEPSVAULT_SITE_ORIGIN, host: HOST, authorization: null, isPrivateNetworkPreflight: false, bodyText: null, ...request }, dependencies });
+    handleLocalBridgeRequest({ request: { method: 'GET', target: '/v1/songs', origin: DANCEDANCE_SITE_ORIGIN, host: HOST, authorization: null, isPrivateNetworkPreflight: false, bodyText: null, ...request }, dependencies });
   const pairBrowser = async (): Promise<string> => {
     const { code } = pairing.startPairing();
     const response = await send({ method: 'POST', target: '/v1/pairing', bodyText: JSON.stringify({ code }) });
@@ -115,7 +115,7 @@ describe('the local bridge refuses everyone but the paired StepsVault site', () 
     const { send } = await buildBridge();
     const preflight = await send({ method: 'OPTIONS', isPrivateNetworkPreflight: true });
     expect(preflight.status).toBe(204);
-    expect(preflight.headers).toMatchObject({ 'Access-Control-Allow-Origin': STEPSVAULT_SITE_ORIGIN, 'Access-Control-Allow-Private-Network': 'true', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' });
+    expect(preflight.headers).toMatchObject({ 'Access-Control-Allow-Origin': DANCEDANCE_SITE_ORIGIN, 'Access-Control-Allow-Private-Network': 'true', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' });
   });
 
   it('is read only: anything but GET is refused once paired', async () => {

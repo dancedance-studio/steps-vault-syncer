@@ -4,7 +4,7 @@ import type { DifficultyLevels, GeneratedSongView, GeneratorInstallPreview, Gene
 import { buildAddonOptionViews } from './build-addon-views';
 
 /** The id Sync gives the site's own generator; a manifest id can't contain ':', so no generator can take it. */
-export const STEPSVAULT_GENERATOR_ID = 'stepsvault:default';
+export const DANCEDANCE_GENERATOR_ID = 'stepsvault:default';
 
 const DONE_TEXTS_BY_RESULT: Readonly<Record<NonNullable<SavedGeneratorJob['result']>, string>> = {
   'written': 'Done. It’s in My generated songs.',

@@ -5,7 +5,7 @@ import {
   PermissionLostState, PhoneStatusView, SongFolderLockedState, SongsFolderMissingState, SongsFolderPreview, StatusChip, SyncHomeScreen, SyncShell, UpdateBanner, SONG_STATUSES, SONG_STATUS_DISPLAYS,
   type LinkCodeState, type SyncPlatform, type SyncScreen,
 } from '../src/index';
-import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_LINKS_TAB, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PARTY_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
+import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_DANCEDANCE_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_LINKS_TAB, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PARTY_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
 
 type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone' | 'intro-pieces';
 type SyncPhase = 'idle' | 'syncing' | 'finished' | 'finished-all';
@@ -86,7 +86,7 @@ function PreviewScreenContent({ screen, platform, syncPhase, onNavigate }: { scr
       {screen === 'folder-preview' && <SongsFolderPreview songsFolderPath={platform === 'website' ? 'Songs  (C:\\Games\\StepMania 5 LTEK Edition)' : FAKE_GAME.songsFolderPath} playerGroups={FAKE_PLAYER_GROUPS} layoutText="by genre" onChangeLayout={noop} onChooseAnotherFolder={noop} onContinue={noop} />}
       {screen === 'songs' && <SongsPreview platform={platform} syncPhase={syncPhase} onNavigate={onNavigate} />}
       {screen === 'audio-sources' && <AudioSourcesPreview onNavigate={onNavigate} />}
-      {screen === 'generators' && (platform === 'website' ? <WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR} makeSongHref="#make-a-song" desktopAppHref="#desktop-app" playPageHref="#play" /> : <GeneratorsPreview />)}
+      {screen === 'generators' && (platform === 'website' ? <WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_DANCEDANCE_GENERATOR} makeSongHref="#make-a-song" desktopAppHref="#desktop-app" playPageHref="#play" /> : <GeneratorsPreview />)}
       {screen === 'folder-layout' && <FolderLayoutPreview />}
       {screen === 'activity' && <ActivityPreview />}
       {screen === 'account' && <AccountPreview />}
@@ -152,7 +152,7 @@ function GeneratorsPreview(): ReactElement {
   const [generators, setGenerators] = useState(FAKE_GENERATORS);
   return (
     <GeneratorsScreen
-      stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR}
+      stepsVaultGenerator={FAKE_DANCEDANCE_GENERATOR}
       generators={generators}
       jobs={FAKE_GENERATOR_JOBS}
       generatedSongs={FAKE_GENERATED_SONGS}

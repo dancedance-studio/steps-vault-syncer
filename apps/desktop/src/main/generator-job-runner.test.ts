@@ -22,10 +22,10 @@ import {
 import { GeneratorJobRunner, type GeneratorJobStart, type JobGenerator } from './generator-job-runner';
 
 const COMMUNITY_ADDRESS = 'http://127.0.0.1:7700';
-const STEPSVAULT_ADDRESS = 'https://stepsvault.example.com/api/generator';
+const DANCEDANCE_ADDRESS = 'https://stepsvault.example.com/api/generator';
 const SIGN_IN = { siteUrl: 'https://stepsvault.example.com', deviceToken: 'device-token-1' };
 const MANIFEST: GeneratorManifest = { protocol: 1, kind: 'generator', id: 'stepcat.tap-forge', name: 'Tap Forge', version: '1.2.0', author: '@stepcat', description: '', difficulties: ['Easy', 'Medium'], musicTypes: ['audio/ogg'], usesVideo: false, maxMusicBytes: 1_000_000, options: [] };
-const STEPSVAULT_MANIFEST: GeneratorManifest = { ...MANIFEST, id: 'stepsvault.generator', name: 'StepsVault' };
+const DANCEDANCE_MANIFEST: GeneratorManifest = { ...MANIFEST, id: 'stepsvault.generator', name: 'StepsVault' };
 const CHART_TEXT = ['#TITLE:Night Drive;', '#OFFSET:0;', '#BPMS:0=120;', '', '#NOTEDATA:;', '#STEPSTYPE:dance-single;', '#DIFFICULTY:Easy;', '#NOTES:', '1000', ';', ''].join('\n');
 const NIGHT_DRIVE = { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null };
 
@@ -79,7 +79,7 @@ class FakeApp {
   vaultSongs: VaultSongIdentity[] = [];
   generatorsByAddress = new Map<string, JobGenerator>([
     [COMMUNITY_ADDRESS, { generator: buildInstalledGenerator({ baseUrl: COMMUNITY_ADDRESS, manifest: MANIFEST }), signIn: null, isStepsVault: false }],
-    [STEPSVAULT_ADDRESS, { generator: withMusicUploadConsent({ generator: buildInstalledGenerator({ baseUrl: STEPSVAULT_ADDRESS, manifest: STEPSVAULT_MANIFEST }), consentedAt: '2026-10-25T09:00:00.000Z' }), signIn: SIGN_IN, isStepsVault: true }],
+    [DANCEDANCE_ADDRESS, { generator: withMusicUploadConsent({ generator: buildInstalledGenerator({ baseUrl: DANCEDANCE_ADDRESS, manifest: DANCEDANCE_MANIFEST }), consentedAt: '2026-10-25T09:00:00.000Z' }), signIn: SIGN_IN, isStepsVault: true }],
   ]);
   private changeCount = 0;
 
@@ -200,17 +200,17 @@ describe('GeneratorJobRunner', () => {
 
   it('sends StepsVault’s generator the device token, and lets the vault install its song instead of writing it', async () => {
     const app = new FakeApp();
-    app.routeFinishedJob({ address: STEPSVAULT_ADDRESS });
-    app.generators.route({ method: 'GET', url: `${STEPSVAULT_ADDRESS}/jobs/job-a1`, answer: { status: 200, body: { state: 'done', vaultSongId: 'song_9' } } });
+    app.routeFinishedJob({ address: DANCEDANCE_ADDRESS });
+    app.generators.route({ method: 'GET', url: `${DANCEDANCE_ADDRESS}/jobs/job-a1`, answer: { status: 200, body: { state: 'done', vaultSongId: 'song_9' } } });
     const runner = app.buildRunner();
     await runner.initialize();
-    await runner.startJob(buildStart({ generatorBaseUrl: STEPSVAULT_ADDRESS }));
+    await runner.startJob(buildStart({ generatorBaseUrl: DANCEDANCE_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
     expect(runner.jobs[0]).toMatchObject({ isStepsVault: true, generatorName: 'dancedance.studio generator', result: 'added-to-vault' });
     expect(app.vaultSongsAddedForJobs).toEqual([['job-1', 'song_9']]);
     expect(app.songsAddedToVault).toEqual(['song_9']);
     expect(getGeneratedSongs(app.record)).toEqual([]);
-    expect(app.generators.requests.map((request) => request.url)).not.toContain(`${STEPSVAULT_ADDRESS}/files/chart.ssc`);
+    expect(app.generators.requests.map((request) => request.url)).not.toContain(`${DANCEDANCE_ADDRESS}/files/chart.ssc`);
     expect(app.generators.requests.every((request) => request.headers.Authorization === 'Bearer device-token-1')).toBe(true);
     expect(app.activity.map((event) => event.step)).toEqual(['started', 'added-to-vault']);
   });
@@ -226,18 +226,18 @@ describe('GeneratorJobRunner', () => {
 
   it('finds the vault song by its facts when StepsVault’s done answer doesn’t name it', async () => {
     const app = new FakeApp();
-    app.routeFinishedJob({ address: STEPSVAULT_ADDRESS });
+    app.routeFinishedJob({ address: DANCEDANCE_ADDRESS });
     const runner = app.buildRunner();
-    await runner.startJob(buildStart({ generatorBaseUrl: STEPSVAULT_ADDRESS }));
+    await runner.startJob(buildStart({ generatorBaseUrl: DANCEDANCE_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
     expect(app.vaultSongsAddedForJobs).toEqual([['job-1', null]]);
   });
 
   it('fails with the site’s sentence when the song StepsVault named can’t be added to the vault', async () => {
     const app = new FakeApp();
-    app.generators.route({ method: 'POST', url: `${STEPSVAULT_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the vault.', vaultSongId: 'song_unknown' } } });
+    app.generators.route({ method: 'POST', url: `${DANCEDANCE_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the vault.', vaultSongId: 'song_unknown' } } });
     const runner = app.buildRunner();
-    await runner.startJob(buildStart({ generatorBaseUrl: STEPSVAULT_ADDRESS }));
+    await runner.startJob(buildStart({ generatorBaseUrl: DANCEDANCE_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'failed');
     expect(runner.jobs[0]?.message).toBe('This song isn’t in StepsVault.');
     expect(app.vaultSongsAddedForJobs).toEqual([]);
@@ -245,9 +245,9 @@ describe('GeneratorJobRunner', () => {
 
   it('adds the vault song when StepsVault already has the song, so no token is spent', async () => {
     const app = new FakeApp();
-    app.generators.route({ method: 'POST', url: `${STEPSVAULT_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the vault.', vaultSongId: 'song_7' } } });
+    app.generators.route({ method: 'POST', url: `${DANCEDANCE_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the vault.', vaultSongId: 'song_7' } } });
     const runner = app.buildRunner();
-    await runner.startJob(buildStart({ generatorBaseUrl: STEPSVAULT_ADDRESS }));
+    await runner.startJob(buildStart({ generatorBaseUrl: DANCEDANCE_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
     expect(runner.jobs[0]).toMatchObject({ result: 'already-in-vault', message: 'This song is already in the vault.' });
     expect(app.songsAddedToVault).toEqual(['song_7']);

@@ -1,8 +1,8 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { FAKE_FOUND_MUSICS, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_LINKS_TAB, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR } from '../fake-data/fake-sync-data';
+import { FAKE_FOUND_MUSICS, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_LINKS_TAB, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_DANCEDANCE_GENERATOR } from '../fake-data/fake-sync-data';
 import type { GeneratorJobView, GeneratorLookupResult, MakeSongResult, SongSourceSearchResult } from '../sync-ui-types';
-import { STEPSVAULT_GENERATOR_ID } from '../views/build-generator-views';
+import { DANCEDANCE_GENERATOR_ID } from '../views/build-generator-views';
 import { GENERATOR_GETS, GENERATOR_NEVER_GETS } from './add-generator-dialog';
 import { GeneratorsScreen, type GeneratorsScreenProps } from './generators-screen';
 import { PlayOnWebsite } from './play-on-website';
@@ -12,7 +12,7 @@ const PICKED_FILE = { musicId: 'picked-file', title: 'my new song', artist: 'Unk
 
 function buildGeneratorsProps(overrides: Partial<GeneratorsScreenProps> = {}): GeneratorsScreenProps {
   return {
-    stepsVaultGenerator: FAKE_STEPSVAULT_GENERATOR, generators: FAKE_GENERATORS, jobs: [], generatedSongs: FAKE_GENERATED_SONGS, canUseStartCommand: true, linksTab: FAKE_LINKS_TAB, songSourceTabs: FAKE_SONG_SOURCE_TABS,
+    stepsVaultGenerator: FAKE_DANCEDANCE_GENERATOR, generators: FAKE_GENERATORS, jobs: [], generatedSongs: FAKE_GENERATED_SONGS, canUseStartCommand: true, linksTab: FAKE_LINKS_TAB, songSourceTabs: FAKE_SONG_SOURCE_TABS,
     onLookUpGenerator: vi.fn(() => Promise.resolve<GeneratorLookupResult>({ kind: 'found', generator: FAKE_GENERATOR_PREVIEW })), onAddGenerator: vi.fn(), onRemoveGenerator: vi.fn(), onSetGeneratorOption: vi.fn(),
     onChooseMusicFile: vi.fn(() => Promise.resolve(PICKED_FILE)), onSearchMusic: vi.fn(() => Promise.resolve(FAKE_MUSIC_CHOICES)),
     onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'found', musics: [{ musicId: 'found', title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Clip Songs', lengthText: '4:02', hasVideo: true }] })),
@@ -110,18 +110,18 @@ describe('GeneratorsScreen', () => {
   });
 
   it('makes a song with StepsVault’s generator by default, for a token, asking only for difficulties it makes', async () => {
-    const props = renderGenerators({ stepsVaultGenerator: { ...FAKE_STEPSVAULT_GENERATOR, musicUploadWarning: null } });
+    const props = renderGenerators({ stepsVaultGenerator: { ...FAKE_DANCEDANCE_GENERATOR, musicUploadWarning: null } });
     const setupDialog = await goToSetupStep();
     expect(within(setupDialog).getByRole('radio', { name: /dancedance.studio generator/ })).toHaveProperty('checked', true);
     expect(within(setupDialog).getAllByRole('checkbox').map((checkbox) => checkbox.parentElement?.textContent)).toEqual(['BBeginner', 'EEasy', 'MMedium', 'HHard', 'CChallenge']);
     fireEvent.click(within(setupDialog).getByRole('checkbox', { name: /Medium/ }));
     await settle(() => { fireEvent.click(within(setupDialog).getByRole('button', { name: 'Make the steps · 1 token' })); });
-    expect(props.onMakeSong).toHaveBeenCalledWith({ musicId: 'picked-file', generatorId: STEPSVAULT_GENERATOR_ID, difficulties: ['Easy', 'Hard'], hasAgreedToMusicUpload: false });
+    expect(props.onMakeSong).toHaveBeenCalledWith({ musicId: 'picked-file', generatorId: DANCEDANCE_GENERATOR_ID, difficulties: ['Easy', 'Hard'], hasAgreedToMusicUpload: false });
     expect(screen.getByRole('dialog', { name: 'Making the steps' })).toBeDefined();
   });
 
   it('shows the player’s tokens, and with none left, says so and won’t make a StepsVault song', async () => {
-    const props = renderGenerators({ stepsVaultGenerator: { ...FAKE_STEPSVAULT_GENERATOR, tokenCount: 0, musicUploadWarning: null } });
+    const props = renderGenerators({ stepsVaultGenerator: { ...FAKE_DANCEDANCE_GENERATOR, tokenCount: 0, musicUploadWarning: null } });
     const setupDialog = await goToSetupStep();
     expect(within(setupDialog).getByRole('radio', { name: /dancedance.studio generator/ }).closest('label')?.textContent).toContain('you have 0 tokens');
     expect(within(setupDialog).getByRole('alert').textContent).toContain('You’re out of tokens.');
@@ -254,7 +254,7 @@ describe('GeneratorsScreen', () => {
 
   it('says where a finished StepsVault song went', async () => {
     const doneJob: GeneratorJobView = { jobKey: 'job-1', songTitle: 'my new song', songArtist: 'Unknown artist', generatorName: 'StepsVault generator', isStepsVault: true, state: 'done', stageText: 'Done', progressPercent: null, message: null, vaultChoiceQuestion: null, doneText: 'Added to the library. It comes to your game, with your music, on your next sync.' };
-    renderGenerators({ jobs: [doneJob], stepsVaultGenerator: { ...FAKE_STEPSVAULT_GENERATOR, musicUploadWarning: null } });
+    renderGenerators({ jobs: [doneJob], stepsVaultGenerator: { ...FAKE_DANCEDANCE_GENERATOR, musicUploadWarning: null } });
     const setupDialog = await goToSetupStep();
     await settle(() => { fireEvent.click(within(setupDialog).getByRole('button', { name: 'Make the steps · 1 token' })); });
     expect(screen.getByRole('dialog', { name: 'Your song is ready' }).textContent).toContain('Added to the library.');
@@ -549,7 +549,7 @@ describe('GeneratorsScreen without generators of the player’s own', () => {
 
 describe('WebsiteGeneratorsScreen', () => {
   it('shows the site’s generator, and says the player’s own generators run in the desktop app', () => {
-    render(<WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR} makeSongHref="/make" desktopAppHref="/sync/about#get-the-app" playPageHref="/play" />);
+    render(<WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_DANCEDANCE_GENERATOR} makeSongHref="/make" desktopAppHref="/sync/about#get-the-app" playPageHref="/play" />);
     expect(screen.getByRole('link', { name: 'Make a song' }).getAttribute('href')).toBe('/make');
     expect(within(screen.getByRole('region', { name: 'dancedance.studio generator' })).getByText('1 TOKEN')).toBeDefined();
     const yourGenerators = screen.getByRole('region', { name: 'Your generators' });
@@ -559,7 +559,7 @@ describe('WebsiteGeneratorsScreen', () => {
   });
 
   it('hides what only the app can do, and offers a yellow Get the app button to the download page instead', () => {
-    render(<WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR} makeSongHref="/make" desktopAppHref="/sync/download" playPageHref="/play" />);
+    render(<WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_DANCEDANCE_GENERATOR} makeSongHref="/make" desktopAppHref="/sync/download" playPageHref="/play" />);
     expect(screen.queryByRole('button', { name: 'Add a generator' })).toBeNull();
     expect(screen.queryByRole('article')).toBeNull();
     expect(screen.queryByText('Songs being made')).toBeNull();

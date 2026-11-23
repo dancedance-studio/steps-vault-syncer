@@ -8,7 +8,7 @@ import { joinClassNames } from '../shared/class-names';
 import { MissLine } from '../shared/miss-line';
 import { ReceptorLoader } from '../shared/receptor-loader';
 import type { GeneratorJobView, GeneratorView, MakeSongRequest, MakeSongResult, MusicChoiceView, PreselectedSongView, StepsVaultGeneratorView } from '../sync-ui-types';
-import { STEPSVAULT_GENERATOR_ID } from '../views/build-generator-views';
+import { DANCEDANCE_GENERATOR_ID } from '../views/build-generator-views';
 import { MusicUploadWarning } from './add-generator-dialog';
 import { CancelJobButton, GeneratorJobProgress, type GeneratorJobActions } from './generator-jobs';
 import { MusicTabs, type MusicSources } from './music-step';
@@ -76,7 +76,7 @@ interface GeneratorChoice {
 
 function getGeneratorChoices({ stepsVaultGenerator, generators }: { stepsVaultGenerator: StepsVaultGeneratorView; generators: readonly GeneratorView[] }): GeneratorChoice[] {
   const tokenText = stepsVaultGenerator.tokenCount === null ? '' : ` · you have ${String(stepsVaultGenerator.tokenCount)} ${stepsVaultGenerator.tokenCount === 1 ? 'token' : 'tokens'}`;
-  const stepsVaultChoice: GeneratorChoice = { generatorId: STEPSVAULT_GENERATOR_ID, name: LIBRARY_GENERATOR_NAME, subtitle: `Goes to the library for everyone · 1 token${tokenText}`, tag: 'Default', difficulties: stepsVaultGenerator.difficulties ?? [], uploadAddress: null, uploadWarning: stepsVaultGenerator.musicUploadWarning };
+  const stepsVaultChoice: GeneratorChoice = { generatorId: DANCEDANCE_GENERATOR_ID, name: LIBRARY_GENERATOR_NAME, subtitle: `Goes to the library for everyone · 1 token${tokenText}`, tag: 'Default', difficulties: stepsVaultGenerator.difficulties ?? [], uploadAddress: null, uploadWarning: stepsVaultGenerator.musicUploadWarning };
   const communityChoices = generators.map((generator): GeneratorChoice => {
     const isOnInternet = generator.location.kind === 'internet';
     const whereText = generator.location.kind === 'internet' ? `On the internet: ${generator.location.address}` : 'On this computer';
@@ -93,7 +93,7 @@ interface SetupStepProps extends MakeSongDialogProps {
 
 function SetupStep(props: SetupStepProps): ReactElement {
   const choices = getGeneratorChoices(props);
-  const [generatorId, setGeneratorId] = useState(choices.find((choice) => choice.difficulties.length > 0)?.generatorId ?? STEPSVAULT_GENERATOR_ID);
+  const [generatorId, setGeneratorId] = useState(choices.find((choice) => choice.difficulties.length > 0)?.generatorId ?? DANCEDANCE_GENERATOR_ID);
   const pickedChoice = choices.find((choice) => choice.generatorId === generatorId) ?? choices[0];
   const [difficulties, setDifficulties] = useState<readonly GeneratorDifficulty[]>(DEFAULT_DIFFICULTIES);
   const [problem, setProblem] = useState<string | null>(null);
@@ -113,7 +113,7 @@ function SetupStep(props: SetupStepProps): ReactElement {
     if (result.kind === 'failed') setProblem(result.message);
     else props.onStarted(result.jobKey);
   };
-  const isStepsVault = pickedChoice?.generatorId === STEPSVAULT_GENERATOR_ID;
+  const isStepsVault = pickedChoice?.generatorId === DANCEDANCE_GENERATOR_ID;
   const isOutOfTokens = isStepsVault && props.stepsVaultGenerator.tokenCount === 0;
   return (
     <>
@@ -125,7 +125,7 @@ function SetupStep(props: SetupStepProps): ReactElement {
           <label key={choice.generatorId} className={joinClassNames('sv-sync-pick', choice.generatorId === generatorId && 'sv-sync-pick--on')}>
             <input type="radio" name="sv-sync-generator" checked={choice.generatorId === generatorId} disabled={choice.difficulties.length === 0} onChange={() => { setGeneratorId(choice.generatorId); }} />
             <span className="sv-sync-min-width-0"><span className="sv-sync-pick-title">{choice.name}</span><span className="sv-sync-pick-subtitle">{choice.difficulties.length === 0 ? 'Can’t be reached right now' : choice.subtitle}</span></span>
-            <span className={joinClassNames('sv-sync-badge', choice.generatorId === STEPSVAULT_GENERATOR_ID && 'sv-sync-badge--default')}>{choice.tag}</span>
+            <span className={joinClassNames('sv-sync-badge', choice.generatorId === DANCEDANCE_GENERATOR_ID && 'sv-sync-badge--default')}>{choice.tag}</span>
           </label>
         ))}
       </div>

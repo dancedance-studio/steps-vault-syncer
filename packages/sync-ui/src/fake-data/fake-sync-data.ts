@@ -143,7 +143,7 @@ export const FAKE_LINKED_COMPUTERS: readonly LinkedComputerView[] = [
   { computerId: 'arcade-cab', computerName: 'ARCADE-CAB', systemText: 'Windows 10 · linked Aug 21, 2026', isOnline: false, lastSyncText: '3 days ago', gameName: 'ITGmania' },
 ];
 
-export const FAKE_STEPSVAULT_GENERATOR: StepsVaultGeneratorView = { tokenCount: 37, tokensHref: '#tokens', difficulties: ['Beginner', 'Easy', 'Medium', 'Hard', 'Challenge'], musicUploadWarning: 'Your music file will be sent to https://stepsvault.example/api/generator.' };
+export const FAKE_DANCEDANCE_GENERATOR: StepsVaultGeneratorView = { tokenCount: 37, tokensHref: '#tokens', difficulties: ['Beginner', 'Easy', 'Medium', 'Hard', 'Challenge'], musicUploadWarning: 'Your music file will be sent to https://stepsvault.example/api/generator.' };
 
 export const FAKE_GENERATORS: readonly GeneratorView[] = [
   { generatorId: 'stepcat.tap-forge', name: 'Tap Forge', version: '1.2.0', author: '@stepcat', description: 'Flowing steps on the beat.', location: { kind: 'this-computer' }, startCommand: 'C:/generators/tap-forge/start.cmd', difficulties: ['Easy', 'Medium', 'Hard'], musicUploadWarning: null,

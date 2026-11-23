@@ -15,13 +15,13 @@ import {
   type HttpClient,
   type InstalledGenerator,
 } from '@dancedance/sync-core';
-import { buildGeneratorInstallPreview, getAddonOptionValuesFromViews, STEPSVAULT_GENERATOR_ID, type GeneratorInstallPreview, type GeneratorLookupResult, type ServiceLookupRequest, type StepsVaultGeneratorView } from '@dancedance/sync-ui';
+import { buildGeneratorInstallPreview, getAddonOptionValuesFromViews, DANCEDANCE_GENERATOR_ID, type GeneratorInstallPreview, type GeneratorLookupResult, type ServiceLookupRequest, type StepsVaultGeneratorView } from '@dancedance/sync-ui';
 import type { DesktopSettings } from './desktop-settings';
 import type { JobGenerator } from './generator-job-runner';
 import { getStartCommandFolder, type LocalProgramStarter } from './local-program-starter';
 
-const STEPSVAULT_GENERATOR_PATH = '/api/generator';
-const STEPSVAULT_GENERATOR_NAME = 'dancedance.studio generator';
+const DANCEDANCE_GENERATOR_PATH = '/api/generator';
+const DANCEDANCE_GENERATOR_NAME = 'dancedance.studio generator';
 
 /** What the player sees in the app's own dialog before Sync may run a command. */
 export interface StartCommandConfirmation {
@@ -56,7 +56,7 @@ export class GeneratorSettings {
 
   constructor(options: GeneratorSettingsOptions) {
     this.options = options;
-    this.stepsVaultBaseUrl = getServiceBaseUrl({ address: `${options.siteUrl.replace(/\/+$/, '')}${STEPSVAULT_GENERATOR_PATH}`, serviceName: 'generator' });
+    this.stepsVaultBaseUrl = getServiceBaseUrl({ address: `${options.siteUrl.replace(/\/+$/, '')}${DANCEDANCE_GENERATOR_PATH}`, serviceName: 'generator' });
   }
 
   /** Reads what StepsVault's generator makes; while it can't be reached, the screens say so. */
@@ -81,7 +81,7 @@ export class GeneratorSettings {
 
   /** The generator for a new song, after the player agreed to send their music to it when it is on another computer. */
   async getGeneratorForNewSong({ generatorId, hasAgreedToMusicUpload }: { generatorId: string; hasAgreedToMusicUpload: boolean }): Promise<JobGenerator> {
-    if (generatorId === STEPSVAULT_GENERATOR_ID) return this.getStepsVaultGeneratorForNewSong(hasAgreedToMusicUpload);
+    if (generatorId === DANCEDANCE_GENERATOR_ID) return this.getStepsVaultGeneratorForNewSong(hasAgreedToMusicUpload);
     const settings = this.options.getSettings();
     const generator = settings.generators.find((candidate) => candidate.manifest.id === generatorId);
     if (!generator) throw new Error('That generator isn’t set up any more. Add it again under Generators.');
@@ -172,7 +172,7 @@ export class GeneratorSettings {
   }
 
   private buildStepsVaultGenerator(manifest: GeneratorManifest): InstalledGenerator {
-    const generator = buildInstalledGenerator({ baseUrl: this.stepsVaultBaseUrl, manifest: { ...manifest, name: STEPSVAULT_GENERATOR_NAME } });
+    const generator = buildInstalledGenerator({ baseUrl: this.stepsVaultBaseUrl, manifest: { ...manifest, name: DANCEDANCE_GENERATOR_NAME } });
     const consentedAt = this.options.getSettings().stepsVaultMusicUploadConsentedAt;
     return consentedAt === null ? generator : withMusicUploadConsent({ generator, consentedAt });
   }
@@ -198,5 +198,5 @@ export class GeneratorSettings {
 
 /** Enough to go on asking about a StepsVault job after a restart, before StepsVault's manifest is read again. */
 function buildStepsVaultFallbackManifest(): GeneratorManifest {
-  return { protocol: 1, kind: 'generator', id: 'stepsvault.generator', name: STEPSVAULT_GENERATOR_NAME, version: '', author: 'StepsVault', description: '', options: [], difficulties: GENERATOR_DIFFICULTIES, musicTypes: ['audio/ogg'], usesVideo: false, maxMusicBytes: MAX_GENERATOR_MUSIC_BYTES };
+  return { protocol: 1, kind: 'generator', id: 'stepsvault.generator', name: DANCEDANCE_GENERATOR_NAME, version: '', author: 'StepsVault', description: '', options: [], difficulties: GENERATOR_DIFFICULTIES, musicTypes: ['audio/ogg'], usesVideo: false, maxMusicBytes: MAX_GENERATOR_MUSIC_BYTES };
 }

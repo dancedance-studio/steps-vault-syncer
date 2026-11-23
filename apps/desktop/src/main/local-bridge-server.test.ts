@@ -4,7 +4,7 @@ import { connect } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildEmptyInstalledSongsRecord, buildGeneratedSongMarkerText, LocalBridgePairing, STEPSVAULT_SITE_ORIGIN, type GeneratedSong, type InstalledSongsRecord, type PairedBrowser } from '@dancedance/sync-core';
+import { buildEmptyInstalledSongsRecord, buildGeneratedSongMarkerText, LocalBridgePairing, DANCEDANCE_SITE_ORIGIN, type GeneratedSong, type InstalledSongsRecord, type PairedBrowser } from '@dancedance/sync-core';
 import { getLocalBridgeOrigins } from './local-bridge-origins';
 import { LocalBridgeServer } from './local-bridge-server';
 import { MusicSourceRegistry } from './music-source-registry';
@@ -44,7 +44,7 @@ async function startServer({ ports = TEST_PORTS }: { ports?: readonly number[] }
     getNowMilliseconds: () => Date.now(),
   });
   await pairing.initialize();
-  server = new LocalBridgeServer({ dependencies: { pairing, getRecord: () => record, getSongsFolder: () => songsFolder, allowedOrigins: [STEPSVAULT_SITE_ORIGIN] }, openSongFile: (songsPath) => songsFolder.openFileForReading(songsPath), ports });
+  server = new LocalBridgeServer({ dependencies: { pairing, getRecord: () => record, getSongsFolder: () => songsFolder, allowedOrigins: [DANCEDANCE_SITE_ORIGIN] }, openSongFile: (songsPath) => songsFolder.openFileForReading(songsPath), ports });
   const port = await server.start();
   if (port === null) throw new Error('The test bridge found no free port.');
   return port;
@@ -70,7 +70,7 @@ function send({ port, method = 'GET', target, headers = {}, body }: { port: numb
 
 async function pairBrowser(port: number): Promise<string> {
   const { code } = pairing.startPairing();
-  const answer = await send({ port, method: 'POST', target: '/v1/pairing', headers: { Origin: STEPSVAULT_SITE_ORIGIN, 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+  const answer = await send({ port, method: 'POST', target: '/v1/pairing', headers: { Origin: DANCEDANCE_SITE_ORIGIN, 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
   return (JSON.parse(answer.body.toString('utf8')) as { token: string }).token;
 }
 
@@ -121,25 +121,25 @@ describe('the local bridge server', () => {
     expect(otherOrigin.headers['access-control-allow-origin']).toBeUndefined();
     const noOrigin = await send({ port, target: '/v1/songs', headers: { Authorization: `Bearer ${token}` } });
     expect(noOrigin.status).toBe(403);
-    const noToken = await send({ port, target: '/v1/songs', headers: { Origin: STEPSVAULT_SITE_ORIGIN } });
+    const noToken = await send({ port, target: '/v1/songs', headers: { Origin: DANCEDANCE_SITE_ORIGIN } });
     expect(noToken.status).toBe(401);
-    expect(noToken.headers['access-control-allow-origin']).toBe(STEPSVAULT_SITE_ORIGIN);
-    const paired = await send({ port, target: '/v1/songs', headers: { Origin: STEPSVAULT_SITE_ORIGIN, Authorization: `Bearer ${token}` } });
+    expect(noToken.headers['access-control-allow-origin']).toBe(DANCEDANCE_SITE_ORIGIN);
+    const paired = await send({ port, target: '/v1/songs', headers: { Origin: DANCEDANCE_SITE_ORIGIN, Authorization: `Bearer ${token}` } });
     expect(paired.status).toBe(200);
     expect((JSON.parse(paired.body.toString('utf8')) as { songs: Array<{ title: string }> }).songs.map((song) => song.title)).toEqual(['Night Drive']);
   });
 
   it('answers Chrome’s Private Network Access preflight for the site', async () => {
     const port = await startServer();
-    const preflight = await send({ port, method: 'OPTIONS', target: '/v1/songs', headers: { Origin: STEPSVAULT_SITE_ORIGIN, 'Access-Control-Request-Method': 'GET', 'Access-Control-Request-Headers': 'authorization', 'Access-Control-Request-Private-Network': 'true' } });
+    const preflight = await send({ port, method: 'OPTIONS', target: '/v1/songs', headers: { Origin: DANCEDANCE_SITE_ORIGIN, 'Access-Control-Request-Method': 'GET', 'Access-Control-Request-Headers': 'authorization', 'Access-Control-Request-Private-Network': 'true' } });
     expect(preflight.status).toBe(204);
     expect(preflight.headers['access-control-allow-private-network']).toBe('true');
-    expect(preflight.headers['access-control-allow-origin']).toBe(STEPSVAULT_SITE_ORIGIN);
+    expect(preflight.headers['access-control-allow-origin']).toBe(DANCEDANCE_SITE_ORIGIN);
   });
 
   it('sends a song’s music, byte for byte, and refuses paths that climb out of the song', async () => {
     const port = await startServer();
-    const headers = { Origin: STEPSVAULT_SITE_ORIGIN, Authorization: `Bearer ${await pairBrowser(port)}` };
+    const headers = { Origin: DANCEDANCE_SITE_ORIGIN, Authorization: `Bearer ${await pairBrowser(port)}` };
     const music = await send({ port, target: `/v1/songs/${encodeURIComponent('song:night drive\nlumen park')}/music`, headers });
     expect(music.status).toBe(200);
     expect(music.headers['content-type']).toBe('audio/ogg');
@@ -158,7 +158,7 @@ describe('the local bridge server', () => {
     await symlink(path.dirname(outsideFolder), path.join(songsFolderPath, 'Linked'), 'junction');
     record = { ...buildEmptyInstalledSongsRecord(), generatedSongs: [generatedSong] };
     const port = await startServer();
-    const headers = { Origin: STEPSVAULT_SITE_ORIGIN, Authorization: `Bearer ${await pairBrowser(port)}` };
+    const headers = { Origin: DANCEDANCE_SITE_ORIGIN, Authorization: `Bearer ${await pairBrowser(port)}` };
     expect((await send({ port, target: `/v1/songs/${encodeURIComponent(generatedSong.songKey)}/music`, headers })).status).toBe(404);
     expect((JSON.parse((await send({ port, target: '/v1/songs', headers })).body.toString('utf8')) as { songs: unknown[] }).songs).toEqual([]);
   });
@@ -166,7 +166,7 @@ describe('the local bridge server', () => {
   it('refuses a pairing body that is too long', async () => {
     const port = await startServer();
     pairing.startPairing();
-    const answer = await send({ port, method: 'POST', target: '/v1/pairing', headers: { Origin: STEPSVAULT_SITE_ORIGIN }, body: 'x'.repeat(4096) }).catch(() => ({ status: 413 }));
+    const answer = await send({ port, method: 'POST', target: '/v1/pairing', headers: { Origin: DANCEDANCE_SITE_ORIGIN }, body: 'x'.repeat(4096) }).catch(() => ({ status: 413 }));
     expect(answer.status).toBe(413);
   });
 });
