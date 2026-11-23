@@ -3,8 +3,8 @@ import { buildInstalledAddon, type InstalledAddon } from '../addons/addon-client
 import type { AddonManifest } from '../addons/addon-protocol';
 import type { SongSourceFileLink, SongSourceSong } from '../addons/song-source-protocol';
 import type { FileUploadHttpClient, FileUploadHttpRequest, HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
-import { SignedOutError, StepsVaultApiError } from '../stepsvault-api/stepsvault-api-types';
-import { StepsVaultClient } from '../stepsvault-api/stepsvault-client';
+import { SignedOutError, DancedanceApiError } from '../dancedance-api/dancedance-api-types';
+import { DancedanceClient } from '../dancedance-api/dancedance-client';
 import { getLinkAudioContentTypeOrNull } from './link-audio-files';
 import { buildLinkFindResults, buildNotFoundAnswer, buildSyncPresence, findLinkAddon, isLinkJobExpired, parseLinkJobOrNull, parseLinkJobState, type SyncPresence } from './link-job-protocol';
 import { loadLinkSongSources, withLinkSongSource } from './link-song-sources';
@@ -169,7 +169,7 @@ class RecordedSite implements HttpClient, FileUploadHttpClient {
   }
 }
 
-describe('StepsVaultClient link jobs', () => {
+describe('DancedanceClient link jobs', () => {
   const presence = buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: OPEN_AUDIO_LINKS })], isLeaving: false });
   const job = { id: 'lj_2', kind: 'music', addonId: 'open-audio-links', findId: 'lj_1', ref: 'r1', songId: 'ls_9', expiresAt: '2026-11-21T12:10:00.000Z' };
 
@@ -181,7 +181,7 @@ describe('StepsVaultClient link jobs', () => {
       [`POST ${API_URL}/link-jobs/lj_2/answer`]: { status: 204, body: '' },
       [`PUT ${API_URL}/link-jobs/lj_2/audio`]: { status: 200, body: 'Stored.' },
     });
-    const client = new StepsVaultClient({ httpClient: site, fileUploadClient: site, siteUrl: `${SITE_URL}/`, deviceToken: 'device-token-1' });
+    const client = new DancedanceClient({ httpClient: site, fileUploadClient: site, siteUrl: `${SITE_URL}/`, deviceToken: 'device-token-1' });
     await client.reportPresence(presence);
     expect(await client.fetchNextLinkJob()).toEqual(job);
     expect(await client.fetchLinkJobState('lj_2')).toBe('open');
@@ -209,7 +209,7 @@ describe('StepsVaultClient link jobs', () => {
       [`POST ${API_URL}/link-jobs/lj_2/answer`]: { status: 410, body: { error: 'This job ended.' } },
       [`PUT ${API_URL}/link-jobs/lj_2/audio`]: { status: 410, body: { error: 'This job ended.' } },
     });
-    const client = new StepsVaultClient({ httpClient: site, fileUploadClient: site, siteUrl: SITE_URL, deviceToken: 'device-token-1' });
+    const client = new DancedanceClient({ httpClient: site, fileUploadClient: site, siteUrl: SITE_URL, deviceToken: 'device-token-1' });
     expect(await client.fetchNextLinkJob()).toBeNull();
     expect(await client.fetchLinkJobState('lj_2')).toBe('expired');
     expect(await client.fetchLinkJobState('lj_3')).toBe('cancelled');
@@ -224,15 +224,15 @@ describe('StepsVaultClient link jobs', () => {
       [`PUT ${API_URL}/link-jobs/lj_2/audio`]: { status: 413, body: { error: 'This file is bigger than 30 MB.' } },
       [`GET ${API_URL}/link-jobs/lj%2F..%2Fme`]: { status: 200, body: { status: 'open' } },
     });
-    const client = new StepsVaultClient({ httpClient: site, fileUploadClient: site, siteUrl: SITE_URL, deviceToken: 'device-token-1' });
+    const client = new DancedanceClient({ httpClient: site, fileUploadClient: site, siteUrl: SITE_URL, deviceToken: 'device-token-1' });
     await expect(client.fetchNextLinkJob()).rejects.toBeInstanceOf(SignedOutError);
     await expect(client.reportPresence(presence)).rejects.toBeInstanceOf(SignedOutError);
-    await expect(client.uploadLinkJobAudio({ jobId: 'lj_2', audio: { sourceId: 'file:abc', contentType: 'audio/ogg' } })).rejects.toThrow(new StepsVaultApiError({ status: 413, message: 'This file is bigger than 30 MB.' }));
+    await expect(client.uploadLinkJobAudio({ jobId: 'lj_2', audio: { sourceId: 'file:abc', contentType: 'audio/ogg' } })).rejects.toThrow(new DancedanceApiError({ status: 413, message: 'This file is bigger than 30 MB.' }));
     expect(await client.fetchLinkJobState('lj/../me')).toBe('open');
   });
 
   it('sends no file without an upload client: only the app uploads', async () => {
-    const client = new StepsVaultClient({ httpClient: new RecordedSite({}), siteUrl: SITE_URL, deviceToken: null });
+    const client = new DancedanceClient({ httpClient: new RecordedSite({}), siteUrl: SITE_URL, deviceToken: null });
     await expect(client.uploadLinkJobAudio({ jobId: 'lj_2', audio: { sourceId: 'file:abc', contentType: 'audio/ogg' } })).rejects.toThrow('can’t send files');
   });
 });

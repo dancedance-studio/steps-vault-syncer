@@ -33,19 +33,19 @@ export type GeneratorJobStatus =
   /** The message is a full sentence for the player, with the generator's own reason when it gave one. */
   | { state: 'failed'; message: string }
   /**
-   * At most one file of each kind, always with a chart unless vaultSongId is set. vaultSongId: the vault song StepsVault's
+   * At most one file of each kind, always with a chart unless vaultSongId is set. vaultSongId: the vault song dancedance.studio's
    * own generator made (null from any other generator, which can't plant a vault song).
    */
   | { state: 'done'; files: GeneratorFileLink[]; vaultSongId: string | null };
 
-export function parseJobStatusAnswer({ answer, generator, isFromStepsVault = false }: { answer: HttpResponse<unknown>; generator: GeneratorReference; isFromStepsVault?: boolean }): GeneratorJobStatus {
+export function parseJobStatusAnswer({ answer, generator, isFromDancedance = false }: { answer: HttpResponse<unknown>; generator: GeneratorReference; isFromDancedance?: boolean }): GeneratorJobStatus {
   const { status, body } = answer;
   if (status === 404) throw new GeneratorError({ reason: 'job-lost', message: `${generator.name} no longer knows this song, maybe because it restarted. Make the song again.` });
   if (status !== 200) throw new GeneratorError({ reason: 'not-answering', message: `${generator.name} isn’t answering (${status}). Check that it is running, then make the song again.` });
   if (!isRecord(body)) throw buildInvalidAnswerError(generator);
   if (body.state === 'queued' || body.state === 'working') return parseWaitingStatus({ state: body.state, body });
   if (body.state === 'failed') return { state: 'failed', message: describeFailedJob({ body, generator }) };
-  if (body.state === 'done') return parseDoneStatus({ body, generator, isFromStepsVault });
+  if (body.state === 'done') return parseDoneStatus({ body, generator, isFromDancedance });
   throw buildInvalidAnswerError(generator);
 }
 
@@ -76,9 +76,9 @@ function describeFailedJob({ body, generator }: { body: unknown; generator: Gene
   return `${generator.name} couldn’t make this song. Try again, or ask its maker why.`;
 }
 
-/** A song StepsVault's generator put in the vault installs from the vault, so its files aren't needed. */
-function parseDoneStatus({ body, generator, isFromStepsVault }: { body: Record<string, unknown>; generator: GeneratorReference; isFromStepsVault: boolean }): GeneratorJobStatus {
-  const vaultSongId = isFromStepsVault ? getVaultSongIdOrNull(body) : null;
+/** A song dancedance.studio's generator put in the vault installs from the vault, so its files aren't needed. */
+function parseDoneStatus({ body, generator, isFromDancedance }: { body: Record<string, unknown>; generator: GeneratorReference; isFromDancedance: boolean }): GeneratorJobStatus {
+  const vaultSongId = isFromDancedance ? getVaultSongIdOrNull(body) : null;
   if (vaultSongId !== null && !Array.isArray(body.files)) return { state: 'done', files: [], vaultSongId };
   return { state: 'done', files: parseFileLinks({ value: body.files, generator, isChartNeeded: vaultSongId === null }), vaultSongId };
 }

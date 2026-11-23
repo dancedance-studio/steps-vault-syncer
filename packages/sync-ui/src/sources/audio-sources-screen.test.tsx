@@ -40,7 +40,7 @@ describe('AudioSourcesScreen', () => {
     expect(screen.getByText('Build your own addon')).toBeDefined();
     expect(screen.getByText('One AI prompt builds yours')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Copy for your agent' })).toBeDefined();
-    expect(screen.getByRole('link', { name: 'make-an-addon on GitHub' }).getAttribute('href')).toBe('https://github.com/steps-vault/steps-vault-syncer/tree/main/.claude/skills/make-an-addon');
+    expect(screen.getByRole('link', { name: 'make-an-addon on GitHub' }).getAttribute('href')).toBe('https://github.com/dancedance-studio/sync/tree/main/.claude/skills/make-an-addon');
     const agentRow = screen.getByText('Build your own addon').closest('.sv-sync-agent-row');
     const addonList = document.querySelector('.sv-sync-addon-list');
     expect(agentRow?.nextElementSibling).toBe(addonList);
@@ -174,7 +174,7 @@ describe('song-source addons and programs on this computer', () => {
 
 describe('isAddonAddress', () => {
   it.each([
-    ['https://bridge.example/stepsvault', true],
+    ['https://bridge.example/dancedance', true],
     ['  https://bridge.example  ', true],
     ['http://bridge.example', false],
     ['http://localhost:7801', true],

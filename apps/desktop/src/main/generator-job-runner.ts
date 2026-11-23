@@ -28,11 +28,11 @@ import {
 
 const CANCEL_CHECK_EVERY_MILLISECONDS = 250;
 
-/** A generator as a job needs it: set up as the player has it now, with the sign-in only for StepsVault's own. */
+/** A generator as a job needs it: set up as the player has it now, with the sign-in only for dancedance.studio's own. */
 export interface JobGenerator {
   generator: InstalledGenerator;
   signIn: GeneratorSignIn | null;
-  isStepsVault: boolean;
+  isDancedance: boolean;
 }
 
 export interface GeneratorJobRunnerDependencies {
@@ -53,11 +53,11 @@ export interface GeneratorJobRunnerDependencies {
   writeSong(options: { request: GeneratedSongRequest; vaultSongChoice: VaultSongChoice | null }): Promise<GeneratedSongWriteResult>;
   /** Keeps "How it was made" for the song. */
   saveReport(options: { songKey: string; reportText: string }): Promise<void>;
-  /** Adds a song StepsVault already has to the player's vault (free); throws with the site's sentence when it can't. */
+  /** Adds a song dancedance.studio already has to the player's vault (free); throws with the site's sentence when it can't. */
   addSongToVault(vaultSongId: string): Promise<void>;
   /**
-   * StepsVault's generator made the song: it is in the vault, so a sync installs it, with the player's music.
-   * vaultSongId is the song StepsVault said it is; null when it didn't say, and Sync finds the song by its facts.
+   * dancedance.studio's generator made the song: it is in the vault, so a sync installs it, with the player's music.
+   * vaultSongId is the song dancedance.studio said it is; null when it didn't say, and Sync finds the song by its facts.
    */
   addVaultSongToGame(options: { job: SavedGeneratorJob; vaultSongId: string | null }): Promise<void>;
   logActivity(event: GeneratedSongActivityEvent): Promise<void>;
@@ -83,7 +83,7 @@ export interface GeneratorJobStart {
 
 /**
  * Makes songs with generators: sends the music, asks how each job goes (again after a restart), collects the files and
- * writes the song, or for StepsVault's own generator, lets the vault install it. Every step is saved and goes to the
+ * writes the song, or for dancedance.studio's own generator, lets the vault install it. Every step is saved and goes to the
  * Activity log. Jobs run in the background; the screens follow them through `jobs`.
  */
 export class GeneratorJobRunner {
@@ -117,7 +117,7 @@ export class GeneratorJobRunner {
     const { manifest } = jobGenerator.generator;
     const now = this.dependencies.getNow();
     await this.saveJob({
-      jobKey: start.jobKey, generatorBaseUrl: start.generatorBaseUrl, generatorId: manifest.id, generatorName: jobGenerator.isStepsVault ? 'dancedance.studio generator' : manifest.name, generatorVersion: manifest.version, isStepsVault: jobGenerator.isStepsVault,
+      jobKey: start.jobKey, generatorBaseUrl: start.generatorBaseUrl, generatorId: manifest.id, generatorName: jobGenerator.isDancedance ? 'dancedance.studio generator' : manifest.name, generatorVersion: manifest.version, isDancedance: jobGenerator.isDancedance,
       jobId: null, song: start.song, difficulties: [...start.difficulties], state: 'sending', progress: null, stage: null, retryAfterSeconds: 10, message: null, vaultChoice: null, result: null,
       playerMusicLocation: start.playerMusicLocation, playerVideoLocation: start.playerVideoLocation, collectedFilesLocation: null, siteRequest: start.siteRequest, source: start.source, startedAt: now, updatedAt: now,
     });
@@ -163,9 +163,9 @@ export class GeneratorJobRunner {
     await this.waitAndFinish(job.jobKey);
   }
 
-  /** Only StepsVault's generator may answer with a vault song: Sync adds it to the vault, and no token is spent. */
+  /** Only dancedance.studio's generator may answer with a vault song: Sync adds it to the vault, and no token is spent. */
   private async handleExistingSong({ job, message, vaultSongId }: { job: SavedGeneratorJob; message: string; vaultSongId: string | null }): Promise<void> {
-    if (!job.isStepsVault || vaultSongId === null) {
+    if (!job.isDancedance || vaultSongId === null) {
       await this.finishJob({ job, changes: { state: 'failed', message }, step: 'failed' });
       await this.dependencies.jobFiles.removeJobFiles(job.jobKey);
       return;
@@ -213,7 +213,7 @@ export class GeneratorJobRunner {
 
   private async handleFinishedJob({ jobKey, jobGenerator, files, vaultSongId }: { jobKey: string; jobGenerator: JobGenerator; files: Parameters<typeof collectGeneratorFiles>[0]['files']; vaultSongId: string | null }): Promise<void> {
     const job = this.getJob(jobKey);
-    if (job.isStepsVault) {
+    if (job.isDancedance) {
       if (vaultSongId !== null) await this.dependencies.addSongToVault(vaultSongId);
       await this.finishJob({ job, changes: { state: 'done', result: 'added-to-vault' }, step: 'added-to-vault' });
       await this.dependencies.addVaultSongToGame({ job: this.getJob(jobKey), vaultSongId });

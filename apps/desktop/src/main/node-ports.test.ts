@@ -19,7 +19,7 @@ let songsFolder: NodeSongsFolder;
 const convertedWav = new Uint8Array([82, 73, 70, 70]);
 
 beforeEach(async () => {
-  workFolder = await mkdtemp(path.join(os.tmpdir(), 'stepsvault-sync-test-'));
+  workFolder = await mkdtemp(path.join(os.tmpdir(), 'dancedance-sync-test-'));
   songsFolderPath = path.join(workFolder, 'Songs');
   await mkdir(songsFolderPath);
   musicSources = new MusicSourceRegistry();
@@ -38,12 +38,12 @@ async function expectFailure(promise: Promise<unknown>, failure: SongsFolderErro
 
 describe('NodeSongsFolder', () => {
   it('writes, lists, reads, renames and removes inside the Songs folder', async () => {
-    await songsFolder.writeText({ path: ['StepsVault', 'Sorry', 'Sorry.ssc'], text: '#TITLE:Sorry;' });
-    expect(await songsFolder.listEntries(['StepsVault'])).toEqual([{ name: 'Sorry', isFolder: true }]);
-    expect(await songsFolder.readText(['StepsVault', 'Sorry', 'Sorry.ssc'])).toBe('#TITLE:Sorry;');
-    expect(await songsFolder.readText(['StepsVault', 'Nope.ssc'])).toBeNull();
+    await songsFolder.writeText({ path: ['dancedance.studio', 'Sorry', 'Sorry.ssc'], text: '#TITLE:Sorry;' });
+    expect(await songsFolder.listEntries(['dancedance.studio'])).toEqual([{ name: 'Sorry', isFolder: true }]);
+    expect(await songsFolder.readText(['dancedance.studio', 'Sorry', 'Sorry.ssc'])).toBe('#TITLE:Sorry;');
+    expect(await songsFolder.readText(['dancedance.studio', 'Nope.ssc'])).toBeNull();
     expect(await songsFolder.listEntries(['Missing'])).toEqual([]);
-    await songsFolder.rename({ from: ['StepsVault', 'Sorry'], to: ['Pop', 'Sorry'] });
+    await songsFolder.rename({ from: ['dancedance.studio', 'Sorry'], to: ['Pop', 'Sorry'] });
     expect(await readFile(path.join(songsFolderPath, 'Pop', 'Sorry', 'Sorry.ssc'), 'utf8')).toBe('#TITLE:Sorry;');
     await songsFolder.removeFolder(['Pop', 'Sorry']);
     expect(await songsFolder.listEntries(['Pop'])).toEqual([]);
@@ -62,9 +62,9 @@ describe('NodeSongsFolder', () => {
   });
 
   it('never renames onto something that exists, and never removes the whole Songs folder', async () => {
-    await songsFolder.writeText({ path: ['StepsVault', 'Sorry', 'a.ssc'], text: 'ours' });
+    await songsFolder.writeText({ path: ['dancedance.studio', 'Sorry', 'a.ssc'], text: 'ours' });
     await songsFolder.writeText({ path: ['Pop', 'Sorry', 'b.ssc'], text: 'theirs' });
-    await expectFailure(songsFolder.rename({ from: ['StepsVault', 'Sorry'], to: ['Pop', 'Sorry'] }), 'already-exists');
+    await expectFailure(songsFolder.rename({ from: ['dancedance.studio', 'Sorry'], to: ['Pop', 'Sorry'] }), 'already-exists');
     expect(await songsFolder.readText(['Pop', 'Sorry', 'b.ssc'])).toBe('theirs');
     await expectFailure(songsFolder.removeFolder([]), 'no-permission');
   });
@@ -74,10 +74,10 @@ describe('NodeSongsFolder', () => {
     const m4aPath = path.join(workFolder, 'Cheap Thrills.m4a');
     await writeFile(oggPath, 'OggS');
     await writeFile(m4aPath, 'ftypM4A');
-    expect(await songsFolder.copyMusic({ sourceId: musicSources.register(oggPath), folder: ['StepsVault', 'Cheap Thrills'], baseName: 'music' })).toBe('music.ogg');
-    expect(await songsFolder.copyMusic({ sourceId: musicSources.register(m4aPath), folder: ['StepsVault', 'Other'], baseName: 'music' })).toBe('music.wav');
-    expect(new Uint8Array(await readFile(path.join(songsFolderPath, 'StepsVault', 'Other', 'music.wav')))).toEqual(convertedWav);
-    await expectFailure(songsFolder.copyMusic({ sourceId: 'file:unknown', folder: ['StepsVault', 'X'], baseName: 'music' }), 'not-found');
+    expect(await songsFolder.copyMusic({ sourceId: musicSources.register(oggPath), folder: ['dancedance.studio', 'Cheap Thrills'], baseName: 'music' })).toBe('music.ogg');
+    expect(await songsFolder.copyMusic({ sourceId: musicSources.register(m4aPath), folder: ['dancedance.studio', 'Other'], baseName: 'music' })).toBe('music.wav');
+    expect(new Uint8Array(await readFile(path.join(songsFolderPath, 'dancedance.studio', 'Other', 'music.wav')))).toEqual(convertedWav);
+    await expectFailure(songsFolder.copyMusic({ sourceId: 'file:unknown', folder: ['dancedance.studio', 'X'], baseName: 'music' }), 'not-found');
   });
 });
 
@@ -156,7 +156,7 @@ describe('NodeFileUploadHttpClient', () => {
       const url = `http://127.0.0.1:${String((server.address() as AddressInfo).port)}/api/sync/link-jobs/lj_2/audio`;
       const upload = { url, method: 'PUT' as const, headers: { Authorization: 'Bearer device-token-1' }, contentType: 'audio/ogg', timeoutMilliseconds: 5_000, maxResponseBytes: 1_000 };
       expect(await client.requestTextWithFileBody({ ...upload, sourceId: musicSources.register(filePath) })).toEqual({ status: 200, body: 'Stored.' });
-      expect(received).toMatchObject([{ method: 'PUT', headers: { 'content-type': 'audio/ogg', 'content-length': '16', authorization: 'Bearer device-token-1', 'user-agent': 'StepsVaultSync/0.2.0' } }]);
+      expect(received).toMatchObject([{ method: 'PUT', headers: { 'content-type': 'audio/ogg', 'content-length': '16', authorization: 'Bearer device-token-1', 'user-agent': 'DancedanceSync/0.2.0' } }]);
       expect(received[0]?.body.toString()).toBe('OggS-night-drive');
       const error: unknown = await client.requestTextWithFileBody({ ...upload, sourceId: 'file:unknown' }).then(() => null, (caught: unknown) => caught);
       expect(error).toBeInstanceOf(HttpRequestError);

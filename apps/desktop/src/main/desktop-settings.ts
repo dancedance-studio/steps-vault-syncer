@@ -16,8 +16,8 @@ export interface DesktopSettings {
   addons: InstalledAddon[];
   /** Community generators, each with the time the player agreed to send it their music (when it isn't on this computer). */
   generators: InstalledGenerator[];
-  /** When the player agreed that their music goes to StepsVault's own generator; null until then. */
-  stepsVaultMusicUploadConsentedAt: string | null;
+  /** When the player agreed that their music goes to dancedance.studio's own generator; null until then. */
+  dancedanceMusicUploadConsentedAt: string | null;
   /** The start command the player typed and confirmed for an addon or generator on this computer, by its address. */
   startCommandsByBaseUrl: Record<string, string>;
   replaceEditedSongIds: string[];
@@ -39,7 +39,7 @@ export function buildDefaultSettings(): DesktopSettings {
     pickedFilePathsBySongId: {},
     addons: [],
     generators: [],
-    stepsVaultMusicUploadConsentedAt: null,
+    dancedanceMusicUploadConsentedAt: null,
     startCommandsByBaseUrl: {},
     replaceEditedSongIds: [],
     removeFromGameSongIds: [],
@@ -64,7 +64,7 @@ export function parseSettings(value: unknown): DesktopSettings {
     pickedFilePathsBySongId: getStringsByKey(saved.pickedFilePathsBySongId),
     addons: Array.isArray(saved.addons) ? saved.addons.flatMap((addon) => loadSavedAddon(addon) ?? []) : [],
     generators: Array.isArray(saved.generators) ? saved.generators.flatMap((generator) => loadSavedGenerator(generator) ?? []) : [],
-    stepsVaultMusicUploadConsentedAt: typeof saved.stepsVaultMusicUploadConsentedAt === 'string' ? saved.stepsVaultMusicUploadConsentedAt : null,
+    dancedanceMusicUploadConsentedAt: typeof saved.dancedanceMusicUploadConsentedAt === 'string' ? saved.dancedanceMusicUploadConsentedAt : null,
     // A start command runs a program, so only one for an address on this computer is ever kept.
     startCommandsByBaseUrl: Object.fromEntries(Object.entries(getStringsByKey(saved.startCommandsByBaseUrl)).filter(([baseUrl]) => isOnThisComputer(baseUrl))),
     replaceEditedSongIds: getStrings(saved.replaceEditedSongIds),

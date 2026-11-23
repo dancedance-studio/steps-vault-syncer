@@ -29,7 +29,7 @@ import type {
   SongSourceSearchRequest,
   SongSourceSearchResult,
   SongSourceTabView,
-  StepsVaultGeneratorView,
+  DancedanceGeneratorView,
   SyncRunView,
   TrayStatus,
   VaultChoiceAnswer,
@@ -43,7 +43,7 @@ export type DesktopSignIn =
 /** Everything the window shows. The main process builds it; the window only renders it. */
 export interface DesktopSyncState {
   appVersion: string;
-  /** The StepsVault site this app syncs with, for links that open in the player's browser. */
+  /** The dancedance.studio site this app syncs with, for links that open in the player's browser. */
   siteUrl: string;
   signIn: DesktopSignIn;
   game: { gameName: string; songsFolderPath: string } | null;
@@ -53,7 +53,7 @@ export interface DesktopSyncState {
   scannedFileCount: number | null;
   pickedFiles: PickedFileView[];
   addons: AddonView[];
-  stepsVaultGenerator: StepsVaultGeneratorView;
+  dancedanceGenerator: DancedanceGeneratorView;
   generators: GeneratorView[];
   /** The Links tab on the Make a song page, for every link addon that is on; null when none is. */
   linksTab: LinksTabView | null;
@@ -152,10 +152,10 @@ export type AudioJobResult =
   | { jobId: number; kind: 'make-picture'; bytes: Uint8Array }
   | { jobId: number; kind: 'failed'; message: string };
 
-export const BRIDGE_CHANNEL_PREFIX = 'stepsvault-sync:';
+export const BRIDGE_CHANNEL_PREFIX = 'dancedance-sync:';
 export const STATE_CHANNEL = `${BRIDGE_CHANNEL_PREFIX}state`;
-export const AUDIO_JOB_CHANNEL = 'stepsvault-audio:job';
-export const AUDIO_RESULT_CHANNEL = 'stepsvault-audio:result';
+export const AUDIO_JOB_CHANNEL = 'dancedance-audio:job';
+export const AUDIO_RESULT_CHANNEL = 'dancedance-audio:result';
 /** The bridge methods the window may call, by name; the preload exposes exactly these. */
 export const BRIDGE_METHOD_NAMES = [
   'getState',

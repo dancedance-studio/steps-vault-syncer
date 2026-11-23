@@ -18,7 +18,7 @@ describe('bridge handlers', () => {
     await handlers.setAddonOption({ addonId: 'indie.tapes', optionId: 'media', value: 'audio', extra: 'dropped' });
     await handlers.installAddon({ address: 'https://tapes.example.org', name: 'Indie Tapes', version: '1.0.0', author: 'hyperpad', options: [{ optionId: 'media', label: 'What to get', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], value: 'audio' }] });
     await handlers.lookUpGenerator({ address: 'http://127.0.0.1:7700', startCommand: 'C:/gen/start.cmd' });
-    await handlers.makeSong({ musicId: 'file:abc', generatorId: 'stepsvault:default', difficulties: ['Easy', 'Hard'], hasAgreedToMusicUpload: true, extra: 'dropped' });
+    await handlers.makeSong({ musicId: 'file:abc', generatorId: 'dancedance:default', difficulties: ['Easy', 'Hard'], hasAgreedToMusicUpload: true, extra: 'dropped' });
     await handlers.makeSong({ musicId: 'file:neon', generatorId: 'stepcat.tap-forge', difficulties: ['Easy'], hasAgreedToMusicUpload: false, preselectionKey: 'link-1' });
     await handlers.dismissPreselectedSong('link-1');
     await handlers.answerVaultChoice({ jobKey: 'job-1', choice: 'keep-vault-song' });
@@ -30,7 +30,7 @@ describe('bridge handlers', () => {
       ['setAddonOption', { addonId: 'indie.tapes', optionId: 'media', value: 'audio' }],
       ['installAddon', { address: 'https://tapes.example.org', name: 'Indie Tapes', version: '1.0.0', author: 'hyperpad', options: [{ optionId: 'media', label: 'What to get', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], value: 'audio' }] }],
       ['lookUpGenerator', { address: 'http://127.0.0.1:7700', startCommand: 'C:/gen/start.cmd' }],
-      ['makeSong', { musicId: 'file:abc', generatorId: 'stepsvault:default', difficulties: ['Easy', 'Hard'], hasAgreedToMusicUpload: true }],
+      ['makeSong', { musicId: 'file:abc', generatorId: 'dancedance:default', difficulties: ['Easy', 'Hard'], hasAgreedToMusicUpload: true }],
       ['makeSong', { musicId: 'file:neon', generatorId: 'stepcat.tap-forge', difficulties: ['Easy'], hasAgreedToMusicUpload: false, preselectionKey: 'link-1' }],
       ['dismissPreselectedSong', 'link-1'],
       ['answerVaultChoice', { jobKey: 'job-1', choice: 'keep-vault-song' }],

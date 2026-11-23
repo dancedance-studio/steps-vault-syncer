@@ -5,7 +5,7 @@ import type { PartyFolder } from './party-folders';
 /** One song folder Sync wrote. The record of these is kept by the website or the app, outside the Songs folder. */
 export interface InstalledSong {
   vaultSongId: string;
-  /** Changes on StepsVault whenever the song's steps change. */
+  /** Changes on dancedance.studio whenever the song's steps change. */
   chartVersion: string;
   /** New for every install, so a marker copied into another folder (or from another computer) never matches. */
   installId: string;
@@ -22,7 +22,7 @@ export interface InstalledMusic {
   fileName: string;
   /** The song's video next to the music, if its source gave one; kept on every update. Older records have none. */
   videoFileName?: string | null;
-  /** Seconds the player's copy starts later than StepsVault's (negative: earlier); reapplied on every update. */
+  /** Seconds the player's copy starts later than dancedance.studio's (negative: earlier); reapplied on every update. */
   shiftSeconds: number;
 }
 

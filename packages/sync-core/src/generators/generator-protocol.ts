@@ -63,7 +63,7 @@ export type GeneratorStartResult =
   | { kind: 'started'; job: GeneratorJob }
   /**
    * 409: the song already exists, or is being made right now. The message is a full sentence for the player.
-   * vaultSongId is set only by StepsVault's own generator: add that vault song instead.
+   * vaultSongId is set only by dancedance.studio's own generator: add that vault song instead.
    */
   | { kind: 'already-exists'; message: string; vaultSongId: string | null };
 
@@ -98,15 +98,15 @@ export function buildGeneratorJobRequestBody({ song, difficulties, optionValues 
 
 export type GeneratorCancelResult =
   | { kind: 'cancelled' }
-  /** Too late to stop it (StepsVault's generator still makes the song and spends the token). A sentence for the player. */
+  /** Too late to stop it (dancedance.studio's generator still makes the song and spends the token). A sentence for the player. */
   | { kind: 'not-cancelled'; message: string }
   /** No answer Sync understands (offline, an error page): the job may or may not have stopped. */
   | { kind: 'unknown' };
 
-/** vaultSongId is trusted only from StepsVault's own generator (isFromStepsVault), so another can't plant a vault song. */
-export function parseStartJobAnswer({ answer, generator, isFromStepsVault }: { answer: HttpResponse<unknown>; generator: GeneratorReference; isFromStepsVault: boolean }): GeneratorStartResult {
+/** vaultSongId is trusted only from dancedance.studio's own generator (isFromDancedance), so another can't plant a vault song. */
+export function parseStartJobAnswer({ answer, generator, isFromDancedance }: { answer: HttpResponse<unknown>; generator: GeneratorReference; isFromDancedance: boolean }): GeneratorStartResult {
   const { status, body } = answer;
-  if (status === 409) return { kind: 'already-exists', message: describeExistingSong({ body, generatorName: generator.name }), vaultSongId: isFromStepsVault ? getVaultSongIdOrNull(body) : null };
+  if (status === 409) return { kind: 'already-exists', message: describeExistingSong({ body, generatorName: generator.name }), vaultSongId: isFromDancedance ? getVaultSongIdOrNull(body) : null };
   if (status !== 202) throw new GeneratorError({ reason: 'refused-job', message: describeRefusedJob({ status, body, generatorName: generator.name }) });
   const jobId = isRecord(body) ? body.jobId : undefined;
   if (typeof jobId !== 'string' || !JOB_ID_PATTERN.test(jobId)) throw new GeneratorError({ reason: 'invalid-answer', message: `${generator.name} took the song but sent no valid job id. Ask its maker to fix it.` });
@@ -136,7 +136,7 @@ function describeExistingSong({ body, generatorName }: { body: unknown; generato
   return getGeneratorErrorSentence(body) ?? `${generatorName} already has this song, or is making it right now.`;
 }
 
-/** A vault song id in a generator's answer; only ever trusted from StepsVault's own generator. */
+/** A vault song id in a generator's answer; only ever trusted from dancedance.studio's own generator. */
 export function getVaultSongIdOrNull(body: unknown): string | null {
   const vaultSongId = isRecord(body) ? body.vaultSongId : undefined;
   return typeof vaultSongId === 'string' && VAULT_SONG_ID_PATTERN.test(vaultSongId) ? vaultSongId : null;

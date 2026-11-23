@@ -1,8 +1,8 @@
 import type { InstalledSong } from './installed-songs';
 
 /** Dot first, so StepMania and most file browsers don't show it to the player. */
-export const SONG_FOLDER_MARKER_FILE_NAME = '.stepsvault.json';
-const MARKER_FORMAT = 'stepsvault-song';
+export const SONG_FOLDER_MARKER_FILE_NAME = '.dancedance.json';
+const MARKER_FORMAT = 'dancedance-song';
 
 export interface SongFolderMarker {
   format: typeof MARKER_FORMAT;

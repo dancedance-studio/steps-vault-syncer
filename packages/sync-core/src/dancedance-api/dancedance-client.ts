@@ -6,7 +6,7 @@ import { LINK_JOB_WAIT_MILLISECONDS, parseLinkJobOrNull, parseLinkJobState, type
 import type { FileUploadHttpClient, HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
 import type { SongFiles, VaultFiles } from '../writing/song-writer';
 import type { ComputerSongReport } from './computer-songs';
-import { SignedOutError, StepsVaultApiError, type DeviceCode, type DeviceDescription, type DeviceSignInPoll, type SyncAccount, type SyncPartyList, type VaultSongDetails } from './stepsvault-api-types';
+import { SignedOutError, DancedanceApiError, type DeviceCode, type DeviceDescription, type DeviceSignInPoll, type SyncAccount, type SyncPartyList, type VaultSongDetails } from './dancedance-api-types';
 
 const TIMEOUT_MILLISECONDS = 30_000;
 // The site answers the long poll within LINK_JOB_WAIT_MILLISECONDS; the margin covers a slow network on the way back.
@@ -19,15 +19,15 @@ const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_FINGERPRINT_BYTES = 16 * 1024 * 1024;
 const BYTES_PER_FLOAT = 4;
 const YOUTUBE_WATCH_URL = 'https://www.youtube.com/watch?v=';
-/** Every StepsVault song has these; used when the vault hasn't been read in this session yet. */
+/** Every dancedance.studio song has these; used when the vault hasn't been read in this session yet. */
 const DEFAULT_IMAGE_KINDS = ['banner', 'background', 'jacket'];
 
 /**
- * The StepsVault API as Sync uses it. The desktop app passes its device token; the website passes none and its
+ * The dancedance.studio API as Sync uses it. The desktop app passes its device token; the website passes none and its
  * HttpClient sends the player's session cookie instead. Link jobs are the app's only: it alone uploads files, through
  * fileUploadClient.
  */
-export class StepsVaultClient implements VaultFiles, LinkJobsApi {
+export class DancedanceClient implements VaultFiles, LinkJobsApi {
   private readonly httpClient: HttpClient;
   private readonly fileUploadClient: FileUploadHttpClient | null;
   private readonly siteApiUrl: string;
@@ -46,7 +46,7 @@ export class StepsVaultClient implements VaultFiles, LinkJobsApi {
   async fetchVault(): Promise<VaultSongDetails[]> {
     const response = await this.httpClient.requestJson(this.buildRequest({ path: '/vault', maxResponseBytes: MAX_JSON_BYTES }));
     assertOk(response);
-    if (!Array.isArray(response.body)) throw new StepsVaultApiError({ status: response.status, message: 'dancedance.studio sent a song list Sync can’t read. Update Sync to the latest version.' });
+    if (!Array.isArray(response.body)) throw new DancedanceApiError({ status: response.status, message: 'dancedance.studio sent a song list Sync can’t read. Update Sync to the latest version.' });
     const songs = response.body.map((song) => parseVaultSong(song));
     for (const song of songs) this.imageKindsBySongId.set(song.vaultSongId, song.imageKinds);
     return songs;
@@ -63,15 +63,15 @@ export class StepsVaultClient implements VaultFiles, LinkJobsApi {
     const body = parseJsonOrNull(response.body);
     if (body === null) return null;
     const partyLists = asRecord(body).partyLists;
-    if (!Array.isArray(partyLists)) throw new StepsVaultApiError({ status: response.status, message: 'dancedance.studio sent party lists Sync can’t read. Update Sync to the latest version.' });
+    if (!Array.isArray(partyLists)) throw new DancedanceApiError({ status: response.status, message: 'dancedance.studio sent party lists Sync can’t read. Update Sync to the latest version.' });
     const parsedLists = partyLists.map((partyList) => parsePartyList(partyList));
     for (const song of parsedLists.flatMap((partyList) => partyList.songs)) this.imageKindsBySongId.set(song.vaultSongId, song.imageKinds);
     return parsedLists;
   }
 
   /**
-   * Adds a song that is already in StepsVault to the player's vault (free, and fine to repeat), for example the one
-   * StepsVault's generator said it already has. The next sync installs it.
+   * Adds a song that is already in dancedance.studio to the player's vault (free, and fine to repeat), for example the one
+   * dancedance.studio's generator said it already has. The next sync installs it.
    */
   async addToVault(vaultSongId: string): Promise<void> {
     const response = await this.httpClient.requestJson(this.buildRequest({ path: `/vault/${encodeURIComponent(vaultSongId)}`, method: 'POST', maxResponseBytes: MAX_JSON_BYTES }));
@@ -84,7 +84,7 @@ export class StepsVaultClient implements VaultFiles, LinkJobsApi {
     assertOk(response);
     const body = asRecord(response.body);
     const player = asRecord(body.player);
-    if (typeof body.tokenBalance !== 'number' || !Number.isInteger(body.tokenBalance) || body.tokenBalance < 0) throw new StepsVaultApiError({ status: response.status, message: 'dancedance.studio sent a token balance Sync can’t read. Update Sync to the latest version.' });
+    if (typeof body.tokenBalance !== 'number' || !Number.isInteger(body.tokenBalance) || body.tokenBalance < 0) throw new DancedanceApiError({ status: response.status, message: 'dancedance.studio sent a token balance Sync can’t read. Update Sync to the latest version.' });
     return { tokenBalance: body.tokenBalance, player: { handle: getString(player.handle), initial: getString(player.initial), avatarColor: getString(player.avatarColor) } };
   }
 
@@ -200,7 +200,7 @@ function assertOk(response: HttpResponse<unknown>): void {
   if (response.status === 401) throw new SignedOutError();
   if (response.status >= 200 && response.status < 300) return;
   const message = getErrorSentenceOrNull(response.body);
-  throw new StepsVaultApiError({ status: response.status, message: message ?? `dancedance.studio answered with an error (${String(response.status)}). Try again in a minute.` });
+  throw new DancedanceApiError({ status: response.status, message: message ?? `dancedance.studio answered with an error (${String(response.status)}). Try again in a minute.` });
 }
 
 function buildLinkJobPath(jobId: string): string {
@@ -272,17 +272,17 @@ function parseJsonOrNull(text: string): unknown {
 }
 
 function readLittleEndianFloats(bytes: Uint8Array): Float32Array {
-  if (bytes.byteLength % BYTES_PER_FLOAT !== 0) throw new StepsVaultApiError({ status: 200, message: 'The song’s fingerprint arrived broken. Sync again.' });
+  if (bytes.byteLength % BYTES_PER_FLOAT !== 0) throw new DancedanceApiError({ status: 200, message: 'The song’s fingerprint arrived broken. Sync again.' });
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   return Float32Array.from({ length: bytes.byteLength / BYTES_PER_FLOAT }, (_, index) => view.getFloat32(index * BYTES_PER_FLOAT, true));
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new StepsVaultApiError({ status: 200, message: 'dancedance.studio sent an answer Sync can’t read. Update Sync to the latest version.' });
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new DancedanceApiError({ status: 200, message: 'dancedance.studio sent an answer Sync can’t read. Update Sync to the latest version.' });
   return value as Record<string, unknown>;
 }
 
 function getString(value: unknown): string {
-  if (typeof value !== 'string') throw new StepsVaultApiError({ status: 200, message: 'dancedance.studio sent an answer Sync can’t read. Update Sync to the latest version.' });
+  if (typeof value !== 'string') throw new DancedanceApiError({ status: 200, message: 'dancedance.studio sent an answer Sync can’t read. Update Sync to the latest version.' });
   return value;
 }

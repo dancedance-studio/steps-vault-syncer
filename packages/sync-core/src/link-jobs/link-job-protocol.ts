@@ -142,7 +142,7 @@ export interface LinkJobAudio {
   contentType: LinkAudioContentType;
 }
 
-/** The site's side of link jobs, as Sync uses it. StepsVaultClient implements it with the device token. */
+/** The site's side of link jobs, as Sync uses it. DancedanceClient implements it with the device token. */
 export interface LinkJobsApi {
   reportPresence(presence: SyncPresence): Promise<void>;
   /** Waits on the site up to LINK_JOB_WAIT_MILLISECONDS; null when no job came. */

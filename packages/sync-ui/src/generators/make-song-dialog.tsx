@@ -7,7 +7,7 @@ import { LIBRARY_GENERATOR_NAME, SITE_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
 import { MissLine } from '../shared/miss-line';
 import { ReceptorLoader } from '../shared/receptor-loader';
-import type { GeneratorJobView, GeneratorView, MakeSongRequest, MakeSongResult, MusicChoiceView, PreselectedSongView, StepsVaultGeneratorView } from '../sync-ui-types';
+import type { GeneratorJobView, GeneratorView, MakeSongRequest, MakeSongResult, MusicChoiceView, PreselectedSongView, DancedanceGeneratorView } from '../sync-ui-types';
 import { DANCEDANCE_GENERATOR_ID } from '../views/build-generator-views';
 import { MusicUploadWarning } from './add-generator-dialog';
 import { CancelJobButton, GeneratorJobProgress, type GeneratorJobActions } from './generator-jobs';
@@ -17,7 +17,7 @@ const DIFFICULTY_SHORT_NAMES: Readonly<Record<GeneratorDifficulty, string>> = { 
 const DEFAULT_DIFFICULTIES: readonly GeneratorDifficulty[] = ['Easy', 'Medium', 'Hard'];
 
 export interface MakeSongDialogProps extends MusicSources, GeneratorJobActions {
-  stepsVaultGenerator: StepsVaultGeneratorView;
+  dancedanceGenerator: DancedanceGeneratorView;
   generators: readonly GeneratorView[];
   jobs: readonly GeneratorJobView[];
   /** Gets the music ready and sends it to the generator; resolves once the job started, or with a sentence why not. */
@@ -74,15 +74,15 @@ interface GeneratorChoice {
   uploadWarning: string | null;
 }
 
-function getGeneratorChoices({ stepsVaultGenerator, generators }: { stepsVaultGenerator: StepsVaultGeneratorView; generators: readonly GeneratorView[] }): GeneratorChoice[] {
-  const tokenText = stepsVaultGenerator.tokenCount === null ? '' : ` · you have ${String(stepsVaultGenerator.tokenCount)} ${stepsVaultGenerator.tokenCount === 1 ? 'token' : 'tokens'}`;
-  const stepsVaultChoice: GeneratorChoice = { generatorId: DANCEDANCE_GENERATOR_ID, name: LIBRARY_GENERATOR_NAME, subtitle: `Goes to the library for everyone · 1 token${tokenText}`, tag: 'Default', difficulties: stepsVaultGenerator.difficulties ?? [], uploadAddress: null, uploadWarning: stepsVaultGenerator.musicUploadWarning };
+function getGeneratorChoices({ dancedanceGenerator, generators }: { dancedanceGenerator: DancedanceGeneratorView; generators: readonly GeneratorView[] }): GeneratorChoice[] {
+  const tokenText = dancedanceGenerator.tokenCount === null ? '' : ` · you have ${String(dancedanceGenerator.tokenCount)} ${dancedanceGenerator.tokenCount === 1 ? 'token' : 'tokens'}`;
+  const dancedanceChoice: GeneratorChoice = { generatorId: DANCEDANCE_GENERATOR_ID, name: LIBRARY_GENERATOR_NAME, subtitle: `Goes to the library for everyone · 1 token${tokenText}`, tag: 'Default', difficulties: dancedanceGenerator.difficulties ?? [], uploadAddress: null, uploadWarning: dancedanceGenerator.musicUploadWarning };
   const communityChoices = generators.map((generator): GeneratorChoice => {
     const isOnInternet = generator.location.kind === 'internet';
     const whereText = generator.location.kind === 'internet' ? `On the internet: ${generator.location.address}` : 'On this computer';
     return { generatorId: generator.generatorId, name: generator.name, subtitle: `${whereText} · song stays on this computer`, tag: isOnInternet ? 'Internet' : 'This PC', difficulties: generator.difficulties, uploadAddress: generator.location.kind === 'internet' ? generator.location.address : null, uploadWarning: null };
   });
-  return [stepsVaultChoice, ...communityChoices];
+  return [dancedanceChoice, ...communityChoices];
 }
 
 interface SetupStepProps extends MakeSongDialogProps {
@@ -113,8 +113,8 @@ function SetupStep(props: SetupStepProps): ReactElement {
     if (result.kind === 'failed') setProblem(result.message);
     else props.onStarted(result.jobKey);
   };
-  const isStepsVault = pickedChoice?.generatorId === DANCEDANCE_GENERATOR_ID;
-  const isOutOfTokens = isStepsVault && props.stepsVaultGenerator.tokenCount === 0;
+  const isDancedance = pickedChoice?.generatorId === DANCEDANCE_GENERATOR_ID;
+  const isOutOfTokens = isDancedance && props.dancedanceGenerator.tokenCount === 0;
   return (
     <>
       <DialogHeading titleId="sv-sync-make-song-title" title="Pick the generator and difficulties" stepText="Step 2 of 3" />
@@ -133,9 +133,9 @@ function SetupStep(props: SetupStepProps): ReactElement {
       {pickedDifficulties.length === 0 && <div className="sv-sync-small sv-sync-error-text" role="alert">Pick at least one difficulty.</div>}
       {pickedChoice?.uploadAddress && <MusicUploadWarning address={pickedChoice.uploadAddress} />}
       {pickedChoice?.uploadWarning && <div className="sv-sync-warning-box" role="note"><Icon name="warning" size={18} /><span>{pickedChoice.uploadWarning}</span></div>}
-      {isStepsVault && !pickedChoice.uploadWarning && <span className="sv-sync-small sv-sync-muted">Your music file is uploaded to {SITE_NAME} to make the steps.</span>}
+      {isDancedance && !pickedChoice.uploadWarning && <span className="sv-sync-small sv-sync-muted">Your music file is uploaded to {SITE_NAME} to make the steps.</span>}
       {isOutOfTokens && (
-        <MissLine action={<a className="sv-sync-button sv-sync-button--small" href={props.stepsVaultGenerator.tokensHref} target="_blank" rel="noreferrer">Buy tokens</a>}>
+        <MissLine action={<a className="sv-sync-button sv-sync-button--small" href={props.dancedanceGenerator.tokensHref} target="_blank" rel="noreferrer">Buy tokens</a>}>
           You’re out of tokens.
         </MissLine>
       )}
@@ -146,7 +146,7 @@ function SetupStep(props: SetupStepProps): ReactElement {
         <span className="sv-sync-row">
           <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onClose}>Cancel</button>
           <button className="sv-sync-button sv-sync-button--go" type="button" disabled={isStarting || isOutOfTokens || pickedDifficulties.length === 0} onClick={() => void makeSong()}>
-            {isStarting ? 'Getting the music ready…' : isStepsVault ? 'Make the steps · 1 token' : 'Make the steps'}
+            {isStarting ? 'Getting the music ready…' : isDancedance ? 'Make the steps · 1 token' : 'Make the steps'}
           </button>
         </span>
       </div>

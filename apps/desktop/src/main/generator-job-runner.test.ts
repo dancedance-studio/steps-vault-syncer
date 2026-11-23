@@ -22,10 +22,10 @@ import {
 import { GeneratorJobRunner, type GeneratorJobStart, type JobGenerator } from './generator-job-runner';
 
 const COMMUNITY_ADDRESS = 'http://127.0.0.1:7700';
-const DANCEDANCE_ADDRESS = 'https://stepsvault.example.com/api/generator';
-const SIGN_IN = { siteUrl: 'https://stepsvault.example.com', deviceToken: 'device-token-1' };
+const DANCEDANCE_ADDRESS = 'https://dancedance.example.com/api/generator';
+const SIGN_IN = { siteUrl: 'https://dancedance.example.com', deviceToken: 'device-token-1' };
 const MANIFEST: GeneratorManifest = { protocol: 1, kind: 'generator', id: 'stepcat.tap-forge', name: 'Tap Forge', version: '1.2.0', author: '@stepcat', description: '', difficulties: ['Easy', 'Medium'], musicTypes: ['audio/ogg'], usesVideo: false, maxMusicBytes: 1_000_000, options: [] };
-const DANCEDANCE_MANIFEST: GeneratorManifest = { ...MANIFEST, id: 'stepsvault.generator', name: 'StepsVault' };
+const DANCEDANCE_MANIFEST: GeneratorManifest = { ...MANIFEST, id: 'dancedance.generator', name: 'dancedance.studio' };
 const CHART_TEXT = ['#TITLE:Night Drive;', '#OFFSET:0;', '#BPMS:0=120;', '', '#NOTEDATA:;', '#STEPSTYPE:dance-single;', '#DIFFICULTY:Easy;', '#NOTES:', '1000', ';', ''].join('\n');
 const NIGHT_DRIVE = { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null };
 
@@ -78,8 +78,8 @@ class FakeApp {
   record: InstalledSongsRecord = buildEmptyInstalledSongsRecord();
   vaultSongs: VaultSongIdentity[] = [];
   generatorsByAddress = new Map<string, JobGenerator>([
-    [COMMUNITY_ADDRESS, { generator: buildInstalledGenerator({ baseUrl: COMMUNITY_ADDRESS, manifest: MANIFEST }), signIn: null, isStepsVault: false }],
-    [DANCEDANCE_ADDRESS, { generator: withMusicUploadConsent({ generator: buildInstalledGenerator({ baseUrl: DANCEDANCE_ADDRESS, manifest: DANCEDANCE_MANIFEST }), consentedAt: '2026-10-25T09:00:00.000Z' }), signIn: SIGN_IN, isStepsVault: true }],
+    [COMMUNITY_ADDRESS, { generator: buildInstalledGenerator({ baseUrl: COMMUNITY_ADDRESS, manifest: MANIFEST }), signIn: null, isDancedance: false }],
+    [DANCEDANCE_ADDRESS, { generator: withMusicUploadConsent({ generator: buildInstalledGenerator({ baseUrl: DANCEDANCE_ADDRESS, manifest: DANCEDANCE_MANIFEST }), consentedAt: '2026-10-25T09:00:00.000Z' }), signIn: SIGN_IN, isDancedance: true }],
   ]);
   private changeCount = 0;
 
@@ -107,7 +107,7 @@ class FakeApp {
       },
       saveReport: ({ songKey, reportText }) => { this.reportsBySongKey.set(songKey, reportText); return Promise.resolve(); },
       addSongToVault: (vaultSongId) => {
-        if (vaultSongId === 'song_unknown') return Promise.reject(new Error('This song isn’t in StepsVault.'));
+        if (vaultSongId === 'song_unknown') return Promise.reject(new Error('This song isn’t in dancedance.studio.'));
         this.songsAddedToVault.push(vaultSongId);
         return Promise.resolve();
       },
@@ -173,7 +173,7 @@ describe('GeneratorJobRunner', () => {
     let sentParts: readonly MultipartPart[] = [];
     app.generators.route({ method: 'POST', url: `${COMMUNITY_ADDRESS}/jobs`, answer: (request) => { sentParts = 'parts' in request ? request.parts : []; return { status: 202, body: { jobId: 'job-a1', retryAfterSeconds: 1 } }; } });
     app.songsFolder.addMusicSource({ sourceId: 'file:jobs/job-1/source-video.mp4', bytes: new Uint8Array([0, 0, 0, 24]) });
-    app.generatorsByAddress.set(COMMUNITY_ADDRESS, { generator: buildInstalledGenerator({ baseUrl: COMMUNITY_ADDRESS, manifest: { ...MANIFEST, usesVideo: true } }), signIn: null, isStepsVault: false });
+    app.generatorsByAddress.set(COMMUNITY_ADDRESS, { generator: buildInstalledGenerator({ baseUrl: COMMUNITY_ADDRESS, manifest: { ...MANIFEST, usesVideo: true } }), signIn: null, isDancedance: false });
     const runner = app.buildRunner();
     await runner.initialize();
     const source = { addonId: 'open.audio-links', addonName: 'Open Audio Links', link: 'https://clips.example/watch?v=abc123' };
@@ -198,7 +198,7 @@ describe('GeneratorJobRunner', () => {
     expect(getGeneratedSongs(app.record)[0]?.source).toBeNull();
   });
 
-  it('sends StepsVault’s generator the device token, and lets the vault install its song instead of writing it', async () => {
+  it('sends dancedance.studio’s generator the device token, and lets the vault install its song instead of writing it', async () => {
     const app = new FakeApp();
     app.routeFinishedJob({ address: DANCEDANCE_ADDRESS });
     app.generators.route({ method: 'GET', url: `${DANCEDANCE_ADDRESS}/jobs/job-a1`, answer: { status: 200, body: { state: 'done', vaultSongId: 'song_9' } } });
@@ -206,7 +206,7 @@ describe('GeneratorJobRunner', () => {
     await runner.initialize();
     await runner.startJob(buildStart({ generatorBaseUrl: DANCEDANCE_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
-    expect(runner.jobs[0]).toMatchObject({ isStepsVault: true, generatorName: 'dancedance.studio generator', result: 'added-to-vault' });
+    expect(runner.jobs[0]).toMatchObject({ isDancedance: true, generatorName: 'dancedance.studio generator', result: 'added-to-vault' });
     expect(app.vaultSongsAddedForJobs).toEqual([['job-1', 'song_9']]);
     expect(app.songsAddedToVault).toEqual(['song_9']);
     expect(getGeneratedSongs(app.record)).toEqual([]);
@@ -224,7 +224,7 @@ describe('GeneratorJobRunner', () => {
     expect(app.generators.requests.some((request) => 'Authorization' in request.headers)).toBe(false);
   });
 
-  it('finds the vault song by its facts when StepsVault’s done answer doesn’t name it', async () => {
+  it('finds the vault song by its facts when dancedance.studio’s done answer doesn’t name it', async () => {
     const app = new FakeApp();
     app.routeFinishedJob({ address: DANCEDANCE_ADDRESS });
     const runner = app.buildRunner();
@@ -233,17 +233,17 @@ describe('GeneratorJobRunner', () => {
     expect(app.vaultSongsAddedForJobs).toEqual([['job-1', null]]);
   });
 
-  it('fails with the site’s sentence when the song StepsVault named can’t be added to the vault', async () => {
+  it('fails with the site’s sentence when the song dancedance.studio named can’t be added to the vault', async () => {
     const app = new FakeApp();
     app.generators.route({ method: 'POST', url: `${DANCEDANCE_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the vault.', vaultSongId: 'song_unknown' } } });
     const runner = app.buildRunner();
     await runner.startJob(buildStart({ generatorBaseUrl: DANCEDANCE_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'failed');
-    expect(runner.jobs[0]?.message).toBe('This song isn’t in StepsVault.');
+    expect(runner.jobs[0]?.message).toBe('This song isn’t in dancedance.studio.');
     expect(app.vaultSongsAddedForJobs).toEqual([]);
   });
 
-  it('adds the vault song when StepsVault already has the song, so no token is spent', async () => {
+  it('adds the vault song when dancedance.studio already has the song, so no token is spent', async () => {
     const app = new FakeApp();
     app.generators.route({ method: 'POST', url: `${DANCEDANCE_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the vault.', vaultSongId: 'song_7' } } });
     const runner = app.buildRunner();
@@ -324,7 +324,7 @@ describe('GeneratorJobRunner', () => {
     const app = new FakeApp();
     app.routeFinishedJob({ address: COMMUNITY_ADDRESS });
     const waitingJob: SavedGeneratorJob = {
-      jobKey: 'job-1', generatorBaseUrl: COMMUNITY_ADDRESS, generatorId: 'stepcat.tap-forge', generatorName: 'Tap Forge', generatorVersion: '1.2.0', isStepsVault: false, jobId: 'job-a1', song: NIGHT_DRIVE, difficulties: ['Easy'],
+      jobKey: 'job-1', generatorBaseUrl: COMMUNITY_ADDRESS, generatorId: 'stepcat.tap-forge', generatorName: 'Tap Forge', generatorVersion: '1.2.0', isDancedance: false, jobId: 'job-a1', song: NIGHT_DRIVE, difficulties: ['Easy'],
       state: 'waiting', progress: 0.5, stage: 'Placing the steps', retryAfterSeconds: 1, message: null, vaultChoice: null, result: null, playerMusicLocation: buildStart().playerMusicLocation, playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null, source: null,
       startedAt: '2026-10-25T09:00:00.000Z', updatedAt: '2026-10-25T09:00:00.000Z',
     };

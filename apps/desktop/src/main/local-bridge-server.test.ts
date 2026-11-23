@@ -32,7 +32,7 @@ async function writeSongFolder({ folder, generatedSong }: { folder: string; gene
   await mkdir(folder, { recursive: true });
   await writeFile(path.join(folder, 'Night Drive.ssc'), '#TITLE:Night Drive;\n#MUSIC:music.ogg;\n');
   await writeFile(path.join(folder, 'music.ogg'), MUSIC_BYTES);
-  await writeFile(path.join(folder, '.stepsvault.json'), buildGeneratedSongMarkerText(generatedSong));
+  await writeFile(path.join(folder, '.dancedance.json'), buildGeneratedSongMarkerText(generatedSong));
 }
 
 async function startServer({ ports = TEST_PORTS }: { ports?: readonly number[] } = {}): Promise<number> {
@@ -84,7 +84,7 @@ function isRefusedConnection({ host, port }: { host: string; port: number }): Pr
 }
 
 beforeEach(async () => {
-  workFolder = await mkdtemp(path.join(os.tmpdir(), 'stepsvault-bridge-test-'));
+  workFolder = await mkdtemp(path.join(os.tmpdir(), 'dancedance-bridge-test-'));
   songsFolderPath = path.join(workFolder, 'Songs');
   const generatedSong = buildGeneratedSong();
   await writeSongFolder({ folder: path.join(songsFolderPath, ...generatedSong.folderPath), generatedSong });

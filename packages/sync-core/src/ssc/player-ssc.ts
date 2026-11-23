@@ -2,7 +2,7 @@
 const OFFSET_TAG_PATTERN = /^(#OFFSET:)([^;]*)(;)/gm;
 const SAMPLE_START_TAG_PATTERN = /^(#SAMPLESTART:)([^;]*)(;)/gm;
 const MUSIC_TAG_PATTERN = /^(#MUSIC:)([^;]*)(;)/gm;
-/** StepsVault's background video isn't part of a synced song (the player brings only music), so its line goes. */
+/** dancedance.studio's background video isn't part of a synced song (the player brings only music), so its line goes. */
 const BACKGROUND_CHANGES_LINE_PATTERN = /^#BGCHANGES:[^;]*;\r?\n?/gm;
 export const SSC_SPECIAL_CHARACTERS_PATTERN = /[;:#\\]/;
 const TIME_DECIMALS = 6;

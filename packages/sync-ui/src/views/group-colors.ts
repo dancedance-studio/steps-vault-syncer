@@ -1,6 +1,6 @@
 /**
  * The six group colours the player picks from on the site, by the key GET /api/sync/vault sends. A copy of the site's
- * SONG_GROUP_COLOR_BY_KEY (packages/domain song-groups.ts in the StepsVault site repo): keep the two the same.
+ * SONG_GROUP_COLOR_BY_KEY (packages/domain song-groups.ts in the dancedance.studio site repo): keep the two the same.
  */
 const GROUP_COLOR_HEXES_BY_KEY: ReadonlyMap<string, string> = new Map([
   ['green', '#2cff00'],

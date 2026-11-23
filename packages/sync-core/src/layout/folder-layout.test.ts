@@ -39,7 +39,7 @@ describe('getSafeFolderName', () => {
     ['???', 'Untitled'],
     ['Beyoncé', 'Beyonce'],
     ['הזוג הזה', 'הזוג הזה'],
-    ['StepsVault · Pop', 'StepsVault Pop'],
+    ['dancedance.studio · Pop', 'dancedance.studio Pop'],
   ])('%j becomes %j', (name, expected) => {
     expect(getSafeFolderName({ name, fallback: 'Untitled' })).toBe(expected);
   });

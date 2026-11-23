@@ -63,7 +63,7 @@ describe('checkInstalledSong', () => {
   it('never claims a folder with a broken marker', async () => {
     const songsFolder = new MemorySongsFolder();
     const installedSong = buildInstalledSong();
-    await writeSongFolder({ songsFolder, installedSong, markerText: '{"format": "stepsvault-song", "version": 1' });
+    await writeSongFolder({ songsFolder, installedSong, markerText: '{"format": "dancedance-song", "version": 1' });
     expect((await checkInstalledSong({ songsFolder, installedSong })).state).toBe('not-ours');
   });
 

@@ -1,5 +1,5 @@
 import type { FolderLayout } from '@dancedance/sync-core';
-import type { ActivityEntryView, AddonInstallPreview, AddonView, ConnectedGameView, GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorView, LinksTabView, MusicChoiceView, SongSourceTabView, StepsVaultGeneratorView, DifficultyLevels, FoundGameView, LayoutPreviewsByLayout, LinkedComputerView, MusicFolderView, PartyFolderView, PickedFileView, PlayerGroupView, SongDetailsView, SongRowView } from '../sync-ui-types';
+import type { ActivityEntryView, AddonInstallPreview, AddonView, ConnectedGameView, GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorView, LinksTabView, MusicChoiceView, SongSourceTabView, DancedanceGeneratorView, DifficultyLevels, FoundGameView, LayoutPreviewsByLayout, LinkedComputerView, MusicFolderView, PartyFolderView, PickedFileView, PlayerGroupView, SongDetailsView, SongRowView } from '../sync-ui-types';
 
 // Made-up songs and artists for the preview page and the tests; the cover art is drawn here, so nothing loads from the network.
 
@@ -104,7 +104,7 @@ export const FAKE_ADDONS: readonly AddonView[] = [
   { addonId: 'clip-songs', name: 'Clip Songs', version: '0.2.0', author: '@noa', providesText: 'New songs to make', isEnabled: true, isAudioSource: false, health: { kind: 'working', note: 'http://127.0.0.1:7801' }, options: [] },
 ];
 
-export const FAKE_ADDON_PREVIEW: AddonInstallPreview = { address: 'https://bridge.hyperpad.example/stepsvault', name: 'Tune Bridge', version: '0.9.0', author: 'hyperpad',
+export const FAKE_ADDON_PREVIEW: AddonInstallPreview = { address: 'https://bridge.hyperpad.example/dancedance', name: 'Tune Bridge', version: '0.9.0', author: 'hyperpad',
   options: [{ optionId: 'media', label: 'What to get', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], value: 'audio-and-video' }],
 };
 
@@ -143,7 +143,7 @@ export const FAKE_LINKED_COMPUTERS: readonly LinkedComputerView[] = [
   { computerId: 'arcade-cab', computerName: 'ARCADE-CAB', systemText: 'Windows 10 · linked Aug 21, 2026', isOnline: false, lastSyncText: '3 days ago', gameName: 'ITGmania' },
 ];
 
-export const FAKE_DANCEDANCE_GENERATOR: StepsVaultGeneratorView = { tokenCount: 37, tokensHref: '#tokens', difficulties: ['Beginner', 'Easy', 'Medium', 'Hard', 'Challenge'], musicUploadWarning: 'Your music file will be sent to https://stepsvault.example/api/generator.' };
+export const FAKE_DANCEDANCE_GENERATOR: DancedanceGeneratorView = { tokenCount: 37, tokensHref: '#tokens', difficulties: ['Beginner', 'Easy', 'Medium', 'Hard', 'Challenge'], musicUploadWarning: 'Your music file will be sent to https://dancedance.example/api/generator.' };
 
 export const FAKE_GENERATORS: readonly GeneratorView[] = [
   { generatorId: 'stepcat.tap-forge', name: 'Tap Forge', version: '1.2.0', author: '@stepcat', description: 'Flowing steps on the beat.', location: { kind: 'this-computer' }, startCommand: 'C:/generators/tap-forge/start.cmd', difficulties: ['Easy', 'Medium', 'Hard'], musicUploadWarning: null,
@@ -157,8 +157,8 @@ export const FAKE_GENERATOR_PREVIEW: GeneratorInstallPreview = { address: 'https
 };
 
 export const FAKE_GENERATOR_JOBS: readonly GeneratorJobView[] = [
-  { jobKey: 'job-night-drive', songTitle: 'Night Drive', songArtist: 'Lumen Park', generatorName: 'Tap Forge', isStepsVault: false, state: 'working', stageText: 'Placing the steps', progressPercent: 45, message: null, vaultChoiceQuestion: null, doneText: null },
-  { jobKey: 'job-low-tide', songTitle: 'Low Tide', songArtist: 'Marla Quinn', generatorName: 'Groove Lab', isStepsVault: false, state: 'needs-vault-choice', stageText: 'Waiting for your answer', progressPercent: null, message: null, vaultChoiceQuestion: null, doneText: null },
+  { jobKey: 'job-night-drive', songTitle: 'Night Drive', songArtist: 'Lumen Park', generatorName: 'Tap Forge', isDancedance: false, state: 'working', stageText: 'Placing the steps', progressPercent: 45, message: null, vaultChoiceQuestion: null, doneText: null },
+  { jobKey: 'job-low-tide', songTitle: 'Low Tide', songArtist: 'Marla Quinn', generatorName: 'Groove Lab', isDancedance: false, state: 'needs-vault-choice', stageText: 'Waiting for your answer', progressPercent: null, message: null, vaultChoiceQuestion: null, doneText: null },
 ];
 
 export const FAKE_GENERATED_SONGS: readonly GeneratedSongView[] = [

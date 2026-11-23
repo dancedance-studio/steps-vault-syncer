@@ -13,14 +13,14 @@ describe('empty and error states', () => {
     const onAction = vi.fn();
     render(
       <>
-        <EmptyVaultState vaultHref="https://stepsvault.example/vault" />
+        <EmptyVaultState vaultHref="https://dancedance.example/vault" />
         <PermissionLostState onReconnect={onAction} />
         <SongsFolderMissingState previousSongsFolderPath={FAKE_GAME.songsFolderPath} onChooseFolder={onAction} />
         <DiskFullState neededSpaceText="48 MB" songCount={3} driveName="C:" onTryAgain={onAction} />
         <SongFolderLockedState songTitle="Watch Me Glow" onTryAgain={onAction} />
       </>,
     );
-    expect(screen.getByRole('link', { name: 'Browse the library' }).getAttribute('href')).toBe('https://stepsvault.example/vault');
+    expect(screen.getByRole('link', { name: 'Browse the library' }).getAttribute('href')).toBe('https://dancedance.example/vault');
     expect(screen.getByRole('heading', { name: 'Permission needed' })).toBeDefined();
     expect(screen.getByText(FAKE_GAME.songsFolderPath)).toBeDefined();
     expect(screen.getByText(/Nothing was half-written/).textContent).toContain('3 songs');

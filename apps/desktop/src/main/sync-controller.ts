@@ -20,7 +20,7 @@ import {
   scanMusicLibrary,
   SignedOutError,
   startDeviceSignIn,
-  StepsVaultClient,
+  DancedanceClient,
   withAddonOption,
   writeGeneratedSong,
   type ActivityLogEvent,
@@ -157,7 +157,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private record: InstalledSongsRecord = buildEmptyInstalledSongsRecord();
   private recordTurn: Promise<unknown> = Promise.resolve();
   private deviceToken: string | null = null;
-  /** The player's StepsVault tokens; null until read, or when StepsVault can't be reached. */
+  /** The player's dancedance.studio tokens; null until read, or when dancedance.studio can't be reached. */
   private tokenBalance: number | null = null;
   private signIn: DesktopSignIn = { kind: 'signed-out' };
   private foundGames: FoundGame[] = [];
@@ -218,7 +218,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     await this.browserPairing.initialize();
     await this.bridgeServer.start();
     if (this.deviceToken) this.siteLinkJobs.start();
-    void this.generatorSettings.loadStepsVaultGenerator().then(() => { this.publish(); });
+    void this.generatorSettings.loadDancedanceGenerator().then(() => { this.publish(); });
     void this.refreshTokenBalance();
     this.publish();
     await this.scanMusic();
@@ -616,7 +616,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     this.reportSongKeys.add(getReportFileName(songKey));
   }
 
-  /** Spending a token happens on StepsVault, so the balance is read again after each StepsVault song. */
+  /** Spending a token happens on dancedance.studio, so the balance is read again after each dancedance.studio song. */
   private async refreshTokenBalance(): Promise<void> {
     if (this.deviceToken === null) return;
     this.tokenBalance = await this.buildClient().fetchAccount().then((account) => account.tokenBalance, () => this.tokenBalance);
@@ -624,8 +624,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   }
 
   /**
-   * StepsVault's generator put the song in the vault, so a sync installs it like any vault song, with the music the
-   * player gave when the song still needs audio. The song is the one StepsVault named; an older StepsVault that names
+   * dancedance.studio's generator put the song in the vault, so a sync installs it like any vault song, with the music the
+   * player gave when the song still needs audio. The song is the one dancedance.studio named; an older dancedance.studio that names
    * none is matched by the song's facts.
    */
   private async addVaultSongToGame({ job, vaultSongId }: { job: SavedGeneratorJob; vaultSongId: string | null }): Promise<void> {
@@ -708,7 +708,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
         await this.options.tokenStore.save(poll.deviceToken);
         this.signIn = { kind: 'signed-in', computerName: poll.deviceName };
         this.siteLinkJobs.start();
-        void this.generatorSettings.loadStepsVaultGenerator().then(() => { this.publish(); });
+        void this.generatorSettings.loadDancedanceGenerator().then(() => { this.publish(); });
         void this.refreshTokenBalance();
       }
       this.publish();
@@ -781,8 +781,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     return new NodeSongsFolder({ rootFolder: this.settings.game.songsFolderPath, musicSources: this.musicSources, convertMusicToWav: async ({ filePath }) => this.options.audioBridge.convertToWav(new Uint8Array(await readFile(filePath))) });
   }
 
-  private buildClient(): StepsVaultClient {
-    return new StepsVaultClient({ httpClient: this.httpClient, fileUploadClient: this.fileUploadClient, siteUrl: this.options.siteUrl, deviceToken: this.deviceToken });
+  private buildClient(): DancedanceClient {
+    return new DancedanceClient({ httpClient: this.httpClient, fileUploadClient: this.fileUploadClient, siteUrl: this.options.siteUrl, deviceToken: this.deviceToken });
   }
 
   /** An addon's file goes into the app's own folder (never the music folders), named by a hash of its address. */
@@ -834,7 +834,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       scannedFileCount: this.scannedFileCount,
       pickedFiles: Object.entries(this.settings.pickedFilePathsBySongId).map(([vaultSongId, filePath]) => ({ vaultSongId, title: songs.find((song) => song.vaultSongId === vaultSongId)?.title ?? 'A song', fileName: path.basename(filePath), status: songs.find((song) => song.vaultSongId === vaultSongId)?.status ?? 'needs-audio' })),
       addons: this.settings.addons.map((addon) => buildAddonView(addon)),
-      stepsVaultGenerator: this.generatorSettings.buildStepsVaultGeneratorView(),
+      dancedanceGenerator: this.generatorSettings.buildDancedanceGeneratorView(),
       generators: this.settings.generators.map((generator) => buildGeneratorView({ generator, startCommand: this.settings.startCommandsByBaseUrl[generator.baseUrl] ?? null })),
       linksTab: buildLinksTab(this.settings.addons),
       songSourceTabs: buildSongSourceTabs(this.settings.addons),
@@ -876,7 +876,7 @@ function withSongChoice({ settings, vaultSongId, action }: { settings: DesktopSe
   const add = (ids: string[]) => [...ids.filter((id) => id !== vaultSongId), vaultSongId];
   const drop = (ids: string[]) => ids.filter((id) => id !== vaultSongId);
   if (action === 'update') return { ...settings, updateSongIds: add(settings.updateSongIds) };
-  if (action === 'replace-with-stepsvault') return { ...settings, replaceEditedSongIds: add(settings.replaceEditedSongIds) };
+  if (action === 'replace-with-dancedance') return { ...settings, replaceEditedSongIds: add(settings.replaceEditedSongIds) };
   if (action === 'keep-mine') return { ...settings, replaceEditedSongIds: drop(settings.replaceEditedSongIds) };
   if (action === 'remove-from-game') return { ...settings, removeFromGameSongIds: add(settings.removeFromGameSongIds) };
   if (action === 'keep-in-game') return { ...settings, removeFromGameSongIds: drop(settings.removeFromGameSongIds) };

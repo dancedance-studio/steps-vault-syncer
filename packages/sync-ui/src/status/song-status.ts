@@ -33,7 +33,7 @@ export const SONG_ACTION_LABELS: Readonly<Record<SongAction, string>> = {
   'use-different-file': 'Use a different file…',
   'update': 'Update now',
   'keep-mine': 'Keep mine',
-  'replace-with-stepsvault': 'Use library version',
+  'replace-with-dancedance': 'Use library version',
   'remove-from-game': 'Remove from game',
   'keep-in-game': 'Keep',
 };
@@ -44,7 +44,7 @@ const STATUS_ACTIONS_BY_STATUS: Readonly<Record<SongSyncStatus, readonly SongAct
   'needs-audio': ['choose-audio'],
   'different-edit': ['use-different-file'],
   'update-available': ['update'],
-  'you-edited-this': ['keep-mine', 'replace-with-stepsvault'],
+  'you-edited-this': ['keep-mine', 'replace-with-dancedance'],
   'removed-from-vault': ['remove-from-game', 'keep-in-game'],
 };
 

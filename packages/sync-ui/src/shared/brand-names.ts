@@ -1,4 +1,4 @@
-/** The names players see. Package names, storage keys, protocol fields and addresses keep the old StepsVault names. */
+/** The names players see. */
 export const SITE_NAME = 'dancedance.studio';
 export const APP_NAME = `${SITE_NAME} Sync`;
 export const LIBRARY_GENERATOR_NAME = `${SITE_NAME} generator`;

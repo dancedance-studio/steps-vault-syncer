@@ -19,7 +19,7 @@ import { SongWriteError, toSongWriteError } from './song-write-error';
 
 /** Where songs from community generators go; see "Where generated songs go" in generators.md. */
 export const GENERATED_SONGS_GROUP_NAME = 'My generated songs';
-const REPLACED_FOLDER_PREFIX = '.stepsvault-old-';
+const REPLACED_FOLDER_PREFIX = '.dancedance-old-';
 
 /** The player's answer to "keep the vault song, or the generated one?" */
 export type VaultSongChoice = 'keep-vault-song' | 'keep-generated-song';

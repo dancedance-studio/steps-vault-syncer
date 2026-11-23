@@ -8,7 +8,7 @@ import { findPartyFolder, getPartyFolders } from '../ownership/party-folders';
 import type { HttpClient } from '../network/http-client';
 import { MemorySongsFolder } from '../songs-folder/memory-songs-folder';
 import type { SongsPath } from '../songs-folder/songs-path';
-import type { SyncPartyList, VaultSongDetails } from '../stepsvault-api/stepsvault-api-types';
+import type { SyncPartyList, VaultSongDetails } from '../dancedance-api/dancedance-api-types';
 import type { SongFiles } from '../writing/song-writer';
 import { runSync, type SyncPorts, type SyncSettings, type SyncVault } from './run-sync';
 
@@ -39,7 +39,7 @@ class FakeVault implements SyncVault {
   }
 
   fetchPartyLists(): Promise<SyncPartyList[] | null> {
-    return this.isPartyListsDown ? Promise.reject(new Error('StepsVault answered with an error (503).')) : Promise.resolve(this.partyLists);
+    return this.isPartyListsDown ? Promise.reject(new Error('dancedance.studio answered with an error (503).')) : Promise.resolve(this.partyLists);
   }
 
   fetchFingerprint(vaultSongId: string): Promise<AudioFingerprint> {

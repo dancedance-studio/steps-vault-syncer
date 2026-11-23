@@ -29,7 +29,7 @@ let workFolder: string;
 let jobFolder: string;
 
 beforeEach(async () => {
-  workFolder = await mkdtemp(path.join(os.tmpdir(), 'stepsvault-make-song-test-'));
+  workFolder = await mkdtemp(path.join(os.tmpdir(), 'dancedance-make-song-test-'));
   jobFolder = path.join(workFolder, 'jobs', 'job-1');
   await mkdir(jobFolder, { recursive: true });
 });

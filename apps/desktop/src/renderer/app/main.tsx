@@ -9,7 +9,7 @@ const root = document.getElementById('root');
 if (root) {
   createRoot(root).render(
     <StrictMode>
-      <DesktopApp bridge={window.stepsVaultSync} />
+      <DesktopApp bridge={window.dancedanceSync} />
     </StrictMode>,
   );
 }

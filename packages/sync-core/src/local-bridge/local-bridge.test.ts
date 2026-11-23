@@ -26,7 +26,7 @@ async function writeSongFolder({ songsFolder, generatedSong }: { songsFolder: Me
   await songsFolder.writeText({ path: [...folder, 'Night Drive.ssc'], text: '#TITLE:Night Drive;\n#MUSIC:music.ogg;\n' });
   await songsFolder.writeBytes({ path: [...folder, 'music.ogg'], bytes: new Uint8Array([79, 103, 103, 83]) });
   await songsFolder.writeBytes({ path: [...folder, 'banner.png'], bytes: new Uint8Array([137, 80, 78, 71]) });
-  await songsFolder.writeText({ path: [...folder, '.stepsvault.json'], text: buildGeneratedSongMarkerText(generatedSong) });
+  await songsFolder.writeText({ path: [...folder, '.dancedance.json'], text: buildGeneratedSongMarkerText(generatedSong) });
 }
 
 class MemoryPairedBrowserStore {
@@ -71,7 +71,7 @@ function getJson(response: LocalBridgeResponse): Record<string, unknown> {
   return response.body.value as Record<string, unknown>;
 }
 
-describe('the local bridge refuses everyone but the paired StepsVault site', () => {
+describe('the local bridge refuses everyone but the paired dancedance.studio site', () => {
   it('refuses another website, without the CORS headers its page would need to read the answer', async () => {
     const { send, pairBrowser } = await buildBridge();
     const token = await pairBrowser();
@@ -215,7 +215,7 @@ describe('the songs it serves', () => {
   it('never follows a path in the request out of the song’s folder', async () => {
     const { send, pairBrowser } = await buildBridge();
     const authorization = `Bearer ${await pairBrowser()}`;
-    const traversals = ['/v1/songs/..%2F..%2F..%2FWindows%2Fwin.ini/chart', '/v1/songs/../../secret.txt', '/v1/songs/%2E%2E/chart', '/v1/songs/song%3Anight%20drive/..%2F.stepsvault.json', '/v1/songs/a/b/chart', '/v1/songs/%E0%A4%A/chart'];
+    const traversals = ['/v1/songs/..%2F..%2F..%2FWindows%2Fwin.ini/chart', '/v1/songs/../../secret.txt', '/v1/songs/%2E%2E/chart', '/v1/songs/song%3Anight%20drive/..%2F.dancedance.json', '/v1/songs/a/b/chart', '/v1/songs/%E0%A4%A/chart'];
     const responses = await Promise.all(traversals.map((target) => send({ target, authorization })));
     expect(responses.map((response) => response.status)).toEqual([404, 404, 404, 404, 404, 400]);
     expect(responses.every((response) => response.body.kind !== 'file')).toBe(true);

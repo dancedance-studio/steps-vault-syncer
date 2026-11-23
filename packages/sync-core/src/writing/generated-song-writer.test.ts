@@ -98,7 +98,7 @@ describe('writeGeneratedSong', () => {
     expect(game.songsFolder.readBytes([...folder, 'music.ogg'])).toEqual(GENERATOR_MUSIC_BYTES);
     expect(game.songsFolder.readBytes([...folder, 'video.mp4'])).toEqual(VIDEO_BYTES);
     expect(game.songsFolder.readBytes([...folder, 'banner.png'])).toEqual(PNG_BYTES);
-    expect(await game.songsFolder.readText([...folder, SONG_FOLDER_MARKER_FILE_NAME])).toContain('"format": "stepsvault-generated-song"');
+    expect(await game.songsFolder.readText([...folder, SONG_FOLDER_MARKER_FILE_NAME])).toContain('"format": "dancedance-generated-song"');
     expect(getGeneratedSongs(game.record)).toMatchObject([{ songKey: 'youtube:pulse123', generatorId: 'example.onset-steps', generatorVersion: '0.1.0', folderPath: folder, difficulties: ['Easy', 'Medium'], levelsByDifficulty: { Easy: 3 }, inPlaceOfVaultSongId: null }]);
     expect(game.record.ownedGroupNames).toEqual([GROUP]);
     expect((await game.songsFolder.listEntries([GROUP])).map((entry) => entry.name)).toEqual(['Pulse Garden']);

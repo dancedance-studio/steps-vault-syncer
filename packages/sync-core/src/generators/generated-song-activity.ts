@@ -7,7 +7,7 @@ export type GeneratedSongActivityStep =
   | 'resumed'
   /** The song is in "My generated songs" in the game. */
   | 'written'
-  /** StepsVault's generator made it: it is in the vault and installs with a sync. */
+  /** dancedance.studio's generator made it: it is in the vault and installs with a sync. */
   | 'added-to-vault'
   /** The same song was in the vault and the player kept that one. */
   | 'kept-vault-song'

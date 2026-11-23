@@ -12,8 +12,8 @@ import type { AudioMatch, PlayerChoices, SyncPlan } from '../planner/sync-plan-t
 import { buildSyncPlan } from '../planner/sync-planner';
 import type { SongsFolder } from '../songs-folder/songs-folder';
 import { buildSongsPath, getNameKey } from '../songs-folder/songs-path';
-import { SignedOutError, type SyncPartyList, type VaultSongDetails } from '../stepsvault-api/stepsvault-api-types';
-import { buildAddonSongFacts } from '../stepsvault-api/stepsvault-client';
+import { SignedOutError, type SyncPartyList, type VaultSongDetails } from '../dancedance-api/dancedance-api-types';
+import { buildAddonSongFacts } from '../dancedance-api/dancedance-client';
 import type { VaultFiles } from '../writing/song-writer';
 import { carryOutSyncPlan, type ActivityEvent, type SyncProgress } from '../writing/sync-executor';
 
@@ -23,7 +23,7 @@ export interface RecordStore {
   save(record: InstalledSongsRecord): Promise<void>;
 }
 
-/** The parts of the StepsVault client a sync needs. */
+/** The parts of the dancedance.studio client a sync needs. */
 export interface SyncVault extends VaultFiles {
   fetchVault(): Promise<VaultSongDetails[]>;
   fetchFingerprint(vaultSongId: string): Promise<AudioFingerprint>;
@@ -131,7 +131,7 @@ async function findAudioForSongsThatNeedIt(options: { ports: SyncPorts; settings
 }
 
 async function findAudioForVaultSong({ ports, settings, song }: { ports: SyncPorts; settings: SyncSettings; song: VaultSongDetails }): Promise<AudioSearchResult> {
-  if (!song.hasFingerprint) return { match: { kind: 'not-found', isWaitingForAddon: false }, addonMessages: ['StepsVault has no sound fingerprint for this song yet, so its audio can’t be checked.'], pageLinks: [] };
+  if (!song.hasFingerprint) return { match: { kind: 'not-found', isWaitingForAddon: false }, addonMessages: ['dancedance.studio has no sound fingerprint for this song yet, so its audio can’t be checked.'], pageLinks: [] };
   const fingerprint = await ports.vault.fetchFingerprint(song.vaultSongId);
   return findAudioForSong({
     song: { vaultSongId: song.vaultSongId, ...buildAddonSongFacts(song) },

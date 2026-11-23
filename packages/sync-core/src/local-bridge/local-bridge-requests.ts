@@ -16,7 +16,7 @@ import { getLocalBridgeSongFile, getLocalBridgeSongs, type LocalBridgeSongFile }
  * Answers one request to the local bridge. The checks run in this order, and a request that fails one gets no CORS
  * headers, so the browser hides even the refusal from the page that sent it:
  * 1. Host is the bridge's own loopback address (a page that rebinds its own name to 127.0.0.1 sends its name here).
- * 2. Origin is exactly one of the StepsVault site's (a request without one, from curl or another program, is refused).
+ * 2. Origin is exactly one of the dancedance.studio site's (a request without one, from curl or another program, is refused).
  * 3. Every path but the pairing needs a paired browser's token.
  */
 

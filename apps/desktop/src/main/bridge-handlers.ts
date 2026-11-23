@@ -6,7 +6,7 @@ import type { SyncController } from './sync-controller';
 type BridgeHandlers = Record<Exclude<keyof DesktopSyncBridge, 'onState'>, (argument: unknown) => Promise<unknown>>;
 
 const LAYOUTS: readonly string[] = FOLDER_LAYOUTS;
-const SONG_ACTIONS: readonly string[] = ['sync', 'choose-audio', 'use-different-file', 'update', 'keep-mine', 'replace-with-stepsvault', 'remove-from-game', 'keep-in-game'];
+const SONG_ACTIONS: readonly string[] = ['sync', 'choose-audio', 'use-different-file', 'update', 'keep-mine', 'replace-with-dancedance', 'remove-from-game', 'keep-in-game'];
 const MAX_TEXT_LENGTH = 2_000;
 const MAX_ADDON_OPTIONS = 8;
 const MAX_ADDON_OPTION_CHOICES = 6;

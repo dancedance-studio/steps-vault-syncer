@@ -102,7 +102,7 @@ describe('SyncHomeScreen', () => {
   it('passes the status choices of a row to the caller', () => {
     const props = renderHomeScreen();
     fireEvent.click(screen.getByRole('button', { name: 'Use library version' }));
-    expect(props.onSongAction).toHaveBeenCalledWith({ vaultSongId: 'neon-overdrive', action: 'replace-with-stepsvault' });
+    expect(props.onSongAction).toHaveBeenCalledWith({ vaultSongId: 'neon-overdrive', action: 'replace-with-dancedance' });
   });
 
   it('shows the life bar and each row’s step while syncing, and hides the status choices', () => {

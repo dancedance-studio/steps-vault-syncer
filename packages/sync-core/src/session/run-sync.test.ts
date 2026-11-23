@@ -6,7 +6,7 @@ import { buildEmptyInstalledSongsRecord, type InstalledSongsRecord } from '../ow
 import type { HttpClient, HttpRequest } from '../network/http-client';
 import type { AudioMatch } from '../planner/sync-plan-types';
 import { MemorySongsFolder } from '../songs-folder/memory-songs-folder';
-import type { VaultSongDetails } from '../stepsvault-api/stepsvault-api-types';
+import type { VaultSongDetails } from '../dancedance-api/dancedance-api-types';
 import type { SongFiles } from '../writing/song-writer';
 import { runSync, type SyncPhase, type SyncPorts, type SyncSettings, type SyncVault } from './run-sync';
 

@@ -1,6 +1,6 @@
 import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse } from '@dancedance/sync-core';
 
-const USER_AGENT = 'StepsVaultSync';
+const USER_AGENT = 'DancedanceSync';
 
 /** What every request of the app sends: its name and version, never anything about the player. */
 export function getUserAgentHeader(appVersion: string): Record<string, string> {

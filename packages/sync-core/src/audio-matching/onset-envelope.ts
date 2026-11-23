@@ -18,7 +18,7 @@ const DYNAMIC_RANGE_DECIBELS = 80;
 const FLUX_DELAY_FRAMES = 3;
 
 /**
- * How strongly new sounds start, 100 times a second, exactly as the StepsVault engine computes a song's
+ * How strongly new sounds start, 100 times a second, exactly as the dancedance.studio engine computes a song's
  * fingerprint: a centred (zero-padded) STFT with a 2048-sample periodic Hann window, 128-band mel power, decibels
  * clipped to 80 dB below the loudest value in the song, then positive spectral flux averaged over the bands.
  */

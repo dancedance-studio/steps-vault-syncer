@@ -5,7 +5,7 @@ import { buildDefaultSettings, type DesktopSettings } from './desktop-settings';
 import { GeneratorSettings, type StartCommandConfirmation } from './generator-settings';
 import { LocalProgramStarter } from './local-program-starter';
 
-const SITE_URL = 'https://stepsvault.example.com';
+const SITE_URL = 'https://dancedance.example.com';
 const DANCEDANCE_ADDRESS = `${SITE_URL}/api/generator`;
 const MANIFEST_ANSWER = { protocol: 1, kind: 'generator', id: 'stepcat.tap-forge', name: 'Tap Forge', version: '1.2.0', author: '@stepcat', description: '', difficulties: ['Easy', 'Medium'], musicTypes: ['audio/ogg'], usesVideo: false, options: [] };
 
@@ -44,32 +44,32 @@ async function addGenerator({ generatorSettings, address, startCommand = null }:
 }
 
 describe('GeneratorSettings', () => {
-  it('signs in to StepsVault’s own generator at the site address, and to no other generator', async () => {
-    const { generatorSettings, requests } = buildGeneratorSettings({ manifestsByBaseUrl: { [DANCEDANCE_ADDRESS]: { ...MANIFEST_ANSWER, id: 'stepsvault.generator' }, 'https://gen.example.org': MANIFEST_ANSWER } });
-    await generatorSettings.loadStepsVaultGenerator();
+  it('signs in to dancedance.studio’s own generator at the site address, and to no other generator', async () => {
+    const { generatorSettings, requests } = buildGeneratorSettings({ manifestsByBaseUrl: { [DANCEDANCE_ADDRESS]: { ...MANIFEST_ANSWER, id: 'dancedance.generator' }, 'https://gen.example.org': MANIFEST_ANSWER } });
+    await generatorSettings.loadDancedanceGenerator();
     await addGenerator({ generatorSettings, address: 'https://gen.example.org' });
     expect(requests.map((request) => [request.url, request.headers?.Authorization ?? null])).toEqual([[`${DANCEDANCE_ADDRESS}/manifest.json`, 'Bearer device-token-1'], ['https://gen.example.org/manifest.json', null]]);
-    expect(generatorSettings.findJobGenerator(DANCEDANCE_ADDRESS)).toMatchObject({ isStepsVault: true, signIn: { siteUrl: SITE_URL, deviceToken: 'device-token-1' }, generator: { manifest: { name: 'dancedance.studio generator' } } });
-    expect(generatorSettings.findJobGenerator('https://gen.example.org')).toMatchObject({ isStepsVault: false, signIn: null });
-    expect(generatorSettings.buildStepsVaultGeneratorView()).toMatchObject({ tokenCount: 37, difficulties: ['Easy', 'Medium'], musicUploadWarning: `Your music file will be sent to dancedance.studio (${DANCEDANCE_ADDRESS}).` });
+    expect(generatorSettings.findJobGenerator(DANCEDANCE_ADDRESS)).toMatchObject({ isDancedance: true, signIn: { siteUrl: SITE_URL, deviceToken: 'device-token-1' }, generator: { manifest: { name: 'dancedance.studio generator' } } });
+    expect(generatorSettings.findJobGenerator('https://gen.example.org')).toMatchObject({ isDancedance: false, signIn: null });
+    expect(generatorSettings.buildDancedanceGeneratorView()).toMatchObject({ tokenCount: 37, difficulties: ['Easy', 'Medium'], musicUploadWarning: `Your music file will be sent to dancedance.studio (${DANCEDANCE_ADDRESS}).` });
   });
 
-  it('asks before the first StepsVault song and keeps the player’s agreement', async () => {
+  it('asks before the first dancedance.studio song and keeps the player’s agreement', async () => {
     const { generatorSettings, state } = buildGeneratorSettings({ manifestsByBaseUrl: { [DANCEDANCE_ADDRESS]: MANIFEST_ANSWER } });
     await expect(generatorSettings.getGeneratorForNewSong({ generatorId: DANCEDANCE_GENERATOR_ID, hasAgreedToMusicUpload: false })).rejects.toThrow('Agree to send your music to dancedance.studio first');
     const jobGenerator = await generatorSettings.getGeneratorForNewSong({ generatorId: DANCEDANCE_GENERATOR_ID, hasAgreedToMusicUpload: true });
-    expect(state.settings.stepsVaultMusicUploadConsentedAt).toBe('2026-10-25T10:00:00.000Z');
+    expect(state.settings.dancedanceMusicUploadConsentedAt).toBe('2026-10-25T10:00:00.000Z');
     expect(jobGenerator.generator.musicUploadConsentedAt).toBe('2026-10-25T10:00:00.000Z');
-    expect(generatorSettings.buildStepsVaultGeneratorView().musicUploadWarning).toBeNull();
+    expect(generatorSettings.buildDancedanceGeneratorView().musicUploadWarning).toBeNull();
   });
 
-  it('refuses a StepsVault song with no tokens left', async () => {
+  it('refuses a dancedance.studio song with no tokens left', async () => {
     const { generatorSettings } = buildGeneratorSettings({ tokenBalance: 0, manifestsByBaseUrl: { [DANCEDANCE_ADDRESS]: MANIFEST_ANSWER } });
-    expect(generatorSettings.buildStepsVaultGeneratorView().tokenCount).toBe(0);
+    expect(generatorSettings.buildDancedanceGeneratorView().tokenCount).toBe(0);
     await expect(generatorSettings.getGeneratorForNewSong({ generatorId: DANCEDANCE_GENERATOR_ID, hasAgreedToMusicUpload: true })).rejects.toThrow('You have no tokens left. Buy tokens on dancedance.studio, or pick a community generator.');
   });
 
-  it('says StepsVault can’t be reached, or that the player must sign in, before making a StepsVault song', async () => {
+  it('says dancedance.studio can’t be reached, or that the player must sign in, before making a dancedance.studio song', async () => {
     await expect(buildGeneratorSettings().generatorSettings.getGeneratorForNewSong({ generatorId: DANCEDANCE_GENERATOR_ID, hasAgreedToMusicUpload: true })).rejects.toThrow('dancedance.studio can’t be reached right now.');
     await expect(buildGeneratorSettings({ deviceToken: null }).generatorSettings.getGeneratorForNewSong({ generatorId: DANCEDANCE_GENERATOR_ID, hasAgreedToMusicUpload: true })).rejects.toThrow('Sign in to dancedance.studio first');
   });

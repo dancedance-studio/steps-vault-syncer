@@ -10,7 +10,7 @@ import {
   isLinkJobExpired,
   MAX_SONG_SOURCE_WAIT_SECONDS,
   SignedOutError,
-  StepsVaultApiError,
+  DancedanceApiError,
   withLinkSongSource,
   type FindLinkJob,
   type InstallLinkJob,
@@ -536,7 +536,7 @@ function buildAddonTimeoutError(): HttpRequestError {
 
 /** For the log: what kind of failure, never an error's own text, which can hold an address. */
 function describeFailure(error: unknown): string {
-  if (error instanceof StepsVaultApiError) return `the site answered ${String(error.status)}`;
+  if (error instanceof DancedanceApiError) return `the site answered ${String(error.status)}`;
   if (error instanceof HttpRequestError) return error.failure;
   return error instanceof Error ? error.name : 'unknown';
 }

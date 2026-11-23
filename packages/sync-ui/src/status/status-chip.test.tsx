@@ -30,7 +30,7 @@ describe('getSongStatusActions', () => {
   it('offers the choices the spec gives each status', () => {
     expect(getSongStatusActions('needs-audio')).toEqual(['choose-audio']);
     expect(getSongStatusActions('different-edit')).toEqual(['use-different-file']);
-    expect(getSongStatusActions('you-edited-this')).toEqual(['keep-mine', 'replace-with-stepsvault']);
+    expect(getSongStatusActions('you-edited-this')).toEqual(['keep-mine', 'replace-with-dancedance']);
     expect(getSongStatusActions('removed-from-vault')).toEqual(['remove-from-game', 'keep-in-game']);
     expect(getSongStatusActions('synced')).toEqual([]);
   });

@@ -1,7 +1,7 @@
 import type { GeneratorDifficulty } from '../generators/generator-protocol';
 
 /**
- * The local bridge (protocol 1): Sync on the player's computer answers the StepsVault website, in the player's own
+ * The local bridge (protocol 1): Sync on the player's computer answers the dancedance.studio website, in the player's own
  * browser, at http://127.0.0.1:<port>, so the site can list and play the songs the player's own generators made
  * without them ever leaving the computer. Read only, apart from the one-time pairing.
  *

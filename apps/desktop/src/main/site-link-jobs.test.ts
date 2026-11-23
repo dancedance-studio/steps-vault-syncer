@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   buildInstalledAddon,
   HttpRequestError,
-  StepsVaultClient,
+  DancedanceClient,
   type AddonManifest,
   type FileUploadHttpClient,
   type FileUploadHttpRequest,
@@ -49,7 +49,7 @@ const VIDEO_AUDIO_LINKS = { status: 200, body: { links: [{ kind: 'file-url', url
 let workFolder: string;
 
 beforeEach(async () => {
-  workFolder = await mkdtemp(path.join(os.tmpdir(), 'stepsvault-link-jobs-test-'));
+  workFolder = await mkdtemp(path.join(os.tmpdir(), 'dancedance-link-jobs-test-'));
 });
 
 afterEach(async () => {
@@ -218,7 +218,7 @@ class LinkJobsHarness {
       waitMilliseconds: this.clock.waitMilliseconds,
     });
     this.linkJobs = new SiteLinkJobs({
-      buildApi: () => (this.isLinked ? new StepsVaultClient({ httpClient: this.site, fileUploadClient: this.site, siteUrl: 'https://dancedance.studio', deviceToken: 'device-token-1' }) : null),
+      buildApi: () => (this.isLinked ? new DancedanceClient({ httpClient: this.site, fileUploadClient: this.site, siteUrl: 'https://dancedance.studio', deviceToken: 'device-token-1' }) : null),
       getAddons: () => this.addons,
       songs,
       addonHttpClient: this.addon,

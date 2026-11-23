@@ -12,17 +12,17 @@ import { SongWriteError, toSongWriteError } from './song-write-error';
 export const MUSIC_BASE_NAME = 'music';
 export const VIDEO_BASE_NAME = 'video';
 /** Hidden from StepMania and most file browsers by the leading dot, while a song is being written. */
-export const TEMPORARY_FOLDER_PREFIX = '.stepsvault-new-';
-const NEW_FILE_SUFFIX = '.stepsvault-new';
+export const TEMPORARY_FOLDER_PREFIX = '.dancedance-new-';
+const NEW_FILE_SUFFIX = '.dancedance-new';
 
-/** A song's files on StepsVault, for one chart version. */
+/** A song's files on dancedance.studio, for one chart version. */
 export interface SongFiles {
   sscText: string;
   /** Banner, background, jacket: the names the song file refers to. */
   images: readonly { fileName: string; bytes: Uint8Array }[];
 }
 
-/** Where song files come from: the StepsVault API client (task 9) implements this. */
+/** Where song files come from: the dancedance.studio API client (task 9) implements this. */
 export interface VaultFiles {
   fetchSongFiles(options: { vaultSongId: string; chartVersion: string }): Promise<SongFiles>;
 }

@@ -20,7 +20,7 @@ export interface AgentSkill {
   githubLinkText: string;
 }
 
-export const AGENT_SKILLS_BASE_URL = 'https://github.com/steps-vault/steps-vault-syncer/tree/main/.claude/skills';
+export const AGENT_SKILLS_BASE_URL = 'https://github.com/dancedance-studio/sync/tree/main/.claude/skills';
 
 function buildSkill({ skillName, task, rowTitle, rowLine, boxTitle }: { skillName: string; task: string; rowTitle: string; rowLine: string; boxTitle: string }): AgentSkill {
   const githubUrl = `${AGENT_SKILLS_BASE_URL}/${skillName}`;

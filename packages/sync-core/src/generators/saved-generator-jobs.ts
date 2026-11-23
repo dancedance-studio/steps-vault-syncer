@@ -35,7 +35,7 @@ export interface SavedGeneratorJob {
   generatorId: string;
   generatorName: string;
   generatorVersion: string;
-  isStepsVault: boolean;
+  isDancedance: boolean;
   /** The generator's job id; null while the music is being sent. */
   jobId: string | null;
   song: GeneratorSongFacts;
@@ -95,14 +95,14 @@ function loadSavedGeneratorJobOrNull(value: unknown): SavedGeneratorJob | null {
   const state = getOneOfOrNull({ value: value.state, values: SAVED_JOB_STATES });
   if (!song || difficulties.length === 0 || state === null) return null;
   const texts = [value.jobKey, value.generatorBaseUrl, value.generatorId, value.generatorName, value.generatorVersion, value.playerMusicLocation, value.startedAt, value.updatedAt];
-  if (!texts.every((text) => typeof text === 'string') || typeof value.isStepsVault !== 'boolean') return null;
+  if (!texts.every((text) => typeof text === 'string') || typeof value.isDancedance !== 'boolean') return null;
   return {
     jobKey: value.jobKey as string,
     generatorBaseUrl: value.generatorBaseUrl as string,
     generatorId: value.generatorId as string,
     generatorName: value.generatorName as string,
     generatorVersion: value.generatorVersion as string,
-    isStepsVault: value.isStepsVault,
+    isDancedance: value.isDancedance,
     jobId: getTextOrNull(value.jobId),
     song,
     difficulties,

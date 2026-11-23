@@ -91,7 +91,7 @@ describe('carryOutSyncPlan', () => {
     const sscText = await game.songsFolder.readText(['dancedance.studio', 'Cheap Thrills', 'Cheap Thrills.ssc']);
     expect(sscText).toContain('#VERSIONTAG:v2;');
     expect(sscText).toContain('#OFFSET:-0.350000;');
-    expect(await game.songsFolder.readText(['dancedance.studio', 'Cheap Thrills', 'Cheap Thrills.ssc.stepsvault-new'])).toBeNull();
+    expect(await game.songsFolder.readText(['dancedance.studio', 'Cheap Thrills', 'Cheap Thrills.ssc.dancedance-new'])).toBeNull();
     expect(result.events).toMatchObject([{ kind: 'updated' }]);
     expect(findInstalledSong({ record: game.record, vaultSongId: 'a' })?.chartVersion).toBe('v2');
   });

@@ -1,9 +1,9 @@
 import type { SongFolderFacts } from '../layout/folder-layout';
 import type { SongsPath } from '../songs-folder/songs-path';
 
-/** A song in the player's vault on StepsVault, as Sync needs it. */
+/** A song in the player's vault on dancedance.studio, as Sync needs it. */
 export interface VaultSong extends SongFolderFacts {
-  /** Changes whenever the song's steps change on StepsVault. */
+  /** Changes whenever the song's steps change on dancedance.studio. */
   chartVersion: string;
 }
 
@@ -67,7 +67,7 @@ export interface PartyFolderPlan {
 
 /** What the player chose on a song's row; nothing chosen means the safe default. */
 export interface PlayerChoices {
-  /** For "You edited this": replace their edits with StepsVault's steps. Default: keep theirs. */
+  /** For "You edited this": replace their edits with dancedance.studio's steps. Default: keep theirs. */
   replaceEditedSongIds: ReadonlySet<string>;
   /** For "Removed from vault": remove it from the game. Default: keep it. */
   removeFromGameSongIds: ReadonlySet<string>;

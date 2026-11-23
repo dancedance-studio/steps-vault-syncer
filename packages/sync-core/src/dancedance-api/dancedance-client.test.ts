@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
-import { SignedOutError, StepsVaultApiError } from './stepsvault-api-types';
+import { SignedOutError, DancedanceApiError } from './dancedance-api-types';
 import { buildSongsPath } from '../songs-folder/songs-path';
 import { buildComputerSongReports, MAX_COMPUTER_SONGS_PER_REPORT } from './computer-songs';
-import { buildAddonSongFacts, pollDeviceSignIn, startDeviceSignIn, StepsVaultClient } from './stepsvault-client';
+import { buildAddonSongFacts, pollDeviceSignIn, startDeviceSignIn, DancedanceClient } from './dancedance-client';
 
-const SITE_URL = 'https://stepsvault.com/';
+const SITE_URL = 'https://dancedance.studio/';
 const VAULT_SONG = {
   vaultSongId: 'song_7',
   slug: 'sakura-drive',
@@ -26,7 +26,7 @@ const VAULT_SONG = {
   groupColorKey: 'green',
 };
 
-/** Answers by URL, as the StepsVault API does (shapes recorded from the site's own API tests). */
+/** Answers by URL, as the dancedance.studio API does (shapes recorded from the site's own API tests). */
 class RecordedApi implements HttpClient {
   readonly requests: HttpRequest[] = [];
   constructor(private readonly answersByUrl: Record<string, HttpResponse<unknown>>) {}
@@ -53,7 +53,7 @@ class RecordedApi implements HttpClient {
 describe('signing the app in by code', () => {
   it('gets a code without an account, then waits, then receives the token once', async () => {
     const api = new RecordedApi({
-      'POST https://stepsvault.com/api/sync/device-codes': { status: 201, body: { code: 'K7Q4ZP', deviceName: 'LIVING-ROOM-PC', operatingSystem: 'Windows 11', appVersion: '0.1.0', expiresAt: '2026-10-24T12:10:00Z', pollingId: 'secret-polling-id', pollIntervalSeconds: 3 } },
+      'POST https://dancedance.studio/api/sync/device-codes': { status: 201, body: { code: 'K7Q4ZP', deviceName: 'LIVING-ROOM-PC', operatingSystem: 'Windows 11', appVersion: '0.1.0', expiresAt: '2026-10-24T12:10:00Z', pollingId: 'secret-polling-id', pollIntervalSeconds: 3 } },
     });
     const deviceCode = await startDeviceSignIn({ httpClient: api, siteUrl: SITE_URL, device: { deviceName: 'LIVING-ROOM-PC', operatingSystem: 'Windows 11', appVersion: '0.1.0' } });
     expect(deviceCode).toEqual({ code: 'K7Q4ZP', expiresAt: '2026-10-24T12:10:00Z', pollingId: 'secret-polling-id', pollIntervalSeconds: 3 });
@@ -66,30 +66,30 @@ describe('signing the app in by code', () => {
     [{ status: 410, body: { message: 'This code has expired.' } }, { status: 'expired' }],
     [{ status: 200, body: { status: 'linked', deviceToken: 'device-token', device: { id: 'device_1', name: 'LIVING-ROOM-PC' } } }, { status: 'linked', deviceToken: 'device-token', deviceName: 'LIVING-ROOM-PC' }],
   ])('reads a poll answer', async (answer, expected) => {
-    const api = new RecordedApi({ 'POST https://stepsvault.com/api/sync/device-codes/poll': answer });
+    const api = new RecordedApi({ 'POST https://dancedance.studio/api/sync/device-codes/poll': answer });
     expect(await pollDeviceSignIn({ httpClient: api, siteUrl: SITE_URL, pollingId: 'secret-polling-id' })).toEqual(expected);
   });
 });
 
-describe('StepsVaultClient', () => {
+describe('DancedanceClient', () => {
   it('reads the vault with the device token', async () => {
-    const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/vault': { status: 200, body: [VAULT_SONG] } });
-    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
+    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/vault': { status: 200, body: [VAULT_SONG] } });
+    const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
     expect(await client.fetchVault()).toEqual([VAULT_SONG]);
     expect(api.requests[0]?.headers).toEqual({ Authorization: 'Bearer device-token' });
   });
 
   it('reads a song from a site without groups as in no group', async () => {
     const songFromOlderSite = Object.fromEntries(Object.entries(VAULT_SONG).filter(([key]) => key !== 'groupFolderName'));
-    const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/vault': { status: 200, body: [songFromOlderSite] } });
-    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
+    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/vault': { status: 200, body: [songFromOlderSite] } });
+    const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
     expect((await client.fetchVault())[0]?.groupFolderName).toBeNull();
   });
 
   it('reads a song from a site without group colours as having no colour', async () => {
     const songFromOlderSite = Object.fromEntries(Object.entries(VAULT_SONG).filter(([key]) => key !== 'groupColorKey'));
-    const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/vault': { status: 200, body: [songFromOlderSite] } });
-    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
+    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/vault': { status: 200, body: [songFromOlderSite] } });
+    const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
     const [song] = await client.fetchVault();
     expect(song?.groupFolderName).toBe('Warm-up');
     expect(song?.groupColorKey).toBeNull();
@@ -98,12 +98,12 @@ describe('StepsVaultClient', () => {
   it('fetches a song’s files for the writer: the song file and each image', async () => {
     const png = new Uint8Array([137, 80, 78, 71]);
     const api = new RecordedApi({
-      'GET https://stepsvault.com/api/sync/vault': { status: 200, body: [{ ...VAULT_SONG, imageKinds: ['banner', 'jacket'] }] },
-      'GET https://stepsvault.com/api/sync/songs/song_7/ssc': { status: 200, body: '#TITLE:Sakura Drive;\n#OFFSET:-0.1;\n' },
-      'GET https://stepsvault.com/api/sync/songs/song_7/images/banner': { status: 200, body: png },
-      'GET https://stepsvault.com/api/sync/songs/song_7/images/jacket': { status: 200, body: png },
+      'GET https://dancedance.studio/api/sync/vault': { status: 200, body: [{ ...VAULT_SONG, imageKinds: ['banner', 'jacket'] }] },
+      'GET https://dancedance.studio/api/sync/songs/song_7/ssc': { status: 200, body: '#TITLE:Sakura Drive;\n#OFFSET:-0.1;\n' },
+      'GET https://dancedance.studio/api/sync/songs/song_7/images/banner': { status: 200, body: png },
+      'GET https://dancedance.studio/api/sync/songs/song_7/images/jacket': { status: 200, body: png },
     });
-    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: null });
+    const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: null });
     await client.fetchVault();
     const files = await client.fetchSongFiles({ vaultSongId: 'song_7', chartVersion: VAULT_SONG.chartVersion });
     expect(files.sscText).toContain('#OFFSET:-0.1;');
@@ -112,61 +112,61 @@ describe('StepsVaultClient', () => {
 
   it('reads the fingerprint as little-endian floats at 100 frames a second', async () => {
     const bytes = new Uint8Array(new Float32Array([0, 0.5, 1]).buffer);
-    const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/songs/song_7/fingerprint': { status: 200, body: bytes } });
-    const fingerprint = await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).fetchFingerprint('song_7');
+    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/songs/song_7/fingerprint': { status: 200, body: bytes } });
+    const fingerprint = await new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).fetchFingerprint('song_7');
     expect(Array.from(fingerprint.envelope)).toEqual([0, 0.5, 1]);
     expect(fingerprint.rateHertz).toBe(100);
   });
 
   it('asks to sign in again on 401, and passes on the site’s own message otherwise', async () => {
     const api = new RecordedApi({
-      'GET https://stepsvault.com/api/sync/vault': { status: 401, body: { message: 'This computer is signed out.' } },
-      'GET https://stepsvault.com/api/sync/songs/song_9/ssc': { status: 404, body: { message: 'This song is not in your vault. Sync again to get your current list of songs.' } },
+      'GET https://dancedance.studio/api/sync/vault': { status: 401, body: { message: 'This computer is signed out.' } },
+      'GET https://dancedance.studio/api/sync/songs/song_9/ssc': { status: 404, body: { message: 'This song is not in your vault. Sync again to get your current list of songs.' } },
     });
-    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'old-token' });
+    const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'old-token' });
     await expect(client.fetchVault()).rejects.toThrow(SignedOutError);
-    await expect(client.fetchSongFiles({ vaultSongId: 'song_9', chartVersion: 'x' })).rejects.toThrow(new StepsVaultApiError({ status: 404, message: 'This song is not in your vault. Sync again to get your current list of songs.' }));
+    await expect(client.fetchSongFiles({ vaultSongId: 'song_9', chartVersion: 'x' })).rejects.toThrow(new DancedanceApiError({ status: 404, message: 'This song is not in your vault. Sync again to get your current list of songs.' }));
   });
 
-  it('adds a song StepsVault already has to the vault, passing on the site’s sentence when it can’t', async () => {
+  it('adds a song dancedance.studio already has to the vault, passing on the site’s sentence when it can’t', async () => {
     const api = new RecordedApi({
-      'POST https://stepsvault.com/api/sync/vault/song_7': { status: 200, body: { isAdded: true } },
-      'POST https://stepsvault.com/api/sync/vault/song_9': { status: 404, body: { error: 'This song isn’t in StepsVault.' } },
+      'POST https://dancedance.studio/api/sync/vault/song_7': { status: 200, body: { isAdded: true } },
+      'POST https://dancedance.studio/api/sync/vault/song_9': { status: 404, body: { error: 'This song isn’t in dancedance.studio.' } },
     });
-    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
+    const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
     await client.addToVault('song_7');
     expect(api.requests[0]).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer device-token' }, jsonBody: undefined });
-    await expect(client.addToVault('song_9')).rejects.toThrow(new StepsVaultApiError({ status: 404, message: 'This song isn’t in StepsVault.' }));
+    await expect(client.addToVault('song_9')).rejects.toThrow(new DancedanceApiError({ status: 404, message: 'This song isn’t in dancedance.studio.' }));
   });
 
   it('reads the player’s token balance, and asks to sign in again on 401', async () => {
     const me = { tokenBalance: 37, player: { handle: 'noa', initial: 'N', avatarColor: '#7405ec' }, device: { id: 'device_1', name: 'LIVING-ROOM-PC' } };
-    const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/me': { status: 200, body: me } });
-    expect(await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).fetchAccount()).toEqual({ tokenBalance: 37, player: { handle: 'noa', initial: 'N', avatarColor: '#7405ec' } });
-    const signedOut = new RecordedApi({ 'GET https://stepsvault.com/api/sync/me': { status: 401, body: { error: 'Sign in first.' } } });
-    await expect(new StepsVaultClient({ httpClient: signedOut, siteUrl: SITE_URL, deviceToken: null }).fetchAccount()).rejects.toThrow(SignedOutError);
-    const broken = new RecordedApi({ 'GET https://stepsvault.com/api/sync/me': { status: 200, body: { ...me, tokenBalance: -1 } } });
-    await expect(new StepsVaultClient({ httpClient: broken, siteUrl: SITE_URL, deviceToken: 'device-token' }).fetchAccount()).rejects.toThrow(StepsVaultApiError);
+    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/me': { status: 200, body: me } });
+    expect(await new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).fetchAccount()).toEqual({ tokenBalance: 37, player: { handle: 'noa', initial: 'N', avatarColor: '#7405ec' } });
+    const signedOut = new RecordedApi({ 'GET https://dancedance.studio/api/sync/me': { status: 401, body: { error: 'Sign in first.' } } });
+    await expect(new DancedanceClient({ httpClient: signedOut, siteUrl: SITE_URL, deviceToken: null }).fetchAccount()).rejects.toThrow(SignedOutError);
+    const broken = new RecordedApi({ 'GET https://dancedance.studio/api/sync/me': { status: 200, body: { ...me, tokenBalance: -1 } } });
+    await expect(new DancedanceClient({ httpClient: broken, siteUrl: SITE_URL, deviceToken: 'device-token' }).fetchAccount()).rejects.toThrow(DancedanceApiError);
   });
 
   it('reports the status counts for the phone view', async () => {
-    const api = new RecordedApi({ 'POST https://stepsvault.com/api/sync/devices/me/seen': { status: 200, body: { isRecorded: true } } });
-    await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).reportSeen({ songCountsByStatus: { synced: 14 }, gameName: 'StepMania 5 LTEK' });
+    const api = new RecordedApi({ 'POST https://dancedance.studio/api/sync/devices/me/seen': { status: 200, body: { isRecorded: true } } });
+    await new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).reportSeen({ songCountsByStatus: { synced: 14 }, gameName: 'StepMania 5 LTEK' });
     expect(api.requests[0]?.jsonBody).toEqual({ songCountsByStatus: { synced: 14 }, gameName: 'StepMania 5 LTEK' });
   });
 });
 
 describe('reportComputerSongs', () => {
   it('posts the whole list with the device token to /api/computer-songs', async () => {
-    const api = new RecordedApi({ 'POST https://stepsvault.com/api/computer-songs': { status: 200, body: { recordedSongCount: 1 } } });
+    const api = new RecordedApi({ 'POST https://dancedance.studio/api/computer-songs': { status: 200, body: { recordedSongCount: 1 } } });
     const song = { localId: 'song:low tide', title: 'Low Tide', artistName: 'Marla Quinn', generatorName: 'Groove Lab', difficulties: ['Easy', 'Hard'], madeAt: '2026-10-24T10:00:00.000Z' };
-    await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).reportComputerSongs([song]);
+    await new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).reportComputerSongs([song]);
     expect(api.requests[0]).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer device-token' }, jsonBody: { songs: [song] } });
   });
 
   it('throws the site’s sentence when the report is refused', async () => {
-    const api = new RecordedApi({ 'POST https://stepsvault.com/api/computer-songs': { status: 403, body: { message: 'Only the Sync app reports the songs made on its computer.' } } });
-    await expect(new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: null }).reportComputerSongs([])).rejects.toThrow(StepsVaultApiError);
+    const api = new RecordedApi({ 'POST https://dancedance.studio/api/computer-songs': { status: 403, body: { message: 'Only the Sync app reports the songs made on its computer.' } } });
+    await expect(new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: null }).reportComputerSongs([])).rejects.toThrow(DancedanceApiError);
   });
 });
 
@@ -193,11 +193,11 @@ describe('reading party lists', () => {
   it('reads the lists the player syncs with their ready songs, and fetches those songs like vault songs', async () => {
     const partyLists = { partyLists: [{ id: 'party_1', slug: 'maya-bday-7q2xk', name: 'Maya’s birthday', gameFolderName: 'Party - Maya’s birthday', endsAt: '2026-11-02T06:00:00.000Z', songs: [{ ...VAULT_SONG, imageKinds: ['jacket'] }] }] };
     const api = new RecordedApi({
-      'GET https://stepsvault.com/api/sync/party-lists': { status: 200, body: JSON.stringify(partyLists) },
-      'GET https://stepsvault.com/api/sync/songs/song_7/ssc': { status: 200, body: '#TITLE:Sakura Drive;' },
-      'GET https://stepsvault.com/api/sync/songs/song_7/images/jacket': { status: 200, body: new Uint8Array([7]) },
+      'GET https://dancedance.studio/api/sync/party-lists': { status: 200, body: JSON.stringify(partyLists) },
+      'GET https://dancedance.studio/api/sync/songs/song_7/ssc': { status: 200, body: '#TITLE:Sakura Drive;' },
+      'GET https://dancedance.studio/api/sync/songs/song_7/images/jacket': { status: 200, body: new Uint8Array([7]) },
     });
-    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
+    const client = new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
     const [partyList] = (await client.fetchPartyLists()) ?? [];
     expect(partyList).toMatchObject({ partyListId: 'party_1', slug: 'maya-bday-7q2xk', name: 'Maya’s birthday', gameFolderName: 'Party - Maya’s birthday', endsAt: '2026-11-02T06:00:00.000Z' });
     expect(partyList?.songs.map((song) => [song.vaultSongId, song.titleTransliteration])).toEqual([['song_7', 'Sakura Drive']]);
@@ -207,16 +207,16 @@ describe('reading party lists', () => {
   });
 
   it('answers null for a site without party lists, so the sync goes on without them', async () => {
-    const notFound = new RecordedApi({ 'GET https://stepsvault.com/api/sync/party-lists': { status: 404, body: '<!doctype html><title>Not found</title>' } });
-    const webPage = new RecordedApi({ 'GET https://stepsvault.com/api/sync/party-lists': { status: 200, body: '<!doctype html><title>StepsVault</title>' } });
-    expect(await new StepsVaultClient({ httpClient: notFound, siteUrl: SITE_URL, deviceToken: null }).fetchPartyLists()).toBeNull();
-    expect(await new StepsVaultClient({ httpClient: webPage, siteUrl: SITE_URL, deviceToken: null }).fetchPartyLists()).toBeNull();
+    const notFound = new RecordedApi({ 'GET https://dancedance.studio/api/sync/party-lists': { status: 404, body: '<!doctype html><title>Not found</title>' } });
+    const webPage = new RecordedApi({ 'GET https://dancedance.studio/api/sync/party-lists': { status: 200, body: '<!doctype html><title>dancedance.studio</title>' } });
+    expect(await new DancedanceClient({ httpClient: notFound, siteUrl: SITE_URL, deviceToken: null }).fetchPartyLists()).toBeNull();
+    expect(await new DancedanceClient({ httpClient: webPage, siteUrl: SITE_URL, deviceToken: null }).fetchPartyLists()).toBeNull();
   });
 
   it('names the folder from the list name when an older answer has no folder name, and stops when signed out', async () => {
-    const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/party-lists': { status: 200, body: JSON.stringify({ partyLists: [{ id: 'party_2', slug: 'game-night-a1b2c', name: 'Game night', endsAt: null, songs: [] }] }) } });
-    expect((await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: null }).fetchPartyLists())?.[0]?.gameFolderName).toBe('Party - Game night');
-    const signedOut = new RecordedApi({ 'GET https://stepsvault.com/api/sync/party-lists': { status: 401, body: '{"error":"Sign in again."}' } });
-    await expect(new StepsVaultClient({ httpClient: signedOut, siteUrl: SITE_URL, deviceToken: 'old' }).fetchPartyLists()).rejects.toBeInstanceOf(SignedOutError);
+    const api = new RecordedApi({ 'GET https://dancedance.studio/api/sync/party-lists': { status: 200, body: JSON.stringify({ partyLists: [{ id: 'party_2', slug: 'game-night-a1b2c', name: 'Game night', endsAt: null, songs: [] }] }) } });
+    expect((await new DancedanceClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: null }).fetchPartyLists())?.[0]?.gameFolderName).toBe('Party - Game night');
+    const signedOut = new RecordedApi({ 'GET https://dancedance.studio/api/sync/party-lists': { status: 401, body: '{"error":"Sign in again."}' } });
+    await expect(new DancedanceClient({ httpClient: signedOut, siteUrl: SITE_URL, deviceToken: 'old' }).fetchPartyLists()).rejects.toBeInstanceOf(SignedOutError);
   });
 });

@@ -26,8 +26,8 @@ const MANIFEST = { ...MANIFEST_ANSWER, maxMusicBytes: 100 * 1024 * 1024 } as Gen
 const SONG: GeneratorSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, youtubeId: null };
 const MUSIC: GeneratorUploadFile = { sourceId: 'music-1', fileName: 'Pulse Garden.ogg', contentType: 'audio/ogg', bytes: 4_000_000 };
 const VIDEO: GeneratorUploadFile = { sourceId: 'video-1', fileName: 'Pulse Garden.mp4', contentType: 'video/mp4', bytes: 30_000_000 };
-const DANCEDANCE_ADDRESS = 'https://stepsvault.example.com/api/generator';
-const SIGN_IN = { siteUrl: 'https://stepsvault.example.com', deviceToken: 'device-token-1' };
+const DANCEDANCE_ADDRESS = 'https://dancedance.example.com/api/generator';
+const SIGN_IN = { siteUrl: 'https://dancedance.example.com', deviceToken: 'device-token-1' };
 const CHART_TEXT = '#TITLE:Pulse Garden;\n#OFFSET:0;\n#BPMS:0=128;\n';
 
 type RecordedAnswer = HttpResponse<unknown> | HttpRequestError;
@@ -243,7 +243,7 @@ describe('a good job', () => {
     expect(error).toMatchObject({ reason: 'refused-job', message: 'Onset Steps couldn’t take this song: Too many songs at once, try in a minute.' });
   });
 
-  it('reports a song that already exists, trusting a vault song id only from StepsVault’s generator', async () => {
+  it('reports a song that already exists, trusting a vault song id only from dancedance.studio’s generator', async () => {
     const answer = { status: 409, body: { error: 'This song is already being made.', vaultSongId: 'song_42' } };
     const httpClient = new RecordedGenerator({ [`POST ${LOCAL_ADDRESS}/jobs`]: [answer], [`POST ${DANCEDANCE_ADDRESS}/jobs`]: [answer] });
     expect(await startGeneratorJob(buildStartOptions({ httpClient }))).toEqual({ kind: 'already-exists', message: 'This song is already being made.', vaultSongId: null });
@@ -362,10 +362,10 @@ describe('file links', () => {
   });
 });
 
-describe('the vault song StepsVault’s generator made', () => {
+describe('the vault song dancedance.studio’s generator made', () => {
   const doneAnswer = { status: 200, body: { state: 'done', vaultSongId: 'song_42' } };
 
-  it('is read from StepsVault’s own done answer, which needs no files', async () => {
+  it('is read from dancedance.studio’s own done answer, which needs no files', async () => {
     const httpClient = new RecordedGenerator({ [`GET ${DANCEDANCE_ADDRESS}/jobs/a1b2c3`]: [doneAnswer] });
     const outcome = await waitForGeneratorJob({ httpClient, generator: buildGenerator({ baseUrl: DANCEDANCE_ADDRESS }), signIn: SIGN_IN, job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds });
     expect(outcome).toEqual({ kind: 'done', files: [], vaultSongId: 'song_42' });
@@ -408,8 +408,8 @@ describe('cancel', () => {
   });
 });
 
-describe('signing in to StepsVault’s own generator', () => {
-  it('sends the device token on every call to StepsVault, file downloads included', async () => {
+describe('signing in to dancedance.studio’s own generator', () => {
+  it('sends the device token on every call to dancedance.studio, file downloads included', async () => {
     const jobUrl = `${DANCEDANCE_ADDRESS}/jobs/a1b2c3`;
     const chartUrl = `${DANCEDANCE_ADDRESS}/files/a1b2c3/song.ssc`;
     const bannerUrl = `${DANCEDANCE_ADDRESS}/files/a1b2c3/banner.png`;
@@ -445,7 +445,7 @@ describe('signing in to StepsVault’s own generator', () => {
     expect(httpClient.requests.map((request) => request.headers)).toEqual([{}, {}, {}]);
   });
 
-  it('refuses a StepsVault file link outside its own address, so the token never follows it', async () => {
+  it('refuses a dancedance.studio file link outside its own address, so the token never follows it', async () => {
     const files = [{ kind: 'chart' as const, url: 'https://cdn.example.org/song.ssc', bytes: 100 }];
     const httpClient = new RecordedGenerator({});
     const error = await getRejection(collectGeneratorFiles({ httpClient, generator: buildGenerator({ baseUrl: DANCEDANCE_ADDRESS }), signIn: SIGN_IN, files, downloadGeneratorFile: buildDownloadRecorder().downloadGeneratorFile }));

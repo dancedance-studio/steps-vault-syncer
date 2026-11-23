@@ -16,7 +16,7 @@ let receivedRequest: { headers: IncomingMessage['headers']; body: Buffer } | nul
 let handleRequest: (request: IncomingMessage, response: ServerResponse, body: Buffer) => void;
 
 beforeEach(async () => {
-  workFolder = await mkdtemp(path.join(os.tmpdir(), 'stepsvault-generator-test-'));
+  workFolder = await mkdtemp(path.join(os.tmpdir(), 'dancedance-generator-test-'));
   receivedRequest = null;
   server = createServer((request, response) => {
     const chunks: Buffer[] = [];

@@ -4,7 +4,7 @@ import type { DifficultyLevels, GeneratedSongView, GeneratorInstallPreview, Gene
 import { buildAddonOptionViews } from './build-addon-views';
 
 /** The id Sync gives the site's own generator; a manifest id can't contain ':', so no generator can take it. */
-export const DANCEDANCE_GENERATOR_ID = 'stepsvault:default';
+export const DANCEDANCE_GENERATOR_ID = 'dancedance:default';
 
 const DONE_TEXTS_BY_RESULT: Readonly<Record<NonNullable<SavedGeneratorJob['result']>, string>> = {
   'written': 'Done. It’s in My generated songs.',
@@ -56,7 +56,7 @@ export function buildGeneratorJobView(job: SavedGeneratorJob): GeneratorJobView 
     songTitle: job.song.title,
     songArtist: job.song.artist,
     generatorName: job.generatorName,
-    isStepsVault: job.isStepsVault,
+    isDancedance: job.isDancedance,
     state: getJobStateView(job),
     stageText: getStageText(job),
     progressPercent: job.state === 'waiting' && job.progress !== null ? Math.round(job.progress * 100) : null,

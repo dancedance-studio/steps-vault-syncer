@@ -86,7 +86,7 @@ function PreviewScreenContent({ screen, platform, syncPhase, onNavigate }: { scr
       {screen === 'folder-preview' && <SongsFolderPreview songsFolderPath={platform === 'website' ? 'Songs  (C:\\Games\\StepMania 5 LTEK Edition)' : FAKE_GAME.songsFolderPath} playerGroups={FAKE_PLAYER_GROUPS} layoutText="by genre" onChangeLayout={noop} onChooseAnotherFolder={noop} onContinue={noop} />}
       {screen === 'songs' && <SongsPreview platform={platform} syncPhase={syncPhase} onNavigate={onNavigate} />}
       {screen === 'audio-sources' && <AudioSourcesPreview onNavigate={onNavigate} />}
-      {screen === 'generators' && (platform === 'website' ? <WebsiteGeneratorsScreen stepsVaultGenerator={FAKE_DANCEDANCE_GENERATOR} makeSongHref="#make-a-song" desktopAppHref="#desktop-app" playPageHref="#play" /> : <GeneratorsPreview />)}
+      {screen === 'generators' && (platform === 'website' ? <WebsiteGeneratorsScreen dancedanceGenerator={FAKE_DANCEDANCE_GENERATOR} makeSongHref="#make-a-song" desktopAppHref="#desktop-app" playPageHref="#play" /> : <GeneratorsPreview />)}
       {screen === 'folder-layout' && <FolderLayoutPreview />}
       {screen === 'activity' && <ActivityPreview />}
       {screen === 'account' && <AccountPreview />}
@@ -152,7 +152,7 @@ function GeneratorsPreview(): ReactElement {
   const [generators, setGenerators] = useState(FAKE_GENERATORS);
   return (
     <GeneratorsScreen
-      stepsVaultGenerator={FAKE_DANCEDANCE_GENERATOR}
+      dancedanceGenerator={FAKE_DANCEDANCE_GENERATOR}
       generators={generators}
       jobs={FAKE_GENERATOR_JOBS}
       generatedSongs={FAKE_GENERATED_SONGS}

@@ -7,7 +7,7 @@ const MINIMUM_OVERLAP_SECONDS = 5;
 const STANDARD_DEVIATION_GUARD = 1e-9;
 
 export interface RealignResult {
-  /** How much later the music starts in the player's file than in StepsVault's audio (negative: earlier). */
+  /** How much later the music starts in the player's file than in dancedance.studio's audio (negative: earlier). */
   shiftSeconds: number;
   /** Pearson correlation of the overlapping parts of the two envelopes at the best shift. */
   correlation: number;

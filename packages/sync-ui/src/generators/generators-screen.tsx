@@ -5,17 +5,17 @@ import { GENERATOR_AGENT_SKILL } from '../shared/agent-skills';
 import { LIBRARY_GENERATOR_NAME } from '../shared/brand-names';
 import { InfoPanel, InfoToggleButton, Note } from '../shared/small-parts';
 import { FEATURE_TONE_COLORS } from '../shared/square-icon-tile';
-import type { GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorLookupResult, GeneratorView, PreselectedSongView, ServiceLookupRequest, StepsVaultGeneratorView } from '../sync-ui-types';
+import type { GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorLookupResult, GeneratorView, PreselectedSongView, ServiceLookupRequest, DancedanceGeneratorView } from '../sync-ui-types';
 import { AddGeneratorDialog } from './add-generator-dialog';
 import { GeneratedSongList } from './generated-song-list';
-import { GeneratorCard, StepsVaultGeneratorCard } from './generator-card';
+import { GeneratorCard, DancedanceGeneratorCard } from './generator-card';
 import { GeneratorJobList, type GeneratorJobActions } from './generator-jobs';
 import { MakeSongDialog, type MakeSongDialogProps } from './make-song-dialog';
 import type { MusicSources } from './music-step';
 import { PlayOnWebsite, type PlayOnWebsiteProps } from './play-on-website';
 
 export interface GeneratorsScreenProps extends MusicSources, GeneratorJobActions {
-  stepsVaultGenerator: StepsVaultGeneratorView;
+  dancedanceGenerator: DancedanceGeneratorView;
   generators: readonly GeneratorView[];
   jobs: readonly GeneratorJobView[];
   generatedSongs: readonly GeneratedSongView[];
@@ -67,7 +67,7 @@ export function GeneratorsScreen(props: GeneratorsScreenProps): ReactElement {
     <div className="sv-sync-screen">
       <GeneratorsHeading makeSongAction={<button className="sv-sync-button" type="button" onClick={openMakeSong}><Icon name="sparkle" strokeWidth={2.4} />Make a song</button>} />
       {preselectedSong && !makeSongDialog.isOpen && <PreselectedSongNote preselectedSong={preselectedSong} hasOwnGenerator={hasOwnGenerator} onDismiss={props.onDismissPreselectedSong} />}
-      <StepsVaultGeneratorCard generator={props.stepsVaultGenerator} />
+      <DancedanceGeneratorCard generator={props.dancedanceGenerator} />
       <GeneratorJobList jobs={props.jobs} onCancelJob={props.onCancelJob} onAnswerVaultChoice={props.onAnswerVaultChoice} onDismissJob={props.onDismissJob} />
       <CommunityGenerators {...props} onAdd={() => { setIsAddingGenerator(true); }} />
       <GeneratedSongList songs={props.generatedSongs} onFetchSongReport={props.onFetchSongReport} onMakeSong={openMakeSong} />

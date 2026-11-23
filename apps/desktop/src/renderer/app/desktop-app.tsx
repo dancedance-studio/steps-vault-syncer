@@ -17,7 +17,7 @@ import type { DesktopSyncBridge, DesktopSyncState } from '../../shared/bridge-ty
 
 declare global {
   interface Window {
-    stepsVaultSync: DesktopSyncBridge;
+    dancedanceSync: DesktopSyncBridge;
   }
 }
 
@@ -207,7 +207,7 @@ function renderAudioSources({ state, bridge, setCurrentScreen }: ScreenOptions):
 function renderGenerators({ state, bridge }: ScreenOptions): ReactNode {
   return (
     <GeneratorsScreen
-      stepsVaultGenerator={state.stepsVaultGenerator}
+      dancedanceGenerator={state.dancedanceGenerator}
       generators={state.generators}
       jobs={state.generatorJobs}
       generatedSongs={state.generatedSongs}

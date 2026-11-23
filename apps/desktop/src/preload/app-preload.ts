@@ -16,4 +16,4 @@ function buildBridge(): DesktopSyncBridge {
   };
 }
 
-contextBridge.exposeInMainWorld('stepsVaultSync', buildBridge());
+contextBridge.exposeInMainWorld('dancedanceSync', buildBridge());

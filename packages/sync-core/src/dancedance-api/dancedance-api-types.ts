@@ -27,7 +27,7 @@ export interface SyncPartyList extends PartyListToSync {
 
 /** The signed-in player as GET /api/sync/me describes them. */
 export interface SyncAccount {
-  /** Each song made with StepsVault's generator spends one. */
+  /** Each song made with dancedance.studio's generator spends one. */
   tokenBalance: number;
   player: { handle: string; initial: string; avatarColor: string };
 }
@@ -60,12 +60,12 @@ export class SignedOutError extends Error {
   }
 }
 
-export class StepsVaultApiError extends Error {
+export class DancedanceApiError extends Error {
   readonly status: number;
 
   constructor({ status, message }: { status: number; message: string }) {
     super(message);
-    this.name = 'StepsVaultApiError';
+    this.name = 'DancedanceApiError';
     this.status = status;
   }
 }

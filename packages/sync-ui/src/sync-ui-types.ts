@@ -19,7 +19,7 @@ export type SongSyncStep = 'finding-audio' | 'checking-edit' | 'lining-up' | 'wr
 /** Where a song is in the sync that is running now. */
 export type SongSyncProgress = { kind: 'working'; step: SongSyncStep } | { kind: 'waiting-in-line' };
 
-export type SongAction = 'sync' | 'choose-audio' | 'use-different-file' | 'update' | 'keep-mine' | 'replace-with-stepsvault' | 'remove-from-game' | 'keep-in-game';
+export type SongAction = 'sync' | 'choose-audio' | 'use-different-file' | 'update' | 'keep-mine' | 'replace-with-dancedance' | 'remove-from-game' | 'keep-in-game';
 
 export interface SongRowView {
   vaultSongId: string;
@@ -227,15 +227,15 @@ export type LinkCodeState = 'typing' | 'miss' | 'great' | 'linked';
 /** Where an addon or generator runs: on this computer the music stays here, on the internet it is sent there. */
 export type ServiceLocationView = { kind: 'this-computer' } | { kind: 'internet'; address: string };
 
-/** StepsVault's own generator: always listed first, and used when the player doesn't pick another one. */
-export interface StepsVaultGeneratorView {
+/** dancedance.studio's own generator: always listed first, and used when the player doesn't pick another one. */
+export interface DancedanceGeneratorView {
   /** The player's tokens; null when Sync doesn't know them. */
   tokenCount: number | null;
   /** Where the player buys tokens, opened in their browser. */
   tokensHref: string;
-  /** What it can make; null while StepsVault can't be reached. */
+  /** What it can make; null while dancedance.studio can't be reached. */
   difficulties: readonly GeneratorDifficulty[] | null;
-  /** The sentence to agree to before the first song, since StepsVault receives the music too; null once agreed. */
+  /** The sentence to agree to before the first song, since dancedance.studio receives the music too; null once agreed. */
   musicUploadWarning: string | null;
 }
 
@@ -355,7 +355,7 @@ export interface GeneratorJobView {
   songTitle: string;
   songArtist: string;
   generatorName: string;
-  isStepsVault: boolean;
+  isDancedance: boolean;
   state: GeneratorJobStateView;
   /** For example "Placing the steps"; the generator's own words when it gives them. */
   stageText: string;
