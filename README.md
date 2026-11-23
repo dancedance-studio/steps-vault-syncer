@@ -30,13 +30,13 @@ pnpm test
 | `packages/sync-ui` | The Sync screens as React components, shared by the website and the desktop app |
 | `apps/desktop` | The Windows app (Electron): the game's Songs folder, music folders, tray and background sync |
 
-To see every screen with made-up data, run `pnpm --filter @stepsvault/sync-ui preview` and open the address it prints.
+To see every screen with made-up data, run `pnpm --filter @dancedance/sync-ui preview` and open the address it prints.
 The desktop app (`apps/desktop`) comes with task 11.
 
 ## Run the desktop app
 
 ```bash
-pnpm --filter @stepsvault/desktop start
+pnpm --filter @dancedance/desktop start
 ```
 
 To try it against a StepsVault site on your own computer, set `STEPSVAULT_SITE_URL` (for example

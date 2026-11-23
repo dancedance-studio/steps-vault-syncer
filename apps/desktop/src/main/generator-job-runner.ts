@@ -24,7 +24,7 @@ import {
   type SiteSongRequest,
   type SongMusicSource,
   type VaultSongChoice,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 
 const CANCEL_CHECK_EVERY_MILLISECONDS = 250;
 

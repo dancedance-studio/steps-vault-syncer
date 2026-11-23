@@ -1,4 +1,4 @@
-import { checkSongInstall, getPlainReasonOrNull, type SongInstallCheck, type SongsFolder, type SyncOutcome } from '@stepsvault/sync-core';
+import { checkSongInstall, getPlainReasonOrNull, type SongInstallCheck, type SongsFolder, type SyncOutcome } from '@dancedance/sync-core';
 
 /** Between two syncs while an addon is still getting the music (it answered 202). */
 const ADDON_RETRY_MILLISECONDS = 15_000;

@@ -1,4 +1,4 @@
-import type { SongSyncStatus } from '@stepsvault/sync-core';
+import type { SongSyncStatus } from '@dancedance/sync-core';
 import type { IconName } from '../icons/icon';
 import type { SongAction } from '../sync-ui-types';
 

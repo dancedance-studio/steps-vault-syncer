@@ -1,4 +1,4 @@
-import { FOLDER_LAYOUTS, type FolderLayout } from '@stepsvault/sync-core';
+import { FOLDER_LAYOUTS, type FolderLayout } from '@dancedance/sync-core';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import {
   ADDON_AGENT_SKILL, ActivityScreen, AgentBox, AudioSourcesScreen, FourArrowLoader, GENERATOR_AGENT_SKILL, GreenPillButton, Icon, SiteLogo, SquareIconTile, WebsiteGeneratorsScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyVaultState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,

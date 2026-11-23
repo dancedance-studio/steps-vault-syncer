@@ -1,4 +1,4 @@
-import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse } from '@stepsvault/sync-core';
+import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse } from '@dancedance/sync-core';
 
 const USER_AGENT = 'StepsVaultSync';
 

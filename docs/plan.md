@@ -19,7 +19,7 @@ The written spec lives with the website and is summarised here.
 
 Both use the same packages from this repo:
 
-- **`@stepsvault/sync-core`**: plain TypeScript, no DOM and no Node APIs. It contains the sync plan, the folder
+- **`@dancedance/sync-core`**: plain TypeScript, no DOM and no Node APIs. It contains the sync plan, the folder
   layout and names, the record of which folders we own, `.ssc` editing, audio matching, the addon protocol client
   and the StepsVault API client. Everything that touches the outside world goes through an interface (a "port")
   that the website and the app each implement:
@@ -29,11 +29,11 @@ Both use the same packages from this repo:
   - `MusicLibrary`: the files in the player's music folders;
   - `HttpClient`: `fetch` with a timeout;
   - `Clock`.
-- **`@stepsvault/sync-ui`**: the React screens from the design, shared by the website and the app.
+- **`@dancedance/sync-ui`**: the React screens from the design, shared by the website and the app.
 - **`apps/desktop`**: the Electron app (main process: folder access, network, tray, updates; a hidden window decodes
   and matches audio; the visible window runs `sync-ui`).
 
-The website (a private repo) installs `sync-core` and `sync-ui` from npm under the `@stepsvault` scope.
+The website (a private repo) installs `sync-core` and `sync-ui` from npm under the `@dancedance` scope.
 
 ## Rules that never bend
 

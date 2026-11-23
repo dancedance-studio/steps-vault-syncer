@@ -9,7 +9,7 @@ import {
   type LocalBridgeRequestDependencies,
   type LocalBridgeResponse,
   type SongsPath,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 
 /** Opens a song's file for sending; it must refuse anything outside the Songs folder (NodeSongsFolder does). */
 export type OpenSongFile = (songsPath: SongsPath) => Promise<{ fileHandle: FileHandle; byteCount: number }>;

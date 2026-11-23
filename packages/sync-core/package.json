@@ -1,5 +1,5 @@
 {
-  "name": "@stepsvault/sync-core",
+  "name": "@dancedance/sync-core",
   "version": "0.1.0",
   "description": "The StepsVault Sync engine: sync plan, folder layout, owned folders, .ssc editing and audio matching.",
   "license": "Apache-2.0",

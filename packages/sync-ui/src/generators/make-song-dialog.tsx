@@ -1,4 +1,4 @@
-import type { GeneratorDifficulty } from '@stepsvault/sync-core';
+import type { GeneratorDifficulty } from '@dancedance/sync-core';
 import { useState, type ReactElement } from 'react';
 import { SyncDialog } from '../dialog/sync-dialog';
 import { DialogHeading } from '../dialog/dialog-heading';

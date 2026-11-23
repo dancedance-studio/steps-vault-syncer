@@ -1,4 +1,4 @@
-import { FOLDER_LAYOUTS, isOnThisComputer, loadSavedAddon, loadSavedGenerator, type ActivityLogEvent, type FolderLayout, type InstalledAddon, type InstalledGenerator } from '@stepsvault/sync-core';
+import { FOLDER_LAYOUTS, isOnThisComputer, loadSavedAddon, loadSavedGenerator, type ActivityLogEvent, type FolderLayout, type InstalledAddon, type InstalledGenerator } from '@dancedance/sync-core';
 
 export const DEFAULT_SITE_URL = 'https://dancedance.studio';
 const MAX_ACTIVITY_EVENTS = 300;

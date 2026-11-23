@@ -1,6 +1,6 @@
 import os from 'node:os';
 import { describe, expect, it } from 'vitest';
-import { HttpRequestError, type HttpClient, type HttpRequest } from '@stepsvault/sync-core';
+import { HttpRequestError, type HttpClient, type HttpRequest } from '@dancedance/sync-core';
 import { StartingHttpClient } from './local-program-process';
 import { getStartCommandFolder, IDLE_STOP_MILLISECONDS, LocalProgramStarter, type LocalProgramPorts, type RunningProgram } from './local-program-starter';
 

@@ -1,4 +1,4 @@
-import { buildInstalledAddon, buildInstalledGenerator, withMusicUploadConsent, type AddonManifest, type GeneratedSong, type GeneratorManifest, type SavedGeneratorJob } from '@stepsvault/sync-core';
+import { buildInstalledAddon, buildInstalledGenerator, withMusicUploadConsent, type AddonManifest, type GeneratedSong, type GeneratorManifest, type SavedGeneratorJob } from '@dancedance/sync-core';
 import { describe, expect, it } from 'vitest';
 import { buildAddonInstallPreview, buildAddonView, buildLinksTab, buildSongSourceTabs } from './build-addon-views';
 import { buildGeneratedSongViews, buildGeneratorInstallPreview, buildGeneratorJobView, buildGeneratorView } from './build-generator-views';

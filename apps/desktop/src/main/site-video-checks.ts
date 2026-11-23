@@ -11,7 +11,7 @@ import {
   type LinkJobAnswer,
   type VerifyLinkJob,
   type VideoAudioComparison,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 
 const ADDON_OFF_REASON = 'Your link addon is off in Sync, so it can’t get that video’s music.';
 const NOT_ANSWERING_REASON = 'Your link addon isn’t answering. Check that it is running, then try again.';

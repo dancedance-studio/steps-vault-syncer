@@ -1,4 +1,4 @@
-import type { FolderLayout } from '@stepsvault/sync-core';
+import type { FolderLayout } from '@dancedance/sync-core';
 import type { ActivityEntryView, AddonInstallPreview, AddonView, ConnectedGameView, GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorView, LinksTabView, MusicChoiceView, SongSourceTabView, StepsVaultGeneratorView, DifficultyLevels, FoundGameView, LayoutPreviewsByLayout, LinkedComputerView, MusicFolderView, PartyFolderView, PickedFileView, PlayerGroupView, SongDetailsView, SongRowView } from '../sync-ui-types';
 
 // Made-up songs and artists for the preview page and the tests; the cover art is drawn here, so nothing loads from the network.

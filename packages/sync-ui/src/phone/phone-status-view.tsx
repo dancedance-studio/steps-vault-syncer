@@ -1,4 +1,4 @@
-import type { SongSyncStatus } from '@stepsvault/sync-core';
+import type { SongSyncStatus } from '@dancedance/sync-core';
 import type { ReactElement } from 'react';
 import { ArrowReceptor } from '../icons/arrow-receptor';
 import { Icon } from '../icons/icon';

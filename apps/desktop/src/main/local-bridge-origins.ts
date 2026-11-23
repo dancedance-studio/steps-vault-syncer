@@ -1,4 +1,4 @@
-import { STEPSVAULT_SITE_ORIGIN } from '@stepsvault/sync-core';
+import { STEPSVAULT_SITE_ORIGIN } from '@dancedance/sync-core';
 
 /**
  * The website addresses the local bridge answers. An installed (packaged) Sync answers only the real site. A

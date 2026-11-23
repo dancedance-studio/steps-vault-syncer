@@ -1,5 +1,5 @@
-import { FOLDER_LAYOUTS, GENERATOR_DIFFICULTIES, type FolderLayout, type GeneratorDifficulty, type VaultSongChoice } from '@stepsvault/sync-core';
-import type { AddonInstallPreview, AddonOptionView, GeneratorInstallPreview, MakeSongRequest, ServiceLocationView, ServiceLookupRequest, SongAction, SongSourceSearchRequest, VaultChoiceAnswer } from '@stepsvault/sync-ui';
+import { FOLDER_LAYOUTS, GENERATOR_DIFFICULTIES, type FolderLayout, type GeneratorDifficulty, type VaultSongChoice } from '@dancedance/sync-core';
+import type { AddonInstallPreview, AddonOptionView, GeneratorInstallPreview, MakeSongRequest, ServiceLocationView, ServiceLookupRequest, SongAction, SongSourceSearchRequest, VaultChoiceAnswer } from '@dancedance/sync-ui';
 import type { DesktopSyncBridge } from '../shared/bridge-types';
 import type { SyncController } from './sync-controller';
 

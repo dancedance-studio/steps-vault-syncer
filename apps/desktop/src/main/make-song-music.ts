@@ -24,8 +24,8 @@ import {
   type SongSourceChoice,
   type SongSourceFileLink,
   type SongSourceSong,
-} from '@stepsvault/sync-core';
-import type { MusicChoiceView, SongSourceSearchResult } from '@stepsvault/sync-ui';
+} from '@dancedance/sync-core';
+import type { MusicChoiceView, SongSourceSearchResult } from '@dancedance/sync-ui';
 import type { MusicSourceRegistry } from './music-source-registry';
 
 const UNKNOWN_ARTIST = 'Unknown artist';

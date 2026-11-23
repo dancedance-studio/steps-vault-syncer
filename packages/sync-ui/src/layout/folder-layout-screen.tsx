@@ -1,4 +1,4 @@
-import { CLASH_PREFIX, FOLDER_LAYOUTS, ONE_GROUP_NAME, PARTY_FOLDER_PREFIX, type FolderLayout } from '@stepsvault/sync-core';
+import { CLASH_PREFIX, FOLDER_LAYOUTS, ONE_GROUP_NAME, PARTY_FOLDER_PREFIX, type FolderLayout } from '@dancedance/sync-core';
 import { useState, type ReactElement } from 'react';
 import { JudgmentText } from '../progress/judgment-flash';
 import { Icon } from '../icons/icon';

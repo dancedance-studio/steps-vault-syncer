@@ -185,10 +185,10 @@ importers:
         specifier: ~6.8.11
         version: 6.8.11(supports-color@7.2.0)
     devDependencies:
-      '@stepsvault/sync-core':
+      '@dancedance/sync-core':
         specifier: workspace:*
         version: link:../../packages/sync-core
-      '@stepsvault/sync-ui':
+      '@dancedance/sync-ui':
         specifier: workspace:*
         version: link:../../packages/sync-ui
       '@types/node':
@@ -236,7 +236,7 @@ importers:
 
   packages/sync-ui:
     devDependencies:
-      '@stepsvault/sync-core':
+      '@dancedance/sync-core':
         specifier: workspace:*
         version: link:../sync-core
       '@testing-library/dom':

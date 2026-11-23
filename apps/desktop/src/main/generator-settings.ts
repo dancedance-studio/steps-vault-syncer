@@ -14,8 +14,8 @@ import {
   type GeneratorSignIn,
   type HttpClient,
   type InstalledGenerator,
-} from '@stepsvault/sync-core';
-import { buildGeneratorInstallPreview, getAddonOptionValuesFromViews, STEPSVAULT_GENERATOR_ID, type GeneratorInstallPreview, type GeneratorLookupResult, type ServiceLookupRequest, type StepsVaultGeneratorView } from '@stepsvault/sync-ui';
+} from '@dancedance/sync-core';
+import { buildGeneratorInstallPreview, getAddonOptionValuesFromViews, STEPSVAULT_GENERATOR_ID, type GeneratorInstallPreview, type GeneratorLookupResult, type ServiceLookupRequest, type StepsVaultGeneratorView } from '@dancedance/sync-ui';
 import type { DesktopSettings } from './desktop-settings';
 import type { JobGenerator } from './generator-job-runner';
 import { getStartCommandFolder, type LocalProgramStarter } from './local-program-starter';

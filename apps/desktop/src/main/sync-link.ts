@@ -1,4 +1,4 @@
-import type { SiteSongRequest } from '@stepsvault/sync-core';
+import type { SiteSongRequest } from '@dancedance/sync-core';
 
 /**
  * The app's own link scheme, for the website's "Open in Sync app". It names the app the player sees (dancedance.studio Sync),

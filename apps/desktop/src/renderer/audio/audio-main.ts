@@ -1,4 +1,4 @@
-import { compareVideoAudio, getAudioMatch } from '@stepsvault/sync-core';
+import { compareVideoAudio, getAudioMatch } from '@dancedance/sync-core';
 import type { AudioJob, AudioJobResult } from '../../shared/bridge-types';
 import { encodeWav } from './wav-encoder';
 

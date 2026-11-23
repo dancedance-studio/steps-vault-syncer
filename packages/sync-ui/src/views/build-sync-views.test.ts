@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildEmptyInstalledSongsRecord, buildSongsPath, withInstalledSong, type VaultSongDetails } from '@stepsvault/sync-core';
+import { buildEmptyInstalledSongsRecord, buildSongsPath, withInstalledSong, type VaultSongDetails } from '@dancedance/sync-core';
 import { buildActivityEntries, buildLayoutViews, buildSongDetailsById, buildSongRows, describeShift, getDayText, getTrayStatus, type SongViewInput } from './build-sync-views';
 
 const CHEAP_THRILLS: VaultSongDetails = { vaultSongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, youtubeId: null, chartVersion: 'v1', imageKinds: [], hasFingerprint: true };

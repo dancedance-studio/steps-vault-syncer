@@ -1,4 +1,4 @@
-import { CLASH_PREFIX } from '@stepsvault/sync-core';
+import { CLASH_PREFIX } from '@dancedance/sync-core';
 import type { ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { SITE_NAME } from '../shared/brand-names';

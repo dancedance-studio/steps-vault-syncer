@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildEmptyInstalledSongsRecord, buildSongsPath, type InstalledSong, type PartyFolderPlan, type SyncPartyList, type VaultSongDetails } from '@stepsvault/sync-core';
+import { buildEmptyInstalledSongsRecord, buildSongsPath, type InstalledSong, type PartyFolderPlan, type SyncPartyList, type VaultSongDetails } from '@dancedance/sync-core';
 import { buildActivityEntries } from './build-sync-views';
 import { buildPartyFolderPreview, buildPartyFolderViews, getPartyListEndText } from './build-party-folder-views';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse } from '@stepsvault/sync-core';
-import { STEPSVAULT_GENERATOR_ID, type GeneratorInstallPreview } from '@stepsvault/sync-ui';
+import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse } from '@dancedance/sync-core';
+import { STEPSVAULT_GENERATOR_ID, type GeneratorInstallPreview } from '@dancedance/sync-ui';
 import { buildDefaultSettings, type DesktopSettings } from './desktop-settings';
 import { GeneratorSettings, type StartCommandConfirmation } from './generator-settings';
 import { LocalProgramStarter } from './local-program-starter';

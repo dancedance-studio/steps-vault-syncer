@@ -1,7 +1,7 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { safeStorage } from 'electron';
-import type { PairedBrowser, PairedBrowserStore } from '@stepsvault/sync-core';
+import type { PairedBrowser, PairedBrowserStore } from '@dancedance/sync-core';
 
 /**
  * The tokens of the browsers paired with the local bridge, encrypted like the device token (DPAPI on Windows). When

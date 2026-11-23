@@ -39,7 +39,7 @@ import {
   type VerifyLinkJob,
   type VaultSongChoice,
   type VaultSongIdentity,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 import {
   buildActivityEntries,
   buildAddonInstallPreview,
@@ -68,7 +68,7 @@ import {
   type SongSourceSearchRequest,
   type SongSourceSearchResult,
   type VaultChoiceAnswer,
-} from '@stepsvault/sync-ui';
+} from '@dancedance/sync-ui';
 import { APP_DISPLAY_NAME } from '../shared/app-name';
 import type { DesktopSignIn, DesktopSyncBridge, DesktopSyncState } from '../shared/bridge-types';
 import type { AudioBridge } from './audio-bridge';

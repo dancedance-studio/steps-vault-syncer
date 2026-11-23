@@ -1,6 +1,6 @@
 import { copyFile, lstat, mkdir, open, readdir, readFile, realpath, rename, rm, writeFile, type FileHandle } from 'node:fs/promises';
 import path from 'node:path';
-import { SongsFolderError, type SongsFolder, type SongsFolderEntry, type SongsFolderFailure, type SongsPath } from '@stepsvault/sync-core';
+import { SongsFolderError, type SongsFolder, type SongsFolderEntry, type SongsFolderFailure, type SongsPath } from '@dancedance/sync-core';
 import type { MusicSourceRegistry } from './music-source-registry';
 
 /** StepMania plays these as they are; anything else is converted to WAV first. */

@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse, type MultipartHttpClient, type MultipartHttpRequest } from '@stepsvault/sync-core';
+import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse, type MultipartHttpClient, type MultipartHttpRequest } from '@dancedance/sync-core';
 import type { LocalProgramStarter, RunningProgram } from './local-program-starter';
 
 const MANIFEST_CHECK_TIMEOUT_MILLISECONDS = 2_000;

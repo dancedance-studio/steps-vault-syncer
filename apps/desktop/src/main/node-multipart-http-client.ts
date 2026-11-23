@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { HttpRequestError, type HttpResponse, type MultipartHttpClient, type MultipartHttpRequest, type MultipartPart } from '@stepsvault/sync-core';
+import { HttpRequestError, type HttpResponse, type MultipartHttpClient, type MultipartHttpRequest, type MultipartPart } from '@dancedance/sync-core';
 import { fetchWithLimits, getUserAgentHeader, parseJsonAnswer } from './node-http-client';
 
 const LINE_BREAK = '\r\n';

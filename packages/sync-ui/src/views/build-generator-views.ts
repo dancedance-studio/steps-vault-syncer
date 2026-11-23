@@ -1,5 +1,5 @@
 /** Builds what the Generators screens show; shared by the website and the desktop app. */
-import { GENERATOR_DIFFICULTIES, getGeneratedSongMusicSource, getMusicUploadWarningOrNull, isOnThisComputer, type GeneratedSong, type GeneratorManifest, type InstalledGenerator, type SavedGeneratorJob, type SongMusicSource } from '@stepsvault/sync-core';
+import { GENERATOR_DIFFICULTIES, getGeneratedSongMusicSource, getMusicUploadWarningOrNull, isOnThisComputer, type GeneratedSong, type GeneratorManifest, type InstalledGenerator, type SavedGeneratorJob, type SongMusicSource } from '@dancedance/sync-core';
 import type { DifficultyLevels, GeneratedSongView, GeneratorInstallPreview, GeneratorJobStateView, GeneratorJobView, GeneratorView, ServiceLocationView } from '../sync-ui-types';
 import { buildAddonOptionViews } from './build-addon-views';
 

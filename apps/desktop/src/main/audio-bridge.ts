@@ -1,5 +1,5 @@
 import type { BrowserWindow, IpcMain, IpcMainEvent } from 'electron';
-import type { AudioFingerprint, AudioMatch, PictureMaker, PlainPictureRequest, VideoAudioComparison } from '@stepsvault/sync-core';
+import type { AudioFingerprint, AudioMatch, PictureMaker, PlainPictureRequest, VideoAudioComparison } from '@dancedance/sync-core';
 import { AUDIO_JOB_CHANNEL, AUDIO_RESULT_CHANNEL, type AudioJob, type AudioJobResult } from '../shared/bridge-types';
 
 const JOB_TIMEOUT_MILLISECONDS = 120_000;

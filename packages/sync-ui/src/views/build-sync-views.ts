@@ -15,7 +15,7 @@ import {
   type InstalledSongsRecord,
   type SongPlan,
   type VaultSongDetails,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 import type { ActivityEntryView, ActivityKind, DifficultyLevels, LayoutPreview, LayoutPreviewGroup, LayoutPreviewsByLayout, SongAudioSource, SongDetailsView, SongRowView, TrayStatus } from '../sync-ui-types';
 import { getGroupColorHex } from './group-colors';
 

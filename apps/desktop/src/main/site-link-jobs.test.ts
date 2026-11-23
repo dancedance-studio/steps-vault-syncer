@@ -16,7 +16,7 @@ import {
   type InstalledAddon,
   type LinkSongSource,
   type VideoAudioComparison,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 import { GeneratorJobFiles } from './generator-job-files';
 import { MakeSongMusic, type MakeSongMusicPorts } from './make-song-music';
 import { MusicSourceRegistry } from './music-source-registry';

@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildInstalledAddon, MAX_LINK_AUDIO_BYTES, scanMusicLibrary, type AddonManifest, type GeneratorManifest, type HttpClient, type HttpResponse } from '@stepsvault/sync-core';
+import { buildInstalledAddon, MAX_LINK_AUDIO_BYTES, scanMusicLibrary, type AddonManifest, type GeneratorManifest, type HttpClient, type HttpResponse } from '@dancedance/sync-core';
 import { MakeSongMusic, SiteMusicLimitError, type MakeSongMusicPorts } from './make-song-music';
 import { MusicSourceRegistry } from './music-source-registry';
 import { NodeMusicLibrary } from './node-music-library';

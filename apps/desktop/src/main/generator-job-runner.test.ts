@@ -18,7 +18,7 @@ import {
   type MultipartPart,
   type SavedGeneratorJob,
   type VaultSongIdentity,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 import { GeneratorJobRunner, type GeneratorJobStart, type JobGenerator } from './generator-job-runner';
 
 const COMMUNITY_ADDRESS = 'http://127.0.0.1:7700';

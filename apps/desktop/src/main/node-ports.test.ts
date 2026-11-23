@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { HttpRequestError, scanMusicLibrary, SongsFolderError } from '@stepsvault/sync-core';
+import { HttpRequestError, scanMusicLibrary, SongsFolderError } from '@dancedance/sync-core';
 import { JsonFileStore } from './json-file-store';
 import { MusicSourceRegistry } from './music-source-registry';
 import { NodeFileUploadHttpClient } from './node-file-upload-http-client';

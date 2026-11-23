@@ -1,4 +1,4 @@
-import type { FolderLayout, VideoAudioComparison } from '@stepsvault/sync-core';
+import type { FolderLayout, VideoAudioComparison } from '@dancedance/sync-core';
 import type {
   ActivityEntryView,
   AddonInstallPreview,
@@ -33,7 +33,7 @@ import type {
   SyncRunView,
   TrayStatus,
   VaultChoiceAnswer,
-} from '@stepsvault/sync-ui';
+} from '@dancedance/sync-ui';
 
 export type DesktopSignIn =
   | { kind: 'signed-out' }

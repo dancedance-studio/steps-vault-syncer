@@ -12,7 +12,7 @@ import {
   SyncShell,
   UpdateBanner,
   type SyncScreen,
-} from '@stepsvault/sync-ui';
+} from '@dancedance/sync-ui';
 import type { DesktopSyncBridge, DesktopSyncState } from '../../shared/bridge-types';
 
 declare global {

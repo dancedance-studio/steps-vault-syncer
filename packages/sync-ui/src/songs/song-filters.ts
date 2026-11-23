@@ -1,4 +1,4 @@
-import type { SongSyncStatus } from '@stepsvault/sync-core';
+import type { SongSyncStatus } from '@dancedance/sync-core';
 import type { SongRowView } from '../sync-ui-types';
 
 export type SongSortOrder = 'recently-added' | 'title' | 'artist';

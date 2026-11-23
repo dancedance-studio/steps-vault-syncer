@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildEmptyInstalledSongsRecord, MemorySongsFolder, type InstalledSong, type SongPlan, type SyncOutcome } from '@stepsvault/sync-core';
+import { buildEmptyInstalledSongsRecord, MemorySongsFolder, type InstalledSong, type SongPlan, type SyncOutcome } from '@dancedance/sync-core';
 import { installSongForSite, type SiteSongInstallPorts } from './site-song-installs';
 
 const NIGHT_DRIVE_FOLDER = ['dancedance.studio', 'Night Drive'];

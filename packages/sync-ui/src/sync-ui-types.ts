@@ -1,4 +1,4 @@
-import type { FolderLayout, GeneratorDifficulty, SongSourceInput, SongSyncStatus, VaultSongChoice } from '@stepsvault/sync-core';
+import type { FolderLayout, GeneratorDifficulty, SongSourceInput, SongSyncStatus, VaultSongChoice } from '@dancedance/sync-core';
 
 /** The website shows browser permission prompts; the desktop app has a tray and background sync. */
 export type SyncPlatform = 'website' | 'desktop';

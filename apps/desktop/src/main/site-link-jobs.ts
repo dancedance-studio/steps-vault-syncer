@@ -26,7 +26,7 @@ import {
   type LinkSongSource,
   type MusicLinkJob,
   type SongMusicSource,
-} from '@stepsvault/sync-core';
+} from '@dancedance/sync-core';
 import { SiteMusicLimitError, type FoundSongChoices, type MakeSongMusic } from './make-song-music';
 import type { SiteSongInstallResult } from './site-song-installs';
 import type { AddonWait, SiteVideoCheckAnswer } from './site-video-checks';
