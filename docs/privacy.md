@@ -32,10 +32,14 @@ The installed app asks GitHub whether there is a newer version when it starts, t
 computer's internet address and the Sync version. See
 [GitHub's privacy statement](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
 
-You can turn this off in the installer, or in Sync's Options with "Check for new versions automatically". You can
-still check by hand with "Check for updates". The switch comes with version 0.1.0; the 0.1.0 preview always checks.
+You can turn this off in the installer's "What Sync sends" page, or in Sync's Options with "Check for new versions
+automatically". You can still check by hand with "Check for updates". With "Get test versions first", the check also
+looks at test versions; GitHub sees the same. The switches come with version 0.1.0; the 0.1.0 preview always checks.
+A copy run from source never checks: its updates come from git.
 
 ## On your computer
 
-Your settings, sign-in and history stay in `%APPDATA%\dancedance.studio Sync`. Uninstalling Sync (Windows Settings ›
-Apps) removes the app. To remove your settings too, delete that folder.
+Your settings, sign-in and history stay in `%APPDATA%\dancedance.studio Sync`. The installer keeps your two answers
+(check for new versions, start with Windows) in `installer-choices.json` in Sync's program folder; Sync copies them
+into its settings on its first start, and from then on Options decides. Uninstalling Sync (Windows Settings › Apps)
+removes the app and takes it off the programs Windows starts. To remove your settings too, delete that folder.

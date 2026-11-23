@@ -22,7 +22,8 @@ win:
       arch: [x64]
   artifactName: dancedance-studio-Sync-Setup-${version}.${ext}
 nsis:
-  # Installs for the current user only: no admin rights, no UAC prompt.
+  # Installs for the current user only: no admin rights, no UAC prompt (build/installer.nsh skips the "for all users"
+  # choice). Before installing, build/installer.nsh shows "What Sync sends" with its two choices.
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: false
