@@ -33,6 +33,7 @@ export function AddonCard({ addon, onToggle, onRemove, onSetOption }: AddonCardP
         </div>
         <div className="sv-sync-small sv-sync-subtle">by {addon.author}</div>
         {addon.isAudioSource === false && <div className="sv-sync-small sv-sync-text">Not an audio source. It suggests new songs to make.</div>}
+        {addon.ignoredAbilityNote !== undefined && <div className="sv-sync-small sv-sync-warning-text">{addon.ignoredAbilityNote}</div>}
         <AddonState addon={addon} />
         <AddonOptionFields addonName={addon.name} options={addon.options} onChange={({ optionId, value }) => { onSetOption({ addonId: addon.addonId, optionId, value }); }} />
       </div>

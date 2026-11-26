@@ -9,9 +9,11 @@ export const ADDON_PROTOCOL_VERSION = 1;
 const MAX_ADDON_ERROR_LENGTH = 300;
 const MAX_LINKS = 10;
 const MAX_LABEL_LENGTH = 80;
-const KNOWN_PROVIDES = ['audio-links', 'video-links', 'song-source'] as const;
-// video-links only adds to audio-links, so on its own it gives Sync nothing to use.
+const KNOWN_PROVIDES = ['audio-links', 'video-links', 'song-source', 'song-search'] as const;
+// video-links and song-search only add to audio-links, so on their own they give Sync nothing to use.
 const USABLE_PROVIDES: readonly AddonProvides[] = ['audio-links', 'song-source'];
+// The music of a version the player picks from a song search comes through /audio-links.
+const IGNORED_SONG_SEARCH_REASON = 'Sync ignores its song search, because it doesn’t give audio links too. Ask the addon’s maker.';
 
 export type AddonProvides = (typeof KNOWN_PROVIDES)[number];
 
@@ -20,8 +22,10 @@ export interface AddonManifest extends ManifestIdentity {
   protocol: typeof ADDON_PROTOCOL_VERSION;
   kind: 'addon';
   /**
-   * 'audio-links' (music for a song in the library, with 'video-links' its video too) and/or 'song-source' (a new song
-   * to make with a generator). Names Sync doesn't know are dropped.
+   * 'audio-links' (music for a song in the library, with 'video-links' its video too), 'song-source' (a new song to make
+   * with a generator) and/or 'song-search' (a few versions of a song picked on the website; only with 'audio-links').
+   * Names Sync doesn't know are dropped. 'song-search' without 'audio-links' stays here, so the addon's card can say
+   * why it is ignored, even after a restart; isAddonProviding says no for it.
    */
   provides: readonly AddonProvides[];
   /** The fields of the addon's "Make a song" tab: 1 to 3 when it provides 'song-source', otherwise none. */
@@ -95,7 +99,13 @@ export function parseAddonManifest(value: unknown): AddonManifest {
 
 /** True when the addon can do this, for example 'audio-links' before asking it for a song's music. */
 export function isAddonProviding({ manifest, ability }: { manifest: AddonManifest; ability: AddonProvides }): boolean {
+  if (ability === 'song-search' && !manifest.provides.includes('audio-links')) return false;
   return manifest.provides.includes(ability);
+}
+
+/** Why Sync ignores an ability the addon declares, as one sentence for its card; null when it uses all of them. */
+export function getIgnoredAbilityReasonOrNull(manifest: AddonManifest): string | null {
+  return manifest.provides.includes('song-search') && !isAddonProviding({ manifest, ability: 'song-search' }) ? IGNORED_SONG_SEARCH_REASON : null;
 }
 
 function getKnownProvides(value: unknown): AddonProvides[] {

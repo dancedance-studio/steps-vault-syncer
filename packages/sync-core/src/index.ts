@@ -29,6 +29,8 @@ export * from './addons/addon-client';
 export * from './addons/song-source-inputs';
 export * from './addons/song-source-protocol';
 export * from './addons/song-source-client';
+export * from './addons/song-search-protocol';
+export * from './addons/song-search-client';
 export * from './audio-sources/song-names';
 export * from './audio-sources/music-library';
 export * from './audio-sources/music-search';

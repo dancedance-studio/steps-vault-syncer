@@ -6,7 +6,7 @@ import type { FileUploadHttpClient, FileUploadHttpRequest, HttpClient, HttpReque
 import { SignedOutError, DancedanceApiError } from '../dancedance-api/dancedance-api-types';
 import { DancedanceClient } from '../dancedance-api/dancedance-client';
 import { getLinkAudioContentTypeOrNull } from './link-audio-files';
-import { buildLinkFindResults, buildNameFindResult, buildNameFindSongFacts, buildNotFoundAnswer, buildSyncPresence, findLinkAddon, getNameFindAddons, getPresenceAddonsKey, isLinkJobExpired, parseLinkJobOrNull, parseLinkJobState, type SyncPresence } from './link-job-protocol';
+import { buildLinkFindResults, buildNameFindResult, buildNameFindSongFacts, buildNotFoundAnswer, buildSongSearchFacts, buildSongSearchFoundChoices, buildSongSearchMusicFacts, buildSongSearchNotFoundAnswer, buildSyncPresence, findLinkAddon, getNameFindAddons, getPresenceAddonsKey, getSongSearchAddons, isLinkJobExpired, parseLinkJobOrNull, parseLinkJobState, type SyncPresence } from './link-job-protocol';
 import { loadLinkSongSources, withLinkSongSource } from './link-song-sources';
 
 const SITE_URL = 'https://dancedance.studio';
@@ -40,6 +40,7 @@ describe('presence', () => {
       installJobs: 1,
       verifyJobs: 1,
       nameFinds: 1,
+      songSearches: 0,
       linkAddons: [
         { id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] },
         { id: 'media-links', name: 'Media Links', label: 'Clip link', placeholder: '', sites: ['media.example.org'] },
@@ -48,7 +49,7 @@ describe('presence', () => {
   });
 
   it('still says it takes link jobs with no link addon on, and says leaving only on quit', () => {
-    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: searchOnly })], isLeaving: false })).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, verifyJobs: 1, nameFinds: 1, linkAddons: [] });
+    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: searchOnly })], isLeaving: false })).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, verifyJobs: 1, nameFinds: 1, songSearches: 0, linkAddons: [] });
     expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons, isLeaving: true }).leaving).toBe(true);
   });
 
@@ -60,6 +61,18 @@ describe('presence', () => {
     expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: audioLinksOnly })], isLeaving: false })).toMatchObject({ nameFinds: 1, linkAddons: [] });
     expect(getNameFindAddons(addons).map((addon) => addon.manifest.id)).toEqual(['open-audio-links', 'song-scout', 'tune-bridge', 'media-links']);
     expect(getPresenceAddonsKey([audioLinksOff])).not.toBe(getPresenceAddonsKey([buildAddon({ manifest: audioLinksOnly })]));
+  });
+
+  it('says songSearches 1 only while an addon that is on provides song-search with audio-links, and its key changes with it', () => {
+    const songSearch: AddonManifest = { ...OPEN_AUDIO_LINKS, id: 'song-finder', name: 'Song Finder', provides: ['audio-links', 'song-search'], inputs: [] };
+    const songSearchWithoutAudio: AddonManifest = { ...OPEN_AUDIO_LINKS, id: 'clip-finder', name: 'Clip Finder', provides: ['song-source', 'song-search'] };
+    const songSearchOff = buildAddon({ manifest: songSearch, isEnabled: false });
+    const getSongSearches = (presenceAddons: InstalledAddon[]): number => buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: presenceAddons, isLeaving: false }).songSearches;
+    expect(getSongSearches([buildAddon({ manifest: songSearch })])).toBe(1);
+    expect(getSongSearches([songSearchOff, buildAddon({ manifest: songSearchWithoutAudio }), ...addons])).toBe(0);
+    expect(getSongSearches([])).toBe(0);
+    expect(getSongSearchAddons([buildAddon({ manifest: songSearchWithoutAudio }), songSearchOff, ...addons, buildAddon({ manifest: songSearch })]).map((addon) => addon.manifest.id)).toEqual(['song-finder']);
+    expect(getPresenceAddonsKey([songSearchOff])).not.toBe(getPresenceAddonsKey([buildAddon({ manifest: songSearch })]));
   });
 
   it('finds the link addon a job names only while it is on and has a link field', () => {
@@ -91,7 +104,22 @@ describe('reading link jobs', () => {
     }
   });
 
+  it('reads a song search with only the song’s facts, and a music job for one of its versions with the song and the video', () => {
+    const song = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, lengthSeconds: 201 };
+    expect(parseLinkJobOrNull({ id: 'lj_40', kind: 'song-search', song, expiresAt: '2026-11-26T12:03:00.000Z' })).toEqual({ id: 'lj_40', kind: 'song-search', song, expiresAt: '2026-11-26T12:03:00.000Z' });
+    expect(parseLinkJobOrNull({ id: 'lj_40', kind: 'song-search', addonId: 'x', song: { ...song, album: 7, lengthSeconds: -1, videoId: 'abc123DEF45' }, expiresAt: null })).toEqual({ id: 'lj_40', kind: 'song-search', song: { ...song, lengthSeconds: null }, expiresAt: null });
+    const video = { id: 'abc123DEF45', pageUrl: 'https://clips.example/watch?v=abc123DEF45' };
+    const musicJob = { id: 'lj_41', kind: 'music', addonId: '', findId: 'lj_40', ref: 'c2', songId: 'ls_20', song, video, expiresAt: null };
+    expect(parseLinkJobOrNull(musicJob)).toStrictEqual(musicJob);
+    for (const brokenVideo of [{ ...video, id: 'short' }, { ...video, pageUrl: 'http://clips.example/watch' }, { id: video.id }, 'abc123DEF45']) {
+      expect(parseLinkJobOrNull({ ...musicJob, video: brokenVideo })).toStrictEqual({ id: 'lj_41', kind: 'music', addonId: '', findId: 'lj_40', ref: 'c2', songId: 'ls_20', song, expiresAt: null });
+    }
+    expect(parseLinkJobOrNull({ ...musicJob, song: { title: 'Pulse Garden' } })).toStrictEqual({ id: 'lj_41', kind: 'music', addonId: '', findId: 'lj_40', ref: 'c2', songId: 'ls_20', video, expiresAt: null });
+  });
+
   it.each([
+    [{ id: 'lj_42', kind: 'song-search', song: { title: 'Pulse Garden', artist: '' } }],
+    [{ id: 'lj_43', kind: 'song-search' }],
     [{ id: 'lj_23', kind: 'name-find', song: { title: 'Spotlight', artist: ' ' } }],
     [{ id: 'lj_24', kind: 'name-find', song: { artist: 'Mira Vale' } }],
     [{ id: 'lj_25', kind: 'name-find' }],
@@ -162,6 +190,31 @@ describe('find answers', () => {
     expect(buildNotFoundAnswer('This clip\nis‮ private.\t')).toEqual({ status: 'notfound', reason: 'This clip is private.' });
     const answer = buildNotFoundAnswer('a'.repeat(300));
     expect(answer.status === 'notfound' ? answer.reason?.length : 0).toBe(140);
+  });
+});
+
+describe('song search answers', () => {
+  const version = { title: 'Kairo Lights - Pulse Garden (Official Video)', channel: 'Kairo Lights', lengthSeconds: 203, videoId: 'abc123DEF45', pageUrl: 'https://clips.example/watch?v=abc123DEF45', thumbnailUrl: 'https://img.clips.example/abc123DEF45.jpg', isOfficial: true };
+
+  it('gives the versions refs c1 to c5 in order, with the addon’s own fields and nothing else', () => {
+    const versions = Array.from({ length: 7 }, (_, index) => ({ ...version, videoId: `video${String(index).padStart(6, '0')}` }));
+    const choices = buildSongSearchFoundChoices(versions);
+    expect(choices.map((choice) => choice.ref)).toEqual(['c1', 'c2', 'c3', 'c4', 'c5']);
+    expect(choices[0]).toStrictEqual({ ref: 'c1', ...version, videoId: 'video000000' });
+  });
+
+  it('says notfound with the first addon’s sentence as plain text of at most 140 characters, or reason null', () => {
+    expect(buildSongSearchNotFoundAnswer('Found nothing with the same length as the song.')).toStrictEqual({ status: 'notfound', reason: 'Found nothing with the same length as the song.' });
+    expect(buildSongSearchNotFoundAnswer(null)).toStrictEqual({ status: 'notfound', reason: null });
+    expect(buildSongSearchNotFoundAnswer(' a\n‮b ')).toStrictEqual({ status: 'notfound', reason: 'a b' });
+    const answer = buildSongSearchNotFoundAnswer('a'.repeat(300));
+    expect(answer.status === 'notfound' ? answer.reason?.length : 0).toBe(140);
+  });
+
+  it('asks an addon with the song’s facts only, and for a version’s music with its own video id and page, and no genre', () => {
+    const song = { title: 'Pulse Garden', artist: 'Kairo Lights', album: 'Afterimage', lengthSeconds: 201 };
+    expect(buildSongSearchFacts(song)).toStrictEqual(song);
+    expect(buildSongSearchMusicFacts({ song, video: { id: 'abc123DEF45', pageUrl: 'https://clips.example/watch?v=abc123DEF45' } })).toStrictEqual({ ...song, genre: null, videoId: 'abc123DEF45', videoUrl: 'https://clips.example/watch?v=abc123DEF45' });
   });
 });
 

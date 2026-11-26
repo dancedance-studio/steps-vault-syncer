@@ -55,7 +55,8 @@ An addon's address is `https://…`. The only exception is an addon running on t
 - `id`: lower-case letters, digits, `.` and `-`, 2–64 characters.
 - `name` and `author`: up to 60 characters. `description`: up to 300 characters.
 - `provides`: one or more of `audio-links` (music for a song in the library), `video-links` (with `audio-links`: the
-  song's video too), and `song-source` (brings a new song to make with a generator; see below).
+  song's video too), `song-source` (brings a new song to make with a generator; see below), and `song-search` (with
+  `audio-links`: finds a few versions of a song by its facts, for the player to pick from; see below).
 - `options` (optional): see below.
 
 ## Options
@@ -219,6 +220,83 @@ music. This needs nothing new from an addon: it is a normal `/audio-links` reque
   The file stays on the player's computer until they say it is the song; then Sync uploads that music file alone, as
   for a link. If the file is gone by then, Sync asks the same addon again with the same facts.
 - Sync tells the website whether it can do this (an addon that provides `audio-links` is on), never which addons.
+- An addon that provides `song-search` can do more: it finds the song's video versions, and the player picks one on the
+  website. Its music then comes from that same version. See "Song search" below.
+
+## Song search: `provides: ["song-search"]`
+
+A song search finds a few versions of a song by its facts, for the player to pick from. The player picks a song on the
+website's Make page; Sync asks its song-search addons for versions of it, and the website shows them in the song's video
+section. The version the player chooses is used for both the song's video and its music.
+
+An addon that provides `song-search` must also provide `audio-links`, because the music of the chosen version comes
+through `/audio-links`. Without `audio-links`, Sync ignores `song-search` and says so on the addon's card; the
+addon's other abilities still work.
+
+### `POST <address>/song-search`
+
+Request:
+
+```json
+{ "protocol": 1, "song": { "title": "Pulse Garden", "artist": "Kairo Lights", "album": "Afterimage", "lengthSeconds": 201 },
+  "options": { "media": "audio-and-video" } }
+```
+
+`options` works as for `/audio-links`. `album` and `lengthSeconds` may be `null`. The addon gets nothing else about the
+song, the player or the website.
+
+Answers:
+
+- `200 { "choices": [ … ] }`: zero to 10 versions, best first. Each one:
+
+  ```json
+  { "title": "Kairo Lights - Pulse Garden (Official Video)", "channel": "Kairo Lights", "lengthSeconds": 203,
+    "videoId": "abc123DEF45", "pageUrl": "https://clips.example/watch?v=abc123DEF45",
+    "thumbnailUrl": "https://img.clips.example/abc123DEF45.jpg", "isOfficial": true }
+  ```
+
+  - `title`: needed, up to 200 characters. `channel`: who uploaded it, up to 100 characters, or `null`.
+  - `lengthSeconds`: needed, 1 to 3600. Sync rounds it to whole seconds.
+  - `videoId`: needed, 11 characters of letters, digits, `-` and `_`. That is the shape of the website's song video ids.
+  - `pageUrl`: needed, an `https` page where the player can watch it, up to 2000 characters.
+  - `thumbnailUrl`: an `https` picture of it, up to 2000 characters, or `null`.
+  - `isOfficial`: `true` when the artist or their label uploaded it. Anything else counts as `false`.
+
+  Sync drops a version that breaks a rule, and a second version with the same `videoId`. It keeps the first 5 it can
+  use. Text is put on one line, and characters that hide or reorder text become spaces.
+- `200 { "choices": [], "error": "One short sentence" }` or `200 { "error": "One short sentence" }`: nothing found.
+  Versions that are all broken count as nothing found too.
+- `202 { "retryAfterSeconds": 5 }`: still working, as for `/audio-links`.
+- Any other status, an answer with neither `choices` nor `error`, a timeout (20 s) or an answer over 64 KB counts as
+  not answering.
+
+Sync keeps asking after `202` for up to 3 minutes, and tells the website every 5 seconds that it is still working.
+
+- Sync asks each addon that is on and provides `song-search` (and `audio-links`), in the player's order. The first one
+  with at least one usable version wins, and the next ones aren't asked.
+- When none has a usable version, the website gets the first addon's `error` sentence (up to 140 characters), or no
+  sentence.
+- The website gets the versions' own fields as listed above, after Sync's checks. It never gets the addon's name, id or
+  address. Sync remembers which addon found the versions, on the player's computer only.
+
+### The music of the chosen version
+
+When the player uses a version, Sync gets its music with the normal `/audio-links` request: the song's facts, with
+`videoId` set to the version's `videoId`, `videoUrl` set to its `pageUrl`, and `genre` `null`.
+
+```json
+{ "protocol": 1, "song": { "title": "Pulse Garden", "artist": "Kairo Lights", "album": "Afterimage", "genre": null,
+  "lengthSeconds": 201, "videoId": "abc123DEF45", "videoUrl": "https://clips.example/watch?v=abc123DEF45" } }
+```
+
+- The addon answers as for any song: a music file, and a video file if it provides `video-links`, `202` while it
+  works, or an `error` sentence.
+- Sync takes the first music file it can download and read, as for a song source. There is no sound check here, since
+  the song has no fingerprint yet. It uploads that music file alone to the website, as for a link.
+- Sync asks the addon that found the version. If Sync no longer knows which one it was (it restarted), it asks each
+  song-search addon that is on, in the player's order, with the same facts and video.
+- Later, when the song goes into the game, its video id is the addon's own choice, so the normal `/audio-links` request
+  gets the game's video from the addon that found it.
 
 ## A minimal addon (Node)
 

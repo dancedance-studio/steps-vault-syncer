@@ -24,6 +24,14 @@ describe('addon views', () => {
     const addon = buildInstalledAddon({ baseUrl: 'https://tapes.example.org', manifest: { ...MANIFEST, provides: ['audio-links'], options: [] }, consentedAt: '' });
     expect(buildAddonView(addon)).toMatchObject({ providesText: 'Audio links', options: [] });
   });
+
+  it('names song search among what the addon gives, and says why Sync ignores it without audio links', () => {
+    const songSearch = buildInstalledAddon({ baseUrl: 'https://tapes.example.org', manifest: { ...MANIFEST, provides: ['audio-links', 'video-links', 'song-search', 'song-source'], inputs: [{ id: 'title', kind: 'search', label: 'Title', placeholder: null }] }, consentedAt: '' });
+    expect(buildAddonView(songSearch).providesText).toBe('Audio and video links · Song search · New songs to make');
+    expect(buildAddonView(songSearch)).not.toHaveProperty('ignoredAbilityNote');
+    const withoutAudio = buildInstalledAddon({ baseUrl: 'https://tapes.example.org', manifest: { ...MANIFEST, provides: ['song-source', 'song-search'], inputs: [{ id: 'title', kind: 'search', label: 'Title', placeholder: null }] }, consentedAt: '' });
+    expect(buildAddonView(withoutAudio)).toMatchObject({ providesText: 'New songs to make', ignoredAbilityNote: 'Sync ignores its song search, because it doesn’t give audio links too. Ask the addon’s maker.' });
+  });
 });
 
 describe('Make a song tabs', () => {
