@@ -77,6 +77,14 @@ export class SiteMusicLimitError extends Error {
   }
 }
 
+/** A music file Sync kept is no longer on this computer (removed, or written over by another download). */
+export class MusicFileGoneError extends Error {
+  constructor() {
+    super('The music file Sync kept for this song is gone.');
+    this.name = 'MusicFileGoneError';
+  }
+}
+
 /** The music of a song to make, ready to send: the right type for the generator, its length measured. */
 export interface PreparedMusic {
   song: GeneratorSongFacts;
@@ -166,6 +174,21 @@ export class MakeSongMusic {
     const musicPath = await this.downloadSongSourceMusic({ choice, folder });
     const musicBytes = new Uint8Array(await readFile(musicPath));
     const lengthSeconds = choice.song.lengthSeconds ?? (await this.ports.measureLength(musicBytes));
+    return this.prepareBytesForSite({ musicPath, musicBytes, lengthSeconds, folder });
+  }
+
+  /**
+   * A music file Sync already has (a name find's download), as the website takes it, the way prepareMusicForSite does.
+   * Throws MusicFileGoneError when the file is no longer there, so it can be got again.
+   */
+  async prepareFileForSite({ sourceId, lengthSeconds, folder }: { sourceId: string; lengthSeconds: number; folder: string }): Promise<LinkJobAudio> {
+    const musicPath = this.ports.musicSources.getSource(sourceId)?.filePath;
+    const musicBytes = musicPath === undefined ? null : await readFile(musicPath).then((bytes) => new Uint8Array(bytes), () => null);
+    if (musicPath === undefined || musicBytes === null) throw new MusicFileGoneError();
+    return this.prepareBytesForSite({ musicPath, musicBytes, lengthSeconds, folder });
+  }
+
+  private async prepareBytesForSite({ musicPath, musicBytes, lengthSeconds, folder }: { musicPath: string; musicBytes: Uint8Array; lengthSeconds: number; folder: string }): Promise<LinkJobAudio> {
     if (lengthSeconds > MAX_LINK_AUDIO_SECONDS) throw new SiteMusicLimitError('It’s longer than 8 minutes.');
     const contentType = getLinkAudioContentTypeOrNull(musicBytes);
     if (contentType !== null && musicBytes.byteLength <= MAX_LINK_AUDIO_BYTES) return { sourceId: this.ports.musicSources.register(musicPath), contentType };
