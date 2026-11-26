@@ -204,6 +204,22 @@ for this.
   song's. Nothing is installed or uploaded; the website hears only that it matched, that it is different, or why the
   check failed.
 
+#### Songs picked on the website
+
+A player can also pick a song on the website (its title, artist, album and length) and ask their own addons for its
+music. This needs nothing new from an addon: it is a normal `/audio-links` request.
+
+- The addon gets only the song's facts: `title`, `artist`, `album` and `lengthSeconds`, with `genre`, `videoId` and
+  `videoUrl` all `null`, and the addon's options as for any song. Nothing else about the song or the website.
+- An addon may search for the music by those facts, wherever it looks for music. It answers as for any song: a
+  music file, `202` while it works, or an `error` sentence.
+- Sync asks each addon that is on and provides `audio-links`, in the player's order, and the first music file it
+  can download and read wins. Video links are ignored here: the website keeps the song's own video.
+- Sync tells the website only that it found the song and the music's length, or the first addon's `error` sentence.
+  The file stays on the player's computer until they say it is the song; then Sync uploads that music file alone, as
+  for a link. If the file is gone by then, Sync asks the same addon again with the same facts.
+- Sync tells the website whether it can do this (an addon that provides `audio-links` is on), never which addons.
+
 ## A minimal addon (Node)
 
 ```js
