@@ -9,7 +9,10 @@ Nothing goes to dancedance.studio until you sign in from Sync and link the compu
 sends:
 
 - this computer's name, the Sync version, the link addons you have turned on (only the sites they declare), and
-  whether an addon you have turned on can look for a song you pick on the website (never which addon)
+  whether an addon you have turned on can look for a song you pick on the website, or search for its versions (never
+  which addon)
+- for a song search you start on the website, the versions your addon found: each one's title, who uploaded it, its
+  length, its video id, and the addresses of its page and its picture (never which addon found them)
 - requests for your library list and your party lists, and the songs' steps and pictures
 - the result of each sync: how many songs are in your game, and your game's name
 - your answers to jobs you start on the website, such as "Into my game" or a song link
@@ -24,7 +27,9 @@ The website's privacy policy covers what dancedance.studio does with it:
 ## Addons and generators you add
 
 An addon or a generator is a separate program, made by anyone, that you choose to add. Sync sends it what it needs for
-a song: its title, artist, album, genre, length and related video. A generator also gets the music file you choose.
+a song: its title, artist, album, genre, length and related video. For a song search, an addon gets only the song's
+title, artist, album and length; for the music of the version you pick, also that version's video id and page. A
+generator also gets the music file you choose.
 Each one's own privacy policy applies.
 
 ## GitHub, to check for new versions
