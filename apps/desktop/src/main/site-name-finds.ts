@@ -47,10 +47,17 @@ type AddonLinksOrNull = { links: AudioLink[]; addonError: string | null } | null
  * Sync can download and read wins. Video links are ignored: the website keeps the song's own video. With addonId,
  * only that addon is asked: a music job whose kept file is gone asks the addon that found it again.
  */
-export async function findMusicByName({ ports, song, wait, addonId }: { ports: SiteNameFindPorts; song: NameFindSongFacts; wait: AddonWait; addonId: string | null }): Promise<NameFindOutcome> {
+export function findMusicByName({ ports, song, wait, addonId }: { ports: SiteNameFindPorts; song: NameFindSongFacts; wait: AddonWait; addonId: string | null }): Promise<NameFindOutcome> {
   const addons = getNameFindAddons(ports.getAddons()).filter((addon) => addonId === null || addon.manifest.id === addonId);
+  return findMusicWithAddons({ ports, addons, facts: buildNameFindSongFacts(song), wait });
+}
+
+/**
+ * Asks each of these addons in turn with the normal /audio-links request, and the first music file Sync can download and
+ * read wins. Video links are ignored.
+ */
+export async function findMusicWithAddons({ ports, addons, facts, wait }: { ports: SiteNameFindPorts; addons: readonly InstalledAddon[]; facts: AddonSongFacts; wait: AddonWait }): Promise<NameFindOutcome> {
   if (addons.length === 0) return { kind: 'no-addon' };
-  const facts = buildNameFindSongFacts(song);
   let hasAnyAddonAnswered = false;
   let firstAddonError: string | null = null;
   for (const addon of addons) {

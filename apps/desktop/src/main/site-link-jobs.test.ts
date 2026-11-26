@@ -22,7 +22,8 @@ import { MakeSongMusic, type MakeSongMusicPorts } from './make-song-music';
 import { MusicSourceRegistry } from './music-source-registry';
 import { SiteLinkJobs } from './site-link-jobs';
 import type { SiteSongInstallResult } from './site-song-installs';
-import { findMusicByName } from './site-name-finds';
+import { findMusicByName, type SiteNameFindPorts } from './site-name-finds';
+import { findSongSearchMusic, searchSongWithAddons } from './site-song-searches';
 import { checkVideoForSite } from './site-video-checks';
 
 const API_URL = 'https://dancedance.studio/api/sync';
@@ -59,6 +60,30 @@ const SPOTLIGHT_MUSIC_AND_VIDEO = {
   status: 200,
   body: { links: [{ kind: 'file-url', media: 'video', url: `${TUNE_BRIDGE_URL}/files/spotlight.mp4`, label: 'Video', fileName: 'spotlight.mp4' }, { kind: 'file-url', media: 'audio', url: `${TUNE_BRIDGE_URL}/files/spotlight.ogg`, label: 'Music', fileName: 'spotlight.ogg' }] },
 };
+
+/** Two addons that can search for a song's versions, added after Open Audio Links: Song Finder, then Clip Scout. */
+const SONG_FINDER_URL = 'http://127.0.0.1:7804';
+const SONG_FINDER: AddonManifest = { protocol: 1, kind: 'addon', id: 'song-finder', name: 'Song Finder', version: '0.6.0', author: '@kai', description: '', provides: ['audio-links', 'video-links', 'song-search'], options: [], inputs: [] };
+const CLIP_SCOUT_URL = 'http://127.0.0.1:7805';
+const CLIP_SCOUT: AddonManifest = { ...SONG_FINDER, id: 'clip-scout', name: 'Clip Scout', provides: ['audio-links', 'song-search'] };
+const PULSE_GARDEN = { title: 'Pulse Garden', artist: 'Kairo Lights', album: 'Afterimage', lengthSeconds: 201 };
+const SONG_SEARCH_JOB = { id: 'lj_50', kind: 'song-search', song: PULSE_GARDEN, expiresAt: '2026-11-21T12:03:00.000Z' };
+/** What every song-search addon gets: the song's title, artist, album and length, and nothing else. */
+const PULSE_GARDEN_SEARCH_BODY = { protocol: 1, song: PULSE_GARDEN };
+const OFFICIAL_VIDEO = {
+  title: 'Kairo Lights - Pulse Garden (Official Video)', channel: 'Kairo Lights', lengthSeconds: 203, videoId: 'abc123DEF45',
+  pageUrl: 'https://clips.example/watch?v=abc123DEF45', thumbnailUrl: 'https://img.clips.example/abc123DEF45.jpg', isOfficial: true,
+};
+const LIVE_VIDEO = { ...OFFICIAL_VIDEO, title: 'Pulse Garden (Live)', channel: null, lengthSeconds: 240, videoId: 'Live_Video1', pageUrl: 'https://clips.example/watch?v=Live_Video1', thumbnailUrl: null, isOfficial: false };
+const PULSE_GARDEN_CHOICES = { status: 200, body: { choices: [OFFICIAL_VIDEO, { ...OFFICIAL_VIDEO, videoId: 'broken' }, LIVE_VIDEO] } };
+/** The music job for the second version, as the site sends it: with the song and that version's own video. */
+const SEARCH_MUSIC_JOB = { id: 'lj_51', kind: 'music', addonId: '', findId: 'lj_50', ref: 'c2', songId: 'ls_20', song: PULSE_GARDEN, video: { id: 'Live_Video1', pageUrl: 'https://clips.example/watch?v=Live_Video1' }, expiresAt: '2026-11-21T12:10:00.000Z' };
+/** What an addon gets for that version's music: the song's facts with its video, and no genre. */
+const LIVE_VIDEO_AUDIO_LINKS_BODY = { protocol: 1, song: { ...PULSE_GARDEN, genre: null, videoId: 'Live_Video1', videoUrl: 'https://clips.example/watch?v=Live_Video1' } };
+
+function buildMusicAndVideoLinks({ baseUrl, name }: { baseUrl: string; name: string }): HttpResponse<unknown> {
+  return { status: 200, body: { links: [{ kind: 'file-url', media: 'video', url: `${baseUrl}/files/${name}.mp4`, label: 'Video', fileName: `${name}.mp4` }, { kind: 'file-url', media: 'audio', url: `${baseUrl}/files/${name}.ogg`, label: 'Music', fileName: `${name}.ogg` }] } };
+}
 
 let workFolder: string;
 
@@ -179,6 +204,12 @@ class FakeAddon implements HttpClient {
   answerAudioLinks: () => Promise<HttpResponse<unknown>> = () => Promise.resolve(VIDEO_AUDIO_LINKS);
   /** Tune Bridge's /audio-links, on its own address: Spotlight's music and video unless a test says otherwise. */
   answerTuneBridgeAudioLinks: () => Promise<HttpResponse<unknown>> = () => Promise.resolve(SPOTLIGHT_MUSIC_AND_VIDEO);
+  /** The song-search addons' /song-search and /audio-links, by their address; a missing one has no such route. */
+  readonly answerSongSearchByBaseUrl = new Map<string, () => Promise<HttpResponse<unknown>>>([[SONG_FINDER_URL, () => Promise.resolve(PULSE_GARDEN_CHOICES)], [CLIP_SCOUT_URL, () => Promise.resolve(PULSE_GARDEN_CHOICES)]]);
+  readonly answerSongSearchAudioLinksByBaseUrl = new Map<string, () => Promise<HttpResponse<unknown>>>([
+    [SONG_FINDER_URL, () => Promise.resolve(buildMusicAndVideoLinks({ baseUrl: SONG_FINDER_URL, name: 'pulse-garden-live' }))],
+    [CLIP_SCOUT_URL, () => Promise.resolve(buildMusicAndVideoLinks({ baseUrl: CLIP_SCOUT_URL, name: 'pulse-garden-scout' }))],
+  ]);
 
   get songSourceBodies(): unknown[] {
     return this.requests.map((request) => request.jsonBody);
@@ -188,6 +219,8 @@ class FakeAddon implements HttpClient {
     this.requests.push(request);
     if (request.url === `${ADDON_URL}/audio-links`) return this.answerAudioLinks();
     if (request.url === `${TUNE_BRIDGE_URL}/audio-links`) return this.answerTuneBridgeAudioLinks();
+    const songSearchAnswer = this.findSongSearchAnswer(request.url);
+    if (songSearchAnswer) return songSearchAnswer();
     if (request.url !== `${ADDON_URL}/song-source`) return Promise.reject(new Error(`The addon has no ${request.url}.`));
     return this.answer();
   }
@@ -198,6 +231,12 @@ class FakeAddon implements HttpClient {
 
   requestBytes(): Promise<HttpResponse<Uint8Array>> {
     return Promise.reject(new Error('Not used.'));
+  }
+
+  private findSongSearchAnswer(url: string): (() => Promise<HttpResponse<unknown>>) | undefined {
+    const [baseUrl, route] = [url.slice(0, url.lastIndexOf('/')), url.slice(url.lastIndexOf('/'))];
+    if (route === '/song-search') return this.answerSongSearchByBaseUrl.get(baseUrl);
+    return route === '/audio-links' ? this.answerSongSearchAudioLinksByBaseUrl.get(baseUrl) : undefined;
   }
 }
 
@@ -275,24 +314,43 @@ class LinkJobsHarness {
           compareVideoAudio: () => Promise.resolve(this.videoComparison),
         },
       }),
-      findMusicByName: ({ song, wait, addonId }) => findMusicByName({
-        song,
-        wait,
-        addonId,
-        ports: {
-          getAddons: () => this.addons,
-          addonHttpClient: this.addon,
-          downloadAddonFile: async ({ url }) => {
-            this.nameFindFileUrls.push(url);
-            const filePath = path.join(workFolder, 'addon-downloads', path.basename(new URL(url).pathname));
-            await mkdir(path.dirname(filePath), { recursive: true });
-            await writeFile(filePath, `OggS-${path.basename(filePath)}`);
-            return this.musicSources.register(filePath);
-          },
-          measureLength: (sourceId) => this.measureLength(sourceId),
-        },
-      }),
+      findMusicByName: (options) => findMusicByName({ ...options, ports: this.buildNameFindPorts() }),
+      searchSong: (options) => searchSongWithAddons({ ...options, ports: this.buildNameFindPorts() }),
+      findSongSearchMusic: (options) => findSongSearchMusic({ ...options, ports: this.buildNameFindPorts() }),
     });
+  }
+
+  /** The addons' network, and the folder where Sync keeps addons' files, as the app gives them to name finds and song searches. */
+  private buildNameFindPorts(): SiteNameFindPorts {
+    return {
+      getAddons: () => this.addons,
+      addonHttpClient: this.addon,
+      downloadAddonFile: async ({ url }) => {
+        this.nameFindFileUrls.push(url);
+        const filePath = path.join(workFolder, 'addon-downloads', path.basename(new URL(url).pathname));
+        await mkdir(path.dirname(filePath), { recursive: true });
+        await writeFile(filePath, `OggS-${path.basename(filePath)}`);
+        return this.musicSources.register(filePath);
+      },
+      measureLength: (sourceId) => this.measureLength(sourceId),
+    };
+  }
+
+  /** Song Finder, then Clip Scout, after the addons there already are. */
+  addSongSearchAddons(): void {
+    this.addons = [...this.addons, buildInstalledAddon({ baseUrl: SONG_FINDER_URL, manifest: SONG_FINDER, consentedAt: '2026-11-21T10:06:00.000Z' }), buildInstalledAddon({ baseUrl: CLIP_SCOUT_URL, manifest: CLIP_SCOUT, consentedAt: '2026-11-21T10:07:00.000Z' })];
+  }
+
+  /** The bodies an addon got at one of its routes, in order. */
+  getRequestBodies({ baseUrl, route }: { baseUrl: string; route: string }): unknown[] {
+    return this.addon.requests.filter((request) => request.url === `${baseUrl}${route}`).map((request) => request.jsonBody);
+  }
+
+  /** Starts, runs a song search for Pulse Garden, and waits for its answer (keepalives aside). */
+  async startAndSearchPulseGarden(): Promise<void> {
+    this.linkJobs.start();
+    this.site.queueJob(SONG_SEARCH_JOB);
+    await waitUntil(() => getAnswerStatuses(this).some((status) => status !== 'working'));
   }
 
   /** Tune Bridge added after Open Audio Links, so it comes second in the player's order. */
@@ -369,7 +427,7 @@ describe('presence', () => {
     const harness = new LinkJobsHarness();
     harness.linkJobs.start();
     await waitUntil(() => harness.site.presences.length === 1);
-    expect(harness.site.presences[0]).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, verifyJobs: 1, nameFinds: 1, linkAddons: [{ id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }] });
+    expect(harness.site.presences[0]).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, verifyJobs: 1, nameFinds: 1, songSearches: 0, linkAddons: [{ id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }] });
     await harness.clock.advance(30_000);
     await waitUntil(() => harness.site.presences.length === 2);
     harness.addons = harness.addons.map((addon) => ({ ...addon, isEnabled: false }));
@@ -396,6 +454,19 @@ describe('presence', () => {
     harness.linkJobs.handleAddonsChange();
     await waitBriefly();
     expect(harness.site.presences).toHaveLength(2);
+    await harness.linkJobs.stop({ isLeaving: false });
+  });
+
+  it('says songSearches 1 while a song-search addon is on, and goes out again at once when that alone changes', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    harness.linkJobs.start();
+    await waitUntil(() => harness.site.presences.length === 1);
+    expect(harness.site.presences[0]).toMatchObject({ nameFinds: 1, songSearches: 1 });
+    harness.addons = harness.addons.map((addon) => (addon.manifest.provides.includes('song-search') ? { ...addon, isEnabled: false } : addon));
+    harness.linkJobs.handleAddonsChange();
+    await waitUntil(() => harness.site.presences.length === 2);
+    expect(harness.site.presences[1]).toMatchObject({ nameFinds: 1, songSearches: 0 });
     await harness.linkJobs.stop({ isLeaving: false });
   });
 
@@ -776,6 +847,179 @@ describe('name-find jobs', () => {
     ]);
     expect(harness.site.uploads).toEqual([]);
     await waitForMusicJobFoldersToGo();
+  });
+});
+
+describe('song-search jobs', () => {
+  it('ask each song-search addon in the player’s order with the song’s facts only, and answer with the first one’s usable versions', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    harness.addon.answerSongSearchByBaseUrl.set(SONG_FINDER_URL, () => Promise.resolve({ status: 200, body: { choices: [{ ...OFFICIAL_VIDEO, pageUrl: 'http://clips.example/a' }], error: 'Nothing with the same length.' } }));
+    await harness.startAndSearchPulseGarden();
+    expect(harness.getRequestBodies({ baseUrl: SONG_FINDER_URL, route: '/song-search' })).toEqual([PULSE_GARDEN_SEARCH_BODY]);
+    expect(harness.getRequestBodies({ baseUrl: CLIP_SCOUT_URL, route: '/song-search' })).toEqual([PULSE_GARDEN_SEARCH_BODY]);
+    expect(harness.addon.requests.map((request) => request.url)).toEqual([`${SONG_FINDER_URL}/song-search`, `${CLIP_SCOUT_URL}/song-search`]);
+    expect(harness.site.answers.filter(({ answer }) => getStatus(answer) !== 'working')).toEqual([{ jobId: 'lj_50', answer: { status: 'found', choices: [{ ref: 'c1', ...OFFICIAL_VIDEO }, { ref: 'c2', ...LIVE_VIDEO }] } }]);
+    expect(harness.nameFindFileUrls).toEqual([]);
+    expect(harness.site.uploads).toEqual([]);
+
+    const firstWins = new LinkJobsHarness();
+    firstWins.addSongSearchAddons();
+    await firstWins.startAndSearchPulseGarden();
+    expect(firstWins.getRequestBodies({ baseUrl: CLIP_SCOUT_URL, route: '/song-search' })).toEqual([]);
+  });
+
+  it('answer notfound with the first addon’s own sentence, or reason null, when no addon had a usable version', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    harness.addon.answerSongSearchByBaseUrl.set(SONG_FINDER_URL, () => Promise.reject(new HttpRequestError({ failure: 'network', message: 'Not running.' })));
+    harness.addon.answerSongSearchByBaseUrl.set(CLIP_SCOUT_URL, () => Promise.resolve({ status: 200, body: { choices: [], error: 'Found nothing with the same length as the song.' } }));
+    await harness.startAndSearchPulseGarden();
+    expect(harness.site.answers.at(-1)).toEqual({ jobId: 'lj_50', answer: { status: 'notfound', reason: 'Found nothing with the same length as the song.' } });
+
+    const noReason = new LinkJobsHarness();
+    noReason.addSongSearchAddons();
+    noReason.addon.answerSongSearchByBaseUrl.set(SONG_FINDER_URL, () => Promise.resolve({ status: 200, body: { choices: [{ ...OFFICIAL_VIDEO, lengthSeconds: 0 }] } }));
+    noReason.addon.answerSongSearchByBaseUrl.set(CLIP_SCOUT_URL, () => Promise.resolve({ status: 200, body: { choices: [], error: ' ' } }));
+    await noReason.startAndSearchPulseGarden();
+    expect(noReason.site.answers.at(-1)?.answer).toStrictEqual({ status: 'notfound', reason: null });
+  });
+
+  it('answer gone when no song-search addon is on, or it gives no audio links, without asking any', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addons = [...harness.addons, buildInstalledAddon({ baseUrl: SONG_FINDER_URL, manifest: { ...OPEN_AUDIO_LINKS, id: 'search-only', provides: ['song-source', 'song-search'] }, consentedAt: '2026-11-21T10:06:00.000Z' })];
+    harness.addSongSearchAddons();
+    harness.addons = harness.addons.map((addon) => (addon.manifest.provides.includes('audio-links') ? { ...addon, isEnabled: false } : addon));
+    await harness.startAndSearchPulseGarden();
+    expect(harness.site.answers.at(-1)).toEqual({ jobId: 'lj_50', answer: { status: 'gone' } });
+    expect(harness.addon.requests).toEqual([]);
+  });
+
+  it('send nothing when no addon answers, so the site says it isn’t answering', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    for (const baseUrl of [SONG_FINDER_URL, CLIP_SCOUT_URL]) harness.addon.answerSongSearchByBaseUrl.set(baseUrl, () => Promise.resolve({ status: 500, body: {} }));
+    harness.linkJobs.start();
+    harness.site.queueJob(SONG_SEARCH_JOB);
+    await waitUntil(() => harness.hasLog('[link-jobs] song-search lj_50: no answer from the addons, nothing sent'));
+    expect(getAnswerStatuses(harness).every((status) => status === 'working')).toBe(true);
+  });
+
+  it('stay open from the moment the job is taken: "working" every 5 s while the addon works, then its versions', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    const stillWorking: HttpResponse<unknown> = { status: 202, body: { retryAfterSeconds: 5 } };
+    const addonAnswers: HttpResponse<unknown>[] = [stillWorking, stillWorking, stillWorking, PULSE_GARDEN_CHOICES];
+    harness.addon.answerSongSearchByBaseUrl.set(SONG_FINDER_URL, () => Promise.resolve(addonAnswers.shift() ?? { status: 500, body: {} }));
+    harness.linkJobs.start();
+    harness.site.queueJob(SONG_SEARCH_JOB);
+    await waitUntil(() => harness.site.answers.length === 1);
+    expect(harness.site.answers[0]).toEqual({ jobId: 'lj_50', answer: { status: 'working' } });
+    for (let second = 0; second < 15; second += 5) await harness.clock.advance(5_000);
+    await waitUntil(() => getAnswerStatuses(harness).includes('found'));
+    const statuses = getAnswerStatuses(harness);
+    expect(statuses.slice(0, -1).every((status) => status === 'working')).toBe(true);
+    expect(statuses.length).toBeGreaterThanOrEqual(4);
+    expect(harness.getRequestBodies({ baseUrl: SONG_FINDER_URL, route: '/song-search' })).toHaveLength(4);
+    await harness.clock.advance(30_000);
+    expect(getAnswerStatuses(harness)).toEqual(statuses);
+  });
+
+  it('give up on an addon still working after 3 minutes, and send nothing but the keepalives', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    harness.addon.answerSongSearchByBaseUrl.set(SONG_FINDER_URL, () => Promise.resolve({ status: 202, body: { retryAfterSeconds: 5 } }));
+    harness.linkJobs.start();
+    harness.site.queueJob(SONG_SEARCH_JOB);
+    await waitUntil(() => harness.addon.requests.length === 1);
+    for (let second = 0; second < 175; second += 5) await harness.clock.advance(5_000);
+    expect(harness.hasLog('[link-jobs] song-search lj_50: no answer from the addons, nothing sent')).toBe(false);
+    await harness.clock.advance(5_000);
+    await waitUntil(() => harness.hasLog('[link-jobs] song-search lj_50: no answer from the addons, nothing sent'));
+    expect(getAnswerStatuses(harness).every((status) => status === 'working')).toBe(true);
+    expect(harness.getRequestBodies({ baseUrl: CLIP_SCOUT_URL, route: '/song-search' })).toEqual([]);
+  });
+
+  it('stop asking when the site answers 410 to a keepalive, because the player stopped the search', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    harness.addon.answerSongSearchByBaseUrl.set(SONG_FINDER_URL, () => Promise.resolve({ status: 202, body: { retryAfterSeconds: 5 } }));
+    harness.linkJobs.start();
+    harness.site.queueJob(SONG_SEARCH_JOB);
+    await waitUntil(() => harness.site.answers.length === 1);
+    harness.site.endedJobIds.add('lj_50');
+    await harness.clock.advance(5_000);
+    await waitUntil(() => harness.hasLog('[link-jobs] song-search lj_50: stopped on the site, nothing sent'));
+    const askCount = harness.addon.requests.length;
+    await harness.clock.advance(60_000);
+    expect(harness.addon.requests).toHaveLength(askCount);
+  });
+
+  it('get the chosen version’s music from the addon that found it, with that version’s video, and upload only the music', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    await harness.startAndSearchPulseGarden();
+    harness.site.queueJob({ ...SEARCH_MUSIC_JOB, song: undefined, video: undefined });
+    await waitUntil(() => harness.hasLog('[link-jobs] music lj_51: audio uploaded'));
+    expect(harness.getRequestBodies({ baseUrl: SONG_FINDER_URL, route: '/audio-links' })).toEqual([LIVE_VIDEO_AUDIO_LINKS_BODY]);
+    expect(harness.getRequestBodies({ baseUrl: CLIP_SCOUT_URL, route: '/audio-links' })).toEqual([]);
+    expect(harness.nameFindFileUrls).toEqual([`${SONG_FINDER_URL}/files/pulse-garden-live.ogg`]);
+    expect(harness.site.uploads).toEqual([{ jobId: 'lj_51', contentType: 'audio/ogg', text: 'OggS-pulse-garden-live.ogg' }]);
+    expect(harness.site.stateChecks).toEqual(['lj_51']);
+    expect(harness.savedSources.at(-1)).toEqual([{ songId: 'ls_20', source: { addonId: 'song-finder', addonName: 'Song Finder', link: null } }]);
+    await waitForMusicJobFoldersToGo();
+  });
+
+  it('after a restart, ask the song-search addons in order with the job’s own song and video, and upload the first music', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    harness.addon.answerSongSearchAudioLinksByBaseUrl.set(SONG_FINDER_URL, () => Promise.resolve({ status: 200, body: { links: [], error: 'That video is gone.' } }));
+    harness.linkJobs.start();
+    harness.site.queueJob(SEARCH_MUSIC_JOB);
+    await waitUntil(() => harness.hasLog('[link-jobs] music lj_51: audio uploaded'));
+    expect(harness.getRequestBodies({ baseUrl: ADDON_URL, route: '/audio-links' })).toEqual([]);
+    expect(harness.getRequestBodies({ baseUrl: SONG_FINDER_URL, route: '/audio-links' })).toEqual([LIVE_VIDEO_AUDIO_LINKS_BODY]);
+    expect(harness.getRequestBodies({ baseUrl: CLIP_SCOUT_URL, route: '/audio-links' })).toEqual([LIVE_VIDEO_AUDIO_LINKS_BODY]);
+    expect(harness.site.uploads).toEqual([{ jobId: 'lj_51', contentType: 'audio/ogg', text: 'OggS-pulse-garden-scout.ogg' }]);
+    expect(harness.savedSources.at(-1)).toEqual([{ songId: 'ls_20', source: { addonId: 'clip-scout', addonName: 'Clip Scout', link: null } }]);
+    await waitForMusicJobFoldersToGo();
+  });
+
+  it('keep asking for the version’s music while the addon answers "still working"', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    await harness.startAndSearchPulseGarden();
+    const audioAnswers: HttpResponse<unknown>[] = [{ status: 202, body: { retryAfterSeconds: 5 } }, buildMusicAndVideoLinks({ baseUrl: SONG_FINDER_URL, name: 'pulse-garden-live' })];
+    harness.addon.answerSongSearchAudioLinksByBaseUrl.set(SONG_FINDER_URL, () => Promise.resolve(audioAnswers.shift() ?? { status: 500, body: {} }));
+    harness.site.queueJob(SEARCH_MUSIC_JOB);
+    await waitUntil(() => harness.getRequestBodies({ baseUrl: SONG_FINDER_URL, route: '/audio-links' }).length === 1);
+    await harness.clock.advance(5_000);
+    await waitUntil(() => harness.hasLog('[link-jobs] music lj_51: audio uploaded'));
+    expect(harness.getRequestBodies({ baseUrl: SONG_FINDER_URL, route: '/audio-links' })).toHaveLength(2);
+    await waitForMusicJobFoldersToGo();
+  });
+
+  it('answer the music job failed when the addon that found it is off, gets no music, or no song-search addon is on', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addSongSearchAddons();
+    await harness.startAndSearchPulseGarden();
+    harness.addon.answerSongSearchAudioLinksByBaseUrl.set(SONG_FINDER_URL, () => Promise.resolve({ status: 200, body: { links: [], error: 'Gone.' } }));
+    harness.site.queueJob(SEARCH_MUSIC_JOB);
+    await waitUntil(() => harness.site.answers.some(({ jobId }) => jobId === 'lj_51'));
+    harness.addons = harness.addons.map((addon) => (addon.manifest.id === 'song-finder' ? { ...addon, isEnabled: false } : addon));
+    harness.site.queueJob({ ...SEARCH_MUSIC_JOB, id: 'lj_52' });
+    harness.site.queueJob({ ...SEARCH_MUSIC_JOB, id: 'lj_53', findId: 'lj_49', song: undefined, video: undefined });
+    await waitUntil(() => harness.site.answers.filter(({ jobId }) => jobId !== 'lj_50').length === 3);
+    harness.addons = harness.addons.map((addon) => ({ ...addon, isEnabled: false }));
+    harness.site.queueJob({ ...SEARCH_MUSIC_JOB, id: 'lj_54', findId: 'lj_49' });
+    await waitUntil(() => harness.site.answers.filter(({ jobId }) => jobId !== 'lj_50').length === 4);
+    expect(harness.site.answers.filter(({ jobId }) => jobId !== 'lj_50').sort((first, second) => first.jobId.localeCompare(second.jobId))).toEqual([
+      { jobId: 'lj_51', answer: { status: 'failed', reason: 'Song Finder couldn’t get the music.' } },
+      { jobId: 'lj_52', answer: { status: 'failed', reason: 'Song Finder is turned off in Sync.' } },
+      { jobId: 'lj_53', answer: { status: 'failed', reason: 'Sync no longer has this song. Find it again.' } },
+      { jobId: 'lj_54', answer: { status: 'failed', reason: 'No addon that can search for songs is on in Sync. Turn one on, then try again.' } },
+    ]);
+    expect(harness.site.uploads).toEqual([]);
   });
 });
 
