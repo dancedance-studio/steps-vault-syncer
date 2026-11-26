@@ -6,7 +6,7 @@ import type { FileUploadHttpClient, FileUploadHttpRequest, HttpClient, HttpReque
 import { SignedOutError, DancedanceApiError } from '../dancedance-api/dancedance-api-types';
 import { DancedanceClient } from '../dancedance-api/dancedance-client';
 import { getLinkAudioContentTypeOrNull } from './link-audio-files';
-import { buildLinkFindResults, buildNotFoundAnswer, buildSyncPresence, findLinkAddon, isLinkJobExpired, parseLinkJobOrNull, parseLinkJobState, type SyncPresence } from './link-job-protocol';
+import { buildLinkFindResults, buildNameFindResult, buildNameFindSongFacts, buildNotFoundAnswer, buildSyncPresence, findLinkAddon, getNameFindAddons, getPresenceAddonsKey, isLinkJobExpired, parseLinkJobOrNull, parseLinkJobState, type SyncPresence } from './link-job-protocol';
 import { loadLinkSongSources, withLinkSongSource } from './link-song-sources';
 
 const SITE_URL = 'https://dancedance.studio';
@@ -39,6 +39,7 @@ describe('presence', () => {
       linkJobs: 1,
       installJobs: 1,
       verifyJobs: 1,
+      nameFinds: 1,
       linkAddons: [
         { id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] },
         { id: 'media-links', name: 'Media Links', label: 'Clip link', placeholder: '', sites: ['media.example.org'] },
@@ -47,8 +48,18 @@ describe('presence', () => {
   });
 
   it('still says it takes link jobs with no link addon on, and says leaving only on quit', () => {
-    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: searchOnly })], isLeaving: false })).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, verifyJobs: 1, linkAddons: [] });
+    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: searchOnly })], isLeaving: false })).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, verifyJobs: 1, nameFinds: 1, linkAddons: [] });
     expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons, isLeaving: true }).leaving).toBe(true);
+  });
+
+  it('says nameFinds 1 only while an addon that is on provides audio-links, and its key changes with it', () => {
+    const songSourceOnly: AddonManifest = { ...OPEN_AUDIO_LINKS, id: 'clip-finder', name: 'Clip Finder', provides: ['song-source'] };
+    const audioLinksOff = buildAddon({ manifest: audioLinksOnly, isEnabled: false });
+    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: songSourceOnly }), audioLinksOff], isLeaving: false }).nameFinds).toBe(0);
+    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [], isLeaving: false }).nameFinds).toBe(0);
+    expect(buildSyncPresence({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', addons: [buildAddon({ manifest: audioLinksOnly })], isLeaving: false })).toMatchObject({ nameFinds: 1, linkAddons: [] });
+    expect(getNameFindAddons(addons).map((addon) => addon.manifest.id)).toEqual(['open-audio-links', 'song-scout', 'tune-bridge', 'media-links']);
+    expect(getPresenceAddonsKey([audioLinksOff])).not.toBe(getPresenceAddonsKey([buildAddon({ manifest: audioLinksOnly })]));
   });
 
   it('finds the link addon a job names only while it is on and has a link field', () => {
@@ -71,7 +82,20 @@ describe('reading link jobs', () => {
     });
   });
 
+  it('reads a name find with only the song’s facts, and a music job for it with no addon', () => {
+    const song = { title: 'Spotlight', artist: 'Mira Vale', album: 'Neon Hours', lengthSeconds: 204 };
+    expect(parseLinkJobOrNull({ id: 'lj_20', kind: 'name-find', song, expiresAt: '2026-11-21T12:03:00.000Z' })).toEqual({ id: 'lj_20', kind: 'name-find', song, expiresAt: '2026-11-21T12:03:00.000Z' });
+    expect(parseLinkJobOrNull({ id: 'lj_21', kind: 'name-find', addonId: '', song: { title: 'Spotlight', artist: 'Mira Vale', lengthSeconds: 0, videoId: 'Vid3o1d-x_Z' }, expiresAt: null })).toEqual({ id: 'lj_21', kind: 'name-find', song: { title: 'Spotlight', artist: 'Mira Vale', album: null, lengthSeconds: null }, expiresAt: null });
+    for (const addonId of ['', undefined, null]) {
+      expect(parseLinkJobOrNull({ id: 'lj_22', kind: 'music', addonId, findId: 'lj_20', ref: 'r1', songId: 'ls_9', expiresAt: null })).toEqual({ id: 'lj_22', kind: 'music', addonId: '', findId: 'lj_20', ref: 'r1', songId: 'ls_9', expiresAt: null });
+    }
+  });
+
   it.each([
+    [{ id: 'lj_23', kind: 'name-find', song: { title: 'Spotlight', artist: ' ' } }],
+    [{ id: 'lj_24', kind: 'name-find', song: { artist: 'Mira Vale' } }],
+    [{ id: 'lj_25', kind: 'name-find' }],
+    [{ id: 'lj_26', kind: 'music', addonId: 'a\nb', findId: 'lj_20', ref: 'r1', songId: 'ls_9' }],
     [{ id: 'lj_3', kind: 'video', addonId: 'open-audio-links' }],
     [{ kind: 'find', addonId: 'open-audio-links', link: 'https://clips.example/v/a' }],
     [{ id: 'lj_4', kind: 'find', addonId: 'open-audio-links' }],
@@ -113,6 +137,15 @@ describe('find answers', () => {
       { ref: 'r4', title: 'Night Drive (Demo)', artist: 'Lumen Park', source: 'clips.example', lengthSec: null, video: { videoId: 'Vid3o1d-x_Z', title: 'Night Drive (Demo)', channel: 'Lumen Park', lengthSec: null } },
     ]);
     expect(results[1]?.choice).toBe(choices[1]);
+  });
+
+  it('answers a name find with one song: the job’s title and artist, the measured length in whole seconds, no site and no video', () => {
+    const song = { title: 'Spotlight', artist: 'Mira Vale', album: null, lengthSeconds: 204 };
+    expect(buildNameFindResult({ song, measuredLengthSeconds: 211.6 })).toEqual({ ref: 'r1', title: 'Spotlight', artist: 'Mira Vale', source: '', lengthSec: 212, video: null });
+  });
+
+  it('asks addons for a name find with the song’s facts only: no genre, no video id, no video link', () => {
+    expect(buildNameFindSongFacts({ title: 'Spotlight', artist: 'Mira Vale', album: 'Neon Hours', lengthSeconds: 204 })).toStrictEqual({ title: 'Spotlight', artist: 'Mira Vale', album: 'Neon Hours', genre: null, lengthSeconds: 204, videoId: null, videoUrl: null });
   });
 
   it('sends at most 10 songs, and names the most specific site the link is on', () => {

@@ -2,10 +2,12 @@ import { createHash } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import {
   buildLinkFindResults,
+  buildNameFindResult,
   buildNotFoundAnswer,
   buildSyncPresence,
   findLinkAddon,
-  getLinkAddonDeclarations,
+  getNameFindAddons,
+  getPresenceAddonsKey,
   HttpRequestError,
   isLinkJobExpired,
   MAX_SONG_SOURCE_WAIT_SECONDS,
@@ -13,6 +15,8 @@ import {
   DancedanceApiError,
   withLinkSongSource,
   type FindLinkJob,
+  type NameFindLinkJob,
+  type NameFindSongFacts,
   type InstallLinkJob,
   type VerifyLinkJob,
   type HttpClient,
@@ -21,13 +25,15 @@ import {
   type InstalledAddon,
   type LinkJob,
   type LinkJobAnswer,
+  type LinkJobAudio,
   type LinkJobDelivery,
   type LinkJobsApi,
   type LinkSongSource,
   type MusicLinkJob,
   type SongMusicSource,
 } from '@dancedance/sync-core';
-import { SiteMusicLimitError, type FoundSongChoices, type MakeSongMusic } from './make-song-music';
+import { MusicFileGoneError, SiteMusicLimitError, type FoundSongChoices, type MakeSongMusic } from './make-song-music';
+import type { NameFindOutcome, NameFoundMusic } from './site-name-finds';
 import type { SiteSongInstallResult } from './site-song-installs';
 import type { AddonWait, SiteVideoCheckAnswer } from './site-video-checks';
 
@@ -46,7 +52,7 @@ const RETRY_WAITS_MILLISECONDS: readonly number[] = [1_000, 2_000, 5_000, 30_000
 /** A site that answers "no job" at once, instead of holding the request, is still asked at most once a second. */
 const MIN_ASK_EVERY_MILLISECONDS = 1_000;
 // One install at a time: each one runs a whole sync.
-const MAX_RUNNING_JOBS_BY_KIND: Readonly<Record<LinkJob['kind'], number>> = { find: 1, music: 2, install: 1, verify: 1 };
+const MAX_RUNNING_JOBS_BY_KIND: Readonly<Record<LinkJob['kind'], number>> = { find: 1, music: 2, install: 1, verify: 1, 'name-find': 1 };
 const INSTALL_FAILED_REASON = 'Sync couldn’t put the song in your game. Try again.';
 /** The site gives a verify job 3 minutes; the addon gets 2.5 of them, so the download and the comparison fit too. */
 const MAX_VERIFY_ADDON_WAIT_MILLISECONDS = 150_000;
@@ -62,7 +68,7 @@ export interface SiteLinkJobsDependencies {
   /** The addons as the player has them now. */
   getAddons(): readonly InstalledAddon[];
   /** The link tab's own way to find a song and get its music (design v3.122). */
-  songs: Pick<MakeSongMusic, 'findSongChoices' | 'prepareMusicForSite' | 'forgetMusic'>;
+  songs: Pick<MakeSongMusic, 'findSongChoices' | 'prepareMusicForSite' | 'prepareFileForSite' | 'forgetMusic'>;
   /** The addons' network: it starts an addon on this computer that has a start command. */
   addonHttpClient: HttpClient;
   /** One folder per music job in the app's own data folder; removing it also forgets the files in it. */
@@ -80,6 +86,8 @@ export interface SiteLinkJobsDependencies {
   installSong(options: { librarySongId: string }): Promise<SiteSongInstallResult>;
   /** A verify job: is the video's music the song? Nothing is installed or uploaded for it. */
   checkVideo(options: { job: VerifyLinkJob; wait: AddonWait }): Promise<SiteVideoCheckAnswer>;
+  /** A song picked on the website, by its facts: the first audio-links addon with a music file Sync can read; only addonId's when given. */
+  findMusicByName(options: { song: NameFindSongFacts; wait: AddonWait; addonId: string | null }): Promise<NameFindOutcome>;
 }
 
 interface TakenJob {
@@ -87,11 +95,15 @@ interface TakenJob {
   takenAtMilliseconds: number;
 }
 
-/** A find whose songs can still be picked: the music job names one by its ref. */
-interface RememberedFind {
-  source: SongMusicSource;
-  musicIdsByRef: ReadonlyMap<string, string>;
-}
+/**
+ * A find whose songs can still be picked: the music job names one by its ref. A link find's songs are downloaded only
+ * when picked; a name find's one song is already on this computer, with the facts to ask its addon again if it goes.
+ */
+type RememberedFind =
+  | { kind: 'link'; source: SongMusicSource; musicIdsByRef: ReadonlyMap<string, string> }
+  | { kind: 'name'; ref: string; song: NameFindSongFacts; music: NameFoundMusic };
+
+type NameRememberedFind = Extract<RememberedFind, { kind: 'name' }>;
 
 /** Why a link song has no music, as one short sentence for the player; never an error's own text, which can hold an address. */
 class LinkMusicFailure extends Error {}
@@ -140,9 +152,9 @@ export class SiteLinkJobs {
   private isRunning = false;
   /** Every start and stop counts up, so the loops of an earlier start end even when the app starts again at once. */
   private runNumber = 0;
-  private lastSentDeclarationsText: string | null = null;
+  private lastSentAddonsKey: string | null = null;
   private readonly waitingJobs: TakenJob[] = [];
-  private readonly runningCountsByKind: Record<LinkJob['kind'], number> = { find: 0, music: 0, install: 0, verify: 0 };
+  private readonly runningCountsByKind: Record<LinkJob['kind'], number> = { find: 0, music: 0, install: 0, verify: 0, 'name-find': 0 };
   private readonly findsById = new Map<string, RememberedFind>();
   private jobEndListeners: (() => void)[] = [];
   private sources: LinkSongSource[] | null = null;
@@ -169,10 +181,10 @@ export class SiteLinkJobs {
     if (isLeaving) await this.sendPresence({ isLeaving: true });
   }
 
-  /** After a link addon was turned on or off, installed or removed: the site's link option follows at once. */
+  /** After an addon was turned on or off, installed or removed: the site's link and name-find options follow at once. */
   handleAddonsChange(): void {
     if (!this.isRunning) return;
-    if (JSON.stringify(getLinkAddonDeclarations(this.dependencies.getAddons())) === this.lastSentDeclarationsText) return;
+    if (getPresenceAddonsKey(this.dependencies.getAddons()) === this.lastSentAddonsKey) return;
     void this.sendPresence({ isLeaving: false });
   }
 
@@ -201,8 +213,9 @@ export class SiteLinkJobs {
   private async sendPresence({ isLeaving }: { isLeaving: boolean }): Promise<void> {
     const api = this.dependencies.buildApi();
     if (!api) return;
-    const presence = buildSyncPresence({ computerName: this.dependencies.computerName, appVersion: this.dependencies.appVersion, addons: this.dependencies.getAddons(), isLeaving });
-    this.lastSentDeclarationsText = JSON.stringify(presence.linkAddons);
+    const addons = this.dependencies.getAddons();
+    const presence = buildSyncPresence({ computerName: this.dependencies.computerName, appVersion: this.dependencies.appVersion, addons, isLeaving });
+    this.lastSentAddonsKey = getPresenceAddonsKey(addons);
     try {
       await api.reportPresence(presence);
     } catch (error) {
@@ -292,6 +305,7 @@ export class SiteLinkJobs {
       if (job.kind === 'find') await this.runFindJob({ job, takenAtMilliseconds });
       else if (job.kind === 'music') await this.runMusicJob(job);
       else if (job.kind === 'install') await this.runInstallJob(job);
+      else if (job.kind === 'name-find') await this.runNameFindJob({ job, takenAtMilliseconds });
       else await this.runVerifyJob({ job, takenAtMilliseconds });
     } catch (error) {
       this.logJob({ job, status: `stopped (${describeFailure(error)})` });
@@ -333,10 +347,44 @@ export class SiteLinkJobs {
 
   private async answerFoundSongs({ job, found, sites }: { job: FindLinkJob; found: Extract<FoundSongChoices, { kind: 'found' }>; sites: readonly string[] }): Promise<void> {
     const results = buildLinkFindResults({ choices: found.choices, link: found.source.link ?? job.link, sites });
-    this.rememberFind({ findId: job.id, find: { source: found.source, musicIdsByRef: new Map(results.map(({ choice, result }) => [result.ref, choice.musicId])) } });
+    this.rememberFind({ findId: job.id, find: { kind: 'link', source: found.source, musicIdsByRef: new Map(results.map(({ choice, result }) => [result.ref, choice.musicId])) } });
     const delivery = await this.answerJob({ job, answer: { status: 'found', results: results.map(({ result }) => result) } });
     // No music job can come for a find the site never got.
     if (delivery !== 'delivered') this.forgetFind(job.id);
+  }
+
+  /**
+   * A song picked on the website, found by its facts with the player's own audio-links addons. The site hears "working"
+   * every 5 s from the start: several addons may be asked in turn, each may answer 202 for a while, and the music file is
+   * downloaded and measured before Sync answers. Sync keeps the file for the music job. When no addon answers at all,
+   * nothing is sent, and the site's own timeout says it isn't answering, as for a link find.
+   */
+  private async runNameFindJob({ job, takenAtMilliseconds }: { job: NameFindLinkJob; takenAtMilliseconds: number }): Promise<void> {
+    const run = new RunningJob({ takenAtMilliseconds, maxEndMilliseconds: takenAtMilliseconds + MAX_FIND_MILLISECONDS });
+    void this.keepJobAlive({ job, run });
+    const outcome = await this.dependencies.findMusicByName({ song: job.song, wait: this.buildAddonWait(run), addonId: null }).catch((): NameFindOutcome => ({ kind: 'no-answer' })).finally(() => { run.end(); });
+    if (run.isCancelled) {
+      this.logJob({ job, status: 'stopped on the site, nothing sent' });
+      return;
+    }
+    if (outcome.kind === 'found') await this.answerNameFound({ job, music: outcome.music });
+    else if (outcome.kind === 'no-addon') await this.answerJob({ job, answer: { status: 'gone' } });
+    else if (outcome.kind === 'not-found') await this.answerJob({ job, answer: buildNotFoundAnswer(outcome.reason) });
+    else this.logJob({ job, status: 'no answer from the addons, nothing sent' });
+  }
+
+  private async answerNameFound({ job, music }: { job: NameFindLinkJob; music: NameFoundMusic }): Promise<void> {
+    const result = buildNameFindResult({ song: job.song, measuredLengthSeconds: music.lengthSeconds });
+    this.rememberFind({ findId: job.id, find: { kind: 'name', ref: result.ref, song: job.song, music } });
+    const delivery = await this.answerJob({ job, answer: { status: 'found', results: [result] } });
+    if (delivery !== 'delivered') this.forgetFind(job.id);
+  }
+
+  private buildAddonWait(run: RunningJob): AddonWait {
+    return {
+      waitSeconds: (seconds) => this.waitWhileRunning({ run, milliseconds: seconds * 1000 }),
+      shouldStop: () => run.isCancelled || this.getNow() >= run.maxEndMilliseconds,
+    };
   }
 
   /** "Into my game": answered only once the song's music is in its folder in the game, or with why it isn't. */
@@ -352,11 +400,7 @@ export class SiteLinkJobs {
   private async runVerifyJob({ job, takenAtMilliseconds }: { job: VerifyLinkJob; takenAtMilliseconds: number }): Promise<void> {
     const run = new RunningJob({ takenAtMilliseconds, maxEndMilliseconds: takenAtMilliseconds + MAX_VERIFY_ADDON_WAIT_MILLISECONDS });
     void this.keepJobAlive({ job, run });
-    const wait: AddonWait = {
-      waitSeconds: (seconds) => this.waitWhileRunning({ run, milliseconds: seconds * 1000 }),
-      shouldStop: () => run.isCancelled || this.getNow() >= run.maxEndMilliseconds,
-    };
-    const answer = await this.dependencies.checkVideo({ job, wait }).catch((): SiteVideoCheckAnswer => ({ status: 'failed', reason: VERIFY_FAILED_REASON })).finally(() => { run.end(); });
+    const answer = await this.dependencies.checkVideo({ job, wait: this.buildAddonWait(run) }).catch((): SiteVideoCheckAnswer => ({ status: 'failed', reason: VERIFY_FAILED_REASON })).finally(() => { run.end(); });
     if (run.isCancelled) {
       this.logJob({ job, status: 'stopped on the site, nothing sent' });
       return;
@@ -390,15 +434,59 @@ export class SiteLinkJobs {
   /** The status to log; throws LinkMusicFailure with the reason to send when there is no music. */
   private async sendMusic({ job, jobKey }: { job: MusicLinkJob; jobKey: string }): Promise<string> {
     const find = this.findsById.get(job.findId);
-    const musicId = find?.musicIdsByRef.get(job.ref);
-    if (!find || musicId === undefined) throw new LinkMusicFailure('Sync no longer has this song. Find it again.');
+    if (find?.kind === 'name' && find.ref === job.ref) return this.sendNameFoundMusic({ job, jobKey, find });
+    const musicId = find?.kind === 'link' ? find.musicIdsByRef.get(job.ref) : undefined;
+    if (find?.kind !== 'link' || musicId === undefined) throw new LinkMusicFailure('Sync no longer has this song. Find it again.');
     const addonName = find.source.addonName;
     if (!findLinkAddon({ addons: this.dependencies.getAddons(), addonId: job.addonId })) throw new LinkMusicFailure(`${addonName} is turned off in Sync.`);
-    const folder = this.dependencies.jobFiles.getJobFolder(jobKey);
-    await mkdir(folder, { recursive: true });
+    const folder = await this.makeJobFolder(jobKey);
     const audio = await this.dependencies.songs.prepareMusicForSite({ musicId, folder }).catch((error: unknown) => {
       throw new LinkMusicFailure(error instanceof SiteMusicLimitError ? error.message : `${addonName} couldn’t get the music.`);
     });
+    return this.uploadMusic({ job, audio, source: find.source });
+  }
+
+  /**
+   * A name find's song: the file Sync kept when it found it, or, when that file is gone, the same addon asked again with
+   * the same facts. The job's addonId is empty: the find knows which addon it was.
+   */
+  private async sendNameFoundMusic({ job, jobKey, find }: { job: MusicLinkJob; jobKey: string; find: NameRememberedFind }): Promise<string> {
+    const { addonId, addonName } = find.music;
+    if (!getNameFindAddons(this.dependencies.getAddons()).some((addon) => addon.manifest.id === addonId)) throw new LinkMusicFailure(`${addonName} is turned off in Sync.`);
+    const folder = await this.makeJobFolder(jobKey);
+    const prepare = (music: NameFoundMusic): Promise<LinkJobAudio> => this.dependencies.songs.prepareFileForSite({ sourceId: music.sourceId, lengthSeconds: music.lengthSeconds, folder });
+    const audio = await prepare(find.music)
+      .catch(async (error: unknown) => {
+        if (!(error instanceof MusicFileGoneError)) throw error;
+        const music = await this.fetchNameFoundMusicAgain(find);
+        this.findsById.set(job.findId, { ...find, music });
+        return prepare(music);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof LinkMusicFailure) throw error;
+        throw new LinkMusicFailure(error instanceof SiteMusicLimitError ? error.message : `${addonName} couldn’t get the music.`);
+      });
+    return this.uploadMusic({ job, audio, source: { addonId, addonName, link: null } });
+  }
+
+  /** The kept file is gone: the addon that found the song gets the same request again, for up to 3 minutes. */
+  private async fetchNameFoundMusicAgain(find: NameRememberedFind): Promise<NameFoundMusic> {
+    const { addonId, addonName } = find.music;
+    const startedAtMilliseconds = this.getNow();
+    const run = new RunningJob({ takenAtMilliseconds: startedAtMilliseconds, maxEndMilliseconds: startedAtMilliseconds + MAX_FIND_MILLISECONDS });
+    const outcome = await this.dependencies.findMusicByName({ song: find.song, wait: this.buildAddonWait(run), addonId }).finally(() => { run.end(); });
+    if (outcome.kind === 'found') return outcome.music;
+    throw new LinkMusicFailure(outcome.kind === 'no-addon' ? `${addonName} is turned off in Sync.` : `${addonName} couldn’t get the music.`);
+  }
+
+  private async makeJobFolder(jobKey: string): Promise<string> {
+    const folder = this.dependencies.jobFiles.getJobFolder(jobKey);
+    await mkdir(folder, { recursive: true });
+    return folder;
+  }
+
+  /** Uploads only while the job is open, then keeps which addon found the music by the site's song id. */
+  private async uploadMusic({ job, audio, source }: { job: MusicLinkJob; audio: LinkJobAudio; source: SongMusicSource }): Promise<string> {
     const api = this.dependencies.buildApi();
     if (!api) return 'signed out, nothing sent';
     const state = await api.fetchLinkJobState(job.id);
@@ -408,7 +496,7 @@ export class SiteLinkJobs {
       throw new LinkMusicFailure('The music couldn’t be sent to dancedance.studio. Try again.');
     });
     if (delivery === 'late') return 'too late, the site keeps nothing';
-    await this.saveSource({ songId: job.songId, source: find.source });
+    await this.saveSource({ songId: job.songId, source });
     return 'audio uploaded';
   }
 
@@ -435,8 +523,10 @@ export class SiteLinkJobs {
     }
   }
 
+  /** A name find's file stays where Sync keeps addons' files, like any other addon download. */
   private forgetFind(findId: string): void {
-    for (const musicId of this.findsById.get(findId)?.musicIdsByRef.values() ?? []) this.dependencies.songs.forgetMusic(musicId);
+    const find = this.findsById.get(findId);
+    if (find?.kind === 'link') for (const musicId of find.musicIdsByRef.values()) this.dependencies.songs.forgetMusic(musicId);
     this.findsById.delete(findId);
   }
 
@@ -467,7 +557,7 @@ export class SiteLinkJobs {
   }
 
   /** "working" every 5 s until the job ends; a 410 means the player stopped it on the site, so Sync stops asking. */
-  private async keepJobAlive({ job, run }: { job: FindLinkJob | VerifyLinkJob; run: RunningJob }): Promise<void> {
+  private async keepJobAlive({ job, run }: { job: FindLinkJob | VerifyLinkJob | NameFindLinkJob; run: RunningJob }): Promise<void> {
     while (!run.isEnded) {
       const api = this.dependencies.buildApi();
       if (!api) return;

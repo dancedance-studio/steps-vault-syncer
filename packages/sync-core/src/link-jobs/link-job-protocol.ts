@@ -1,5 +1,5 @@
 import type { InstalledAddon } from '../addons/addon-client';
-import { isAddonProviding } from '../addons/addon-protocol';
+import { isAddonProviding, type AddonSongFacts } from '../addons/addon-protocol';
 import { isHostOnSites, type SongSourceInput } from '../addons/song-source-inputs';
 import type { SongSourceChoice } from '../addons/song-source-protocol';
 import { parseUrlOrNull } from '../network/service-address';
@@ -50,6 +50,11 @@ export interface SyncPresence {
   installJobs: typeof INSTALL_JOBS_VERSION;
   /** This Sync checks a video link against a song's music (verify jobs); the site sends none to a Sync that doesn't say so. */
   verifyJobs: typeof VERIFY_JOBS_VERSION;
+  /**
+   * 1 while an addon that is on provides audio-links, so a song picked on the website can be found by its facts
+   * (name-find jobs); 0 otherwise, and the site then sends none.
+   */
+  nameFinds: 0 | 1;
   /** Empty means no link option on the website. */
   linkAddons: LinkAddonDeclaration[];
   /** Only on quit, so the site shows the computer offline at once instead of after 75 s. */
@@ -71,7 +76,21 @@ export type LinkJob =
    * not in the player's library); videoId the video to ask the addon about, and videoUrl its web address when the site
    * sends one. Nothing is installed or uploaded for it.
    */
-  | { id: string; kind: 'verify'; addonId: string; songId: string; videoId: string; videoUrl: string | null; song: VerifySongFacts; expiresAt: string | null };
+  | { id: string; kind: 'verify'; addonId: string; songId: string; videoId: string; videoUrl: string | null; song: VerifySongFacts; expiresAt: string | null }
+  /**
+   * A song the player picked on the website, to find with their own addons by its facts alone. It names no addon: Sync
+   * asks its audio-links addons in the player's order. Its music job names it by its id as findId, with an empty addonId.
+   */
+  | { id: string; kind: 'name-find'; song: NameFindSongFacts; expiresAt: string | null };
+
+/** The facts of a song picked on the website: nothing the site got from a video search, so no video id and no link. */
+export interface NameFindSongFacts {
+  title: string;
+  artist: string;
+  album: string | null;
+  /** null when the site sent none. */
+  lengthSeconds: number | null;
+}
 
 /** The facts of a verify job's song that the addon is asked with, as the library list gives them. */
 export interface VerifySongFacts {
@@ -88,6 +107,7 @@ export type FindLinkJob = Extract<LinkJob, { kind: 'find' }>;
 export type MusicLinkJob = Extract<LinkJob, { kind: 'music' }>;
 export type InstallLinkJob = Extract<LinkJob, { kind: 'install' }>;
 export type VerifyLinkJob = Extract<LinkJob, { kind: 'verify' }>;
+export type NameFindLinkJob = Extract<LinkJob, { kind: 'name-find' }>;
 
 /** GET /api/sync/link-jobs/:id. Sync uploads only while it is open. */
 export type LinkJobState = 'open' | 'cancelled' | 'expired';
@@ -105,7 +125,7 @@ export interface LinkFindResult {
   ref: string;
   title: string;
   artist: string;
-  /** The addon's site the link is on. */
+  /** The addon's site the link is on; "" for a name find, which has no link. */
   source: string;
   /** Whole seconds; null when the addon didn't say, and the site then checks the length when the audio arrives. */
   lengthSec: number | null;
@@ -167,32 +187,68 @@ export function findLinkAddon({ addons, addonId }: { addons: readonly InstalledA
   return getLinkAddons(addons).find((linkAddon) => linkAddon.addon.manifest.id === addonId) ?? null;
 }
 
+/** The addons that are on and get a song's music by its facts (audio-links), in the player's order: a name find asks these. */
+export function getNameFindAddons(addons: readonly InstalledAddon[]): InstalledAddon[] {
+  return addons.filter((addon) => addon.isEnabled && isAddonProviding({ manifest: addon.manifest, ability: 'audio-links' }));
+}
+
+/** Exactly what an addon gets for a name find: the song's facts, with no genre and no video. */
+export function buildNameFindSongFacts(song: NameFindSongFacts): AddonSongFacts {
+  return { title: song.title, artist: song.artist, album: song.album, genre: null, lengthSeconds: song.lengthSeconds, videoId: null, videoUrl: null };
+}
+
 /** Each link addon's first link field, as the website draws it; the website relays links to that field only. */
 export function getLinkAddonDeclarations(addons: readonly InstalledAddon[]): LinkAddonDeclaration[] {
   return getLinkAddons(addons).map(({ addon, linkInput }) => ({ id: addon.manifest.id, name: addon.manifest.name, label: linkInput.label, placeholder: linkInput.placeholder ?? '', sites: [...linkInput.sites] }));
 }
 
 export function buildSyncPresence({ computerName, appVersion, addons, isLeaving }: { computerName: string; appVersion: string; addons: readonly InstalledAddon[]; isLeaving: boolean }): SyncPresence {
-  const presence: SyncPresence = { computerName, appVersion, linkJobs: LINK_JOBS_VERSION, installJobs: INSTALL_JOBS_VERSION, verifyJobs: VERIFY_JOBS_VERSION, linkAddons: getLinkAddonDeclarations(addons) };
+  const presence: SyncPresence = { computerName, appVersion, linkJobs: LINK_JOBS_VERSION, installJobs: INSTALL_JOBS_VERSION, verifyJobs: VERIFY_JOBS_VERSION, nameFinds: getNameFindAddons(addons).length > 0 ? 1 : 0, linkAddons: getLinkAddonDeclarations(addons) };
   return isLeaving ? { ...presence, leaving: true } : presence;
+}
+
+/** What presence tells the site about the addons; when it changes, presence goes out again at once. */
+export function getPresenceAddonsKey(addons: readonly InstalledAddon[]): string {
+  const { nameFinds, linkAddons } = buildSyncPresence({ computerName: '', appVersion: '', addons, isLeaving: false });
+  return JSON.stringify({ nameFinds, linkAddons });
 }
 
 /** A job of a kind this Sync doesn't know, or one that is broken, is null: Sync leaves it, and the site times it out. */
 export function parseLinkJobOrNull(value: unknown): LinkJob | null {
   if (!isRecord(value)) return null;
   const id = getJobIdOrNull(value.id);
-  const addonId = getJobIdOrNull(value.addonId);
-  if (id === null || addonId === null) return null;
+  if (id === null) return null;
   const expiresAt = typeof value.expiresAt === 'string' ? value.expiresAt : null;
+  if (value.kind === 'name-find') return parseNameFindJobOrNull({ value, id, expiresAt });
+  if (value.kind === 'music') return parseMusicJobOrNull({ value, id, expiresAt });
+  const addonId = getJobIdOrNull(value.addonId);
+  if (addonId === null) return null;
   if (value.kind === 'find') return typeof value.link === 'string' ? { id, kind: 'find', addonId, link: value.link, expiresAt } : null;
   if (value.kind === 'install') return parseInstallJobOrNull({ value, id, addonId, expiresAt });
   if (value.kind === 'verify') return parseVerifyJobOrNull({ value, id, addonId, expiresAt });
-  if (value.kind !== 'music') return null;
+  return null;
+}
+
+/** The music job of a name find names no addon (addonId empty or missing): Sync itself knows which addon found the song. */
+function parseMusicJobOrNull({ value, id, expiresAt }: { value: Record<string, unknown>; id: string; expiresAt: string | null }): MusicLinkJob | null {
+  const addonId = value.addonId === '' || value.addonId === undefined || value.addonId === null ? '' : getJobIdOrNull(value.addonId);
   const findId = getJobIdOrNull(value.findId);
   const ref = getJobIdOrNull(value.ref);
   const songId = getJobIdOrNull(value.songId);
-  if (findId === null || ref === null || songId === null) return null;
+  if (addonId === null || findId === null || ref === null || songId === null) return null;
   return { id, kind: 'music', addonId, findId, ref, songId, expiresAt };
+}
+
+/** A song without a title and an artist can't be looked for. */
+function parseNameFindJobOrNull({ value, id, expiresAt }: { value: Record<string, unknown>; id: string; expiresAt: string | null }): NameFindLinkJob | null {
+  const song = value.song;
+  if (!isRecord(song) || !isFilledText(song.title) || !isFilledText(song.artist)) return null;
+  const lengthSeconds = typeof song.lengthSeconds === 'number' && Number.isFinite(song.lengthSeconds) && song.lengthSeconds > 0 ? song.lengthSeconds : null;
+  return { id, kind: 'name-find', song: { title: song.title, artist: song.artist, album: typeof song.album === 'string' ? song.album : null, lengthSeconds }, expiresAt };
+}
+
+function isFilledText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
 }
 
 function parseInstallJobOrNull({ value, id, addonId, expiresAt }: { value: Record<string, unknown>; id: string; addonId: string; expiresAt: string | null }): InstallLinkJob | null {
@@ -243,6 +299,17 @@ export function buildLinkFindResults<Choice extends Pick<SongSourceChoice, 'song
     const lengthSec = song.lengthSeconds === null ? null : Math.round(song.lengthSeconds);
     return { choice, result: { ref: `r${String(index + 1)}`, title: song.title, artist: song.artist, source, lengthSec, video: buildVideoFactsOrNull({ choice, lengthSec }) } };
   });
+}
+
+/** The ref of a name find's one song: the music job names it by this. */
+export const NAME_FIND_REF = 'r1';
+
+/**
+ * A name find's one song, in a link find's fields: the job's own title and artist, the length Sync measured from the
+ * music file, no site (there is no link) and no video (the website keeps the song's own).
+ */
+export function buildNameFindResult({ song, measuredLengthSeconds }: { song: NameFindSongFacts; measuredLengthSeconds: number }): LinkFindResult {
+  return { ref: NAME_FIND_REF, title: song.title, artist: song.artist, source: '', lengthSec: Math.round(measuredLengthSeconds), video: null };
 }
 
 /** The addon's site a link is on: clips.example for https://www.clips.example/…, the most specific one when several match. */
