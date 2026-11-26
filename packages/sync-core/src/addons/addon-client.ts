@@ -1,7 +1,7 @@
 import { HttpRequestError, type HttpClient } from '../network/http-client';
 import { getAddonBaseUrl } from './addon-address';
 import { getAddonOptionValues, MEDIA_OPTION_ID, MUSIC_ONLY_MEDIA_VALUE, withAddonOptionValue, type AddonOptionValues } from './addon-options';
-import { buildAudioLinksRequestBody, InvalidAddonAnswerError, parseAddonManifest, parseAudioLinksAnswer, type AddonManifest, type AddonSongFacts, type AudioLinksAnswer } from './addon-protocol';
+import { buildAudioLinksRequestBody, InvalidAddonAnswerError, isAddonProviding, parseAddonManifest, parseAudioLinksAnswer, type AddonManifest, type AddonSongFacts, type AudioLinksAnswer } from './addon-protocol';
 
 const MANIFEST_TIMEOUT_MILLISECONDS = 10_000;
 /** How long Sync waits for an addon's answer to /audio-links or /song-source. */
@@ -55,6 +55,20 @@ export function loadSavedAddon(value: unknown): InstalledAddon | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * An installed addon with the manifest it serves today, read again when Sync starts, so an addon that learned something
+ * new (a new version, options or ability) is used as it is now. The player's consent covers what an addon sees: abilities
+ * that get only a song's facts are taken at once, but an addon that newly wants what the player types (a song source)
+ * keeps its old manifest until the player adds it again and sees that on the consent screen. A manifest with another id
+ * is someone else's addon at that address, and changes nothing. The player's option picks carry over where they still fit.
+ */
+export function withRefreshedManifest({ addon, manifest }: { addon: InstalledAddon; manifest: AddonManifest }): InstalledAddon {
+  if (manifest.id !== addon.manifest.id) return addon;
+  const isNewSongSource = isAddonProviding({ manifest, ability: 'song-source' }) && !isAddonProviding({ manifest: addon.manifest, ability: 'song-source' });
+  if (isNewSongSource) return addon;
+  return { ...addon, manifest, optionValues: getAddonOptionValues({ options: manifest.options, savedValues: addon.optionValues }) };
 }
 
 /** Changes one option; an option or choice the addon doesn't declare leaves the addon as it was. */

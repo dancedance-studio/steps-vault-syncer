@@ -59,6 +59,11 @@ An addon's address is `https://…`. The only exception is an addon running on t
   `audio-links`: finds a few versions of a song by its facts, for the player to pick from; see below).
 - `options` (optional): see below.
 
+Sync reads each addon's manifest again every time it starts (only addons that are on). A new version, new options
+and new abilities that get only a song's facts (`audio-links`, `video-links`, `song-search`) are used at once, and
+the player's option picks carry over where they still fit. An addon that newly provides `song-source` sees what the
+player types, so it keeps its old manifest until the player adds it again and agrees on the consent screen.
+
 ## Options
 
 An addon may offer up to 8 simple **options**. The player picks them when they install the addon (each starts at its
