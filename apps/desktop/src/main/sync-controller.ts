@@ -36,6 +36,7 @@ import {
   type SyncOutcome,
   type SyncPorts,
   type SyncLibrary,
+  type NameFindSongFacts,
   type VerifyLinkJob,
   type LibrarySongChoice,
   type LibrarySongIdentity,
@@ -92,6 +93,7 @@ import { NodeMultipartHttpClient } from './node-multipart-http-client';
 import { NodeMusicLibrary } from './node-music-library';
 import { NodeSongsFolder } from './node-songs-folder';
 import { SiteLinkJobs } from './site-link-jobs';
+import { findMusicByName, type NameFindOutcome } from './site-name-finds';
 import { installSongForSite, type SiteSongInstallResult } from './site-song-installs';
 import { checkVideoForSite, type AddonWait, type SiteVideoCheckAnswer } from './site-video-checks';
 import { getStartWithWindowsChangeOrNull, type StartWithWindows } from './start-with-windows';
@@ -582,6 +584,26 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       onSignedOut: () => { void this.handleSignedOutFromLinkJobs(); },
       installSong: ({ librarySongId }) => this.installSongForSite(librarySongId),
       checkVideo: ({ job, wait }) => this.checkVideoForSite({ job, wait }),
+      findMusicByName: (options) => this.findMusicByNameForSite(options),
+    });
+  }
+
+  /** A song picked on the website, by its facts: the music goes where Sync keeps addons' files, measured as the Make page does. */
+  private findMusicByNameForSite({ song, wait, addonId }: { song: NameFindSongFacts; wait: AddonWait; addonId: string | null }): Promise<NameFindOutcome> {
+    return findMusicByName({
+      song,
+      wait,
+      addonId,
+      ports: {
+        getAddons: () => this.settings.addons,
+        addonHttpClient: this.serviceClient,
+        downloadAddonFile: (download) => this.downloadAddonFile(download),
+        measureLength: async (sourceId) => {
+          const source = this.musicSources.getSource(sourceId);
+          if (!source) throw new Error('The music your addon got is gone. Try again.');
+          return this.options.audioBridge.measureLength(new Uint8Array(await readFile(source.filePath)));
+        },
+      },
     });
   }
 

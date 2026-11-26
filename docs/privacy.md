@@ -8,14 +8,15 @@ only for the reason given.
 Nothing goes to dancedance.studio until you sign in from Sync and link the computer to your account. After that, Sync
 sends:
 
-- this computer's name, the Sync version, and the link addons you have turned on (only the sites they declare)
+- this computer's name, the Sync version, the link addons you have turned on (only the sites they declare), and
+  whether an addon you have turned on can look for a song you pick on the website (never which addon)
 - requests for your library list and your party lists, and the songs' steps and pictures
 - the result of each sync: how many songs are in your game, and your game's name
 - your answers to jobs you start on the website, such as "Into my game" or a song link
 - the songs a community generator made on this computer (title, artist, generator, levels and when), for the website's
   "This PC" list
 - a music file, only when you ask dancedance.studio to make steps for it: from Sync's own "Make a song", where Sync
-  asks you first, or from a song link you paste on the website
+  asks you first, or from a song link you paste or a song you pick on the website
 
 The website's privacy policy covers what dancedance.studio does with it:
 [dancedance.studio/help#privacy](https://dancedance.studio/help#privacy).

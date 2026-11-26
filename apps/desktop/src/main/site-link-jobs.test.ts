@@ -1,5 +1,5 @@
 import { readdirSync } from 'node:fs';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -22,6 +22,7 @@ import { MakeSongMusic, type MakeSongMusicPorts } from './make-song-music';
 import { MusicSourceRegistry } from './music-source-registry';
 import { SiteLinkJobs } from './site-link-jobs';
 import type { SiteSongInstallResult } from './site-song-installs';
+import { findMusicByName } from './site-name-finds';
 import { checkVideoForSite } from './site-video-checks';
 
 const API_URL = 'https://dancedance.studio/api/sync';
@@ -45,6 +46,19 @@ const VERIFY_JOB = {
   song: { librarySongId: 'song_42', slug: 'night-drive', title: 'Night Drive', artist: 'Lumen Park', album: null, genre: 'Synthwave', lengthSeconds: 221, videoId: null, chartVersion: 'v1' },
 };
 const VIDEO_AUDIO_LINKS = { status: 200, body: { links: [{ kind: 'file-url', url: `${ADDON_URL}/files/night-drive-video.ogg`, label: 'Music', fileName: 'night-drive-video.ogg' }] } };
+/** A second addon on this computer that gets a song's music by its facts only (audio-links, no link field). */
+const TUNE_BRIDGE_URL = 'http://127.0.0.1:7803';
+const TUNE_BRIDGE: AddonManifest = { protocol: 1, kind: 'addon', id: 'tune-bridge', name: 'Tune Bridge', version: '2.0.0', author: '@kai', description: '', provides: ['audio-links', 'video-links'], options: [], inputs: [] };
+/** A song the player picked on the website: its facts only, with no addon, no video id and no link. */
+const SPOTLIGHT = { title: 'Spotlight', artist: 'Mira Vale', album: 'Neon Hours', lengthSeconds: 204 };
+const NAME_FIND_JOB = { id: 'lj_30', kind: 'name-find', song: SPOTLIGHT, expiresAt: '2026-11-21T12:03:00.000Z' };
+const NAME_MUSIC_JOB = { id: 'lj_31', kind: 'music', addonId: '', findId: 'lj_30', ref: 'r1', songId: 'ls_12', expiresAt: '2026-11-21T12:10:00.000Z' };
+/** What every addon gets for Spotlight: the normal /audio-links request with the song's facts, and nothing about a video. */
+const SPOTLIGHT_AUDIO_LINKS_BODY = { protocol: 1, song: { title: 'Spotlight', artist: 'Mira Vale', album: 'Neon Hours', genre: null, lengthSeconds: 204, videoId: null, videoUrl: null } };
+const SPOTLIGHT_MUSIC_AND_VIDEO = {
+  status: 200,
+  body: { links: [{ kind: 'file-url', media: 'video', url: `${TUNE_BRIDGE_URL}/files/spotlight.mp4`, label: 'Video', fileName: 'spotlight.mp4' }, { kind: 'file-url', media: 'audio', url: `${TUNE_BRIDGE_URL}/files/spotlight.ogg`, label: 'Music', fileName: 'spotlight.ogg' }] },
+};
 
 let workFolder: string;
 
@@ -163,6 +177,8 @@ class FakeAddon implements HttpClient {
   answer: () => Promise<HttpResponse<unknown>> = () => Promise.resolve({ status: 200, body: FOUND_NIGHT_DRIVE });
   /** Its /audio-links: the music of the video it is asked about. */
   answerAudioLinks: () => Promise<HttpResponse<unknown>> = () => Promise.resolve(VIDEO_AUDIO_LINKS);
+  /** Tune Bridge's /audio-links, on its own address: Spotlight's music and video unless a test says otherwise. */
+  answerTuneBridgeAudioLinks: () => Promise<HttpResponse<unknown>> = () => Promise.resolve(SPOTLIGHT_MUSIC_AND_VIDEO);
 
   get songSourceBodies(): unknown[] {
     return this.requests.map((request) => request.jsonBody);
@@ -171,6 +187,7 @@ class FakeAddon implements HttpClient {
   requestJson(request: HttpRequest): Promise<HttpResponse<unknown>> {
     this.requests.push(request);
     if (request.url === `${ADDON_URL}/audio-links`) return this.answerAudioLinks();
+    if (request.url === `${TUNE_BRIDGE_URL}/audio-links`) return this.answerTuneBridgeAudioLinks();
     if (request.url !== `${ADDON_URL}/song-source`) return Promise.reject(new Error(`The addon has no ${request.url}.`));
     return this.answer();
   }
@@ -204,6 +221,10 @@ class LinkJobsHarness {
   readonly addonFileUrls: string[] = [];
   /** Stands for the audio window's comparison: the same music, 221 s long, unless a test says otherwise. */
   videoComparison: VideoAudioComparison = { videoLengthSeconds: 221, fingerprintLengthSeconds: 221, middle: { isSameMusic: true, correlation: 0.92, shiftSeconds: 1.234 } };
+  /** The addon files a name find downloaded, into the folder where Sync keeps addons' files. */
+  readonly nameFindFileUrls: string[] = [];
+  /** Stands for the audio window: every music file is 211.6 s long, unless a test says otherwise. */
+  measureLength: (sourceId: string) => Promise<number> = () => Promise.resolve(211.6);
   readonly linkJobs: SiteLinkJobs;
   private isLinked = true;
 
@@ -254,7 +275,41 @@ class LinkJobsHarness {
           compareVideoAudio: () => Promise.resolve(this.videoComparison),
         },
       }),
+      findMusicByName: ({ song, wait, addonId }) => findMusicByName({
+        song,
+        wait,
+        addonId,
+        ports: {
+          getAddons: () => this.addons,
+          addonHttpClient: this.addon,
+          downloadAddonFile: async ({ url }) => {
+            this.nameFindFileUrls.push(url);
+            const filePath = path.join(workFolder, 'addon-downloads', path.basename(new URL(url).pathname));
+            await mkdir(path.dirname(filePath), { recursive: true });
+            await writeFile(filePath, `OggS-${path.basename(filePath)}`);
+            return this.musicSources.register(filePath);
+          },
+          measureLength: (sourceId) => this.measureLength(sourceId),
+        },
+      }),
     });
+  }
+
+  /** Tune Bridge added after Open Audio Links, so it comes second in the player's order. */
+  addTuneBridge(): void {
+    this.addons = [...this.addons, buildInstalledAddon({ baseUrl: TUNE_BRIDGE_URL, manifest: TUNE_BRIDGE, consentedAt: '2026-11-21T10:05:00.000Z' })];
+  }
+
+  /** The /audio-links bodies each addon got, by its address, in order. */
+  getAudioLinksBodies(baseUrl: string): unknown[] {
+    return this.addon.requests.filter((request) => request.url === `${baseUrl}/audio-links`).map((request) => request.jsonBody);
+  }
+
+  /** Starts, runs a name find for Spotlight, and waits for its answer (keepalives aside). */
+  async startAndFindSpotlightByName(): Promise<void> {
+    this.linkJobs.start();
+    this.site.queueJob(NAME_FIND_JOB);
+    await waitUntil(() => getAnswerStatuses(this).some((status) => status !== 'working'));
   }
 
   /** Starts, runs a find for Night Drive, and waits for its answer. */
@@ -292,7 +347,11 @@ async function waitUntil(isDone: () => boolean): Promise<void> {
 
 /** The status of every answer the site got, keepalives included, in order. */
 function getAnswerStatuses(harness: LinkJobsHarness): string[] {
-  return harness.site.answers.map(({ answer }) => (typeof answer === 'object' && answer !== null && 'status' in answer && typeof answer.status === 'string' ? answer.status : ''));
+  return harness.site.answers.map(({ answer }) => getStatus(answer));
+}
+
+function getStatus(answer: unknown): string {
+  return typeof answer === 'object' && answer !== null && 'status' in answer && typeof answer.status === 'string' ? answer.status : '';
 }
 
 /** Every music job removes its temporary folder when it ends, whatever happened. */
@@ -310,16 +369,33 @@ describe('presence', () => {
     const harness = new LinkJobsHarness();
     harness.linkJobs.start();
     await waitUntil(() => harness.site.presences.length === 1);
-    expect(harness.site.presences[0]).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, verifyJobs: 1, linkAddons: [{ id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }] });
+    expect(harness.site.presences[0]).toStrictEqual({ computerName: 'LIVING-ROOM', appVersion: '0.2.0', linkJobs: 1, installJobs: 1, verifyJobs: 1, nameFinds: 1, linkAddons: [{ id: 'open-audio-links', name: 'Open Audio Links', label: 'Audio link', placeholder: 'https://clips.example/v/…', sites: ['clips.example', 'media.example.org'] }] });
     await harness.clock.advance(30_000);
     await waitUntil(() => harness.site.presences.length === 2);
     harness.addons = harness.addons.map((addon) => ({ ...addon, isEnabled: false }));
     harness.linkJobs.handleAddonsChange();
     await waitUntil(() => harness.site.presences.length === 3);
-    expect(harness.site.presences[2]).toMatchObject({ linkJobs: 1, installJobs: 1, verifyJobs: 1, linkAddons: [] });
+    expect(harness.site.presences[2]).toMatchObject({ linkJobs: 1, installJobs: 1, verifyJobs: 1, nameFinds: 0, linkAddons: [] });
     harness.linkJobs.handleAddonsChange();
     await waitBriefly();
     expect(harness.site.presences).toHaveLength(3);
+    await harness.linkJobs.stop({ isLeaving: false });
+  });
+
+  it('says nameFinds 1 while an audio-links addon is on, and goes out again at once when that alone changes', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addons = [];
+    harness.addTuneBridge();
+    harness.linkJobs.start();
+    await waitUntil(() => harness.site.presences.length === 1);
+    expect(harness.site.presences[0]).toMatchObject({ nameFinds: 1, linkAddons: [] });
+    harness.addons = harness.addons.map((addon) => ({ ...addon, isEnabled: false }));
+    harness.linkJobs.handleAddonsChange();
+    await waitUntil(() => harness.site.presences.length === 2);
+    expect(harness.site.presences[1]).toMatchObject({ nameFinds: 0, linkAddons: [] });
+    harness.linkJobs.handleAddonsChange();
+    await waitBriefly();
+    expect(harness.site.presences).toHaveLength(2);
     await harness.linkJobs.stop({ isLeaving: false });
   });
 
@@ -522,6 +598,182 @@ describe('music jobs', () => {
     harness.site.queueJob({ ...MUSIC_JOB, id: 'lj_4' });
     await waitUntil(() => harness.site.answers.length === 3);
     expect(harness.site.answers.slice(1).map(({ answer }) => answer)).toEqual([{ status: 'failed', reason: 'It’s longer than 8 minutes.' }, { status: 'failed', reason: 'Open Audio Links is turned off in Sync.' }]);
+    expect(harness.site.uploads).toEqual([]);
+    await waitForMusicJobFoldersToGo();
+  });
+});
+
+describe('name-find jobs', () => {
+  it('ask each audio-links addon in the player’s order with the song’s facts only, and answer with the first music file, measured', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addTuneBridge();
+    harness.addon.answerAudioLinks = () => Promise.resolve({ status: 200, body: { links: [{ kind: 'open-page', url: 'https://store.example/spotlight', label: 'Buy it' }], error: 'Spotlight isn’t in this addon.' } });
+    await harness.startAndFindSpotlightByName();
+    expect(harness.getAudioLinksBodies(ADDON_URL)).toEqual([SPOTLIGHT_AUDIO_LINKS_BODY]);
+    expect(harness.getAudioLinksBodies(TUNE_BRIDGE_URL)).toEqual([SPOTLIGHT_AUDIO_LINKS_BODY]);
+    expect(harness.addon.requests.every((request) => request.url.endsWith('/audio-links'))).toBe(true);
+    expect(harness.site.answers.filter(({ answer }) => getStatus(answer) !== 'working')).toEqual([{ jobId: 'lj_30', answer: { status: 'found', results: [{ ref: 'r1', title: 'Spotlight', artist: 'Mira Vale', source: '', lengthSec: 212, video: null }] } }]);
+    expect(harness.nameFindFileUrls).toEqual([`${TUNE_BRIDGE_URL}/files/spotlight.ogg`]);
+    expect(harness.site.uploads).toEqual([]);
+  });
+
+  it('stop at the first addon with music, and ignore an answer that has only a video', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addTuneBridge();
+    harness.addon.answerAudioLinks = () => Promise.resolve({ status: 200, body: { links: [{ kind: 'file-url', media: 'video', url: `${ADDON_URL}/files/spotlight.mp4`, label: 'Video', fileName: 'spotlight.mp4' }] } });
+    await harness.startAndFindSpotlightByName();
+    expect(getAnswerStatuses(harness).at(-1)).toBe('found');
+    expect(harness.nameFindFileUrls).toEqual([`${TUNE_BRIDGE_URL}/files/spotlight.ogg`]);
+
+    const firstWins = new LinkJobsHarness();
+    firstWins.addTuneBridge();
+    await firstWins.startAndFindSpotlightByName();
+    expect(firstWins.nameFindFileUrls).toEqual([`${ADDON_URL}/files/night-drive-video.ogg`]);
+    expect(firstWins.getAudioLinksBodies(TUNE_BRIDGE_URL)).toEqual([]);
+  });
+
+  it('skip a music file that can’t be read, and try the next addon', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addTuneBridge();
+    harness.measureLength = (sourceId) => (harness.musicSources.getSource(sourceId)?.fileName === 'night-drive-video.ogg' ? Promise.reject(new Error('Not music.')) : Promise.resolve(204.2));
+    await harness.startAndFindSpotlightByName();
+    expect(harness.site.answers.at(-1)?.answer).toEqual({ status: 'found', results: [{ ref: 'r1', title: 'Spotlight', artist: 'Mira Vale', source: '', lengthSec: 204, video: null }] });
+  });
+
+  it('answer notfound with the first addon’s own sentence when no addon gave music', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addTuneBridge();
+    harness.addon.answerAudioLinks = () => Promise.resolve({ status: 200, body: { links: [], error: 'Spotlight isn’t in this addon.' } });
+    harness.addon.answerTuneBridgeAudioLinks = () => Promise.resolve({ status: 200, body: { links: [], error: 'Nothing found.' } });
+    await harness.startAndFindSpotlightByName();
+    expect(harness.site.answers.at(-1)).toEqual({ jobId: 'lj_30', answer: { status: 'notfound', reason: 'Spotlight isn’t in this addon.' } });
+    expect(harness.nameFindFileUrls).toEqual([]);
+
+    const noReason = new LinkJobsHarness();
+    noReason.addon.answerAudioLinks = () => Promise.resolve({ status: 200, body: { links: [] } });
+    await noReason.startAndFindSpotlightByName();
+    expect(noReason.site.answers.at(-1)?.answer).toEqual({ status: 'notfound' });
+  });
+
+  it('answer gone when no addon that is on provides audio-links, without asking any', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addons = harness.addons.map((addon) => ({ ...addon, isEnabled: false }));
+    await harness.startAndFindSpotlightByName();
+    expect(harness.site.answers.at(-1)).toEqual({ jobId: 'lj_30', answer: { status: 'gone' } });
+    expect(harness.addon.requests).toEqual([]);
+  });
+
+  it('send nothing when no addon answers, so the site says it isn’t answering', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addon.answerAudioLinks = () => Promise.reject(new HttpRequestError({ failure: 'timeout', message: 'The addon took too long to answer.' }));
+    harness.linkJobs.start();
+    harness.site.queueJob(NAME_FIND_JOB);
+    await waitUntil(() => harness.hasLog('[link-jobs] name-find lj_30: no answer from the addons, nothing sent'));
+    expect(getAnswerStatuses(harness).every((status) => status === 'working')).toBe(true);
+  });
+
+  it('stay open while an addon is still working: "working" every 5 s, then the music it got', async () => {
+    const harness = new LinkJobsHarness();
+    const stillWorking: HttpResponse<unknown> = { status: 202, body: { retryAfterSeconds: 5 } };
+    const addonAnswers: HttpResponse<unknown>[] = [stillWorking, stillWorking, stillWorking, stillWorking, VIDEO_AUDIO_LINKS];
+    harness.addon.answerAudioLinks = () => Promise.resolve(addonAnswers.shift() ?? { status: 500, body: {} });
+    harness.linkJobs.start();
+    harness.site.queueJob(NAME_FIND_JOB);
+    await waitUntil(() => harness.site.answers.length === 1);
+    expect(harness.site.answers[0]).toEqual({ jobId: 'lj_30', answer: { status: 'working' } });
+    for (let second = 0; second < 20; second += 5) await harness.clock.advance(5_000);
+    await waitUntil(() => getAnswerStatuses(harness).includes('found'));
+    const statuses = getAnswerStatuses(harness);
+    expect(statuses.at(-1)).toBe('found');
+    expect(statuses.slice(0, -1).every((status) => status === 'working')).toBe(true);
+    expect(statuses.length).toBeGreaterThanOrEqual(5);
+    expect(harness.getAudioLinksBodies(ADDON_URL)).toHaveLength(5);
+    await harness.clock.advance(30_000);
+    expect(getAnswerStatuses(harness)).toEqual(statuses);
+  });
+
+  it('give up on an addon still working after 3 minutes, and send nothing but the keepalives', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addTuneBridge();
+    harness.addon.answerAudioLinks = () => Promise.resolve({ status: 202, body: { retryAfterSeconds: 5 } });
+    harness.linkJobs.start();
+    harness.site.queueJob(NAME_FIND_JOB);
+    await waitUntil(() => harness.addon.requests.length === 1);
+    for (let second = 0; second < 175; second += 5) await harness.clock.advance(5_000);
+    expect(harness.hasLog('[link-jobs] name-find lj_30: no answer from the addons, nothing sent')).toBe(false);
+    await harness.clock.advance(5_000);
+    await waitUntil(() => harness.hasLog('[link-jobs] name-find lj_30: no answer from the addons, nothing sent'));
+    expect(getAnswerStatuses(harness).every((status) => status === 'working')).toBe(true);
+    expect(harness.getAudioLinksBodies(TUNE_BRIDGE_URL)).toEqual([]);
+    const askCount = harness.addon.requests.length;
+    await harness.clock.advance(60_000);
+    expect(harness.addon.requests).toHaveLength(askCount);
+  });
+
+  it('stop asking when the site answers 410 to a keepalive, because the player stopped the find', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addon.answerAudioLinks = () => Promise.resolve({ status: 202, body: { retryAfterSeconds: 5 } });
+    harness.linkJobs.start();
+    harness.site.queueJob(NAME_FIND_JOB);
+    await waitUntil(() => harness.site.answers.length === 1);
+    harness.site.endedJobIds.add('lj_30');
+    await harness.clock.advance(5_000);
+    await waitUntil(() => harness.hasLog('[link-jobs] name-find lj_30: stopped on the site, nothing sent'));
+    const askCount = harness.addon.requests.length;
+    await harness.clock.advance(60_000);
+    expect(harness.addon.requests).toHaveLength(askCount);
+    expect(getAnswerStatuses(harness).every((status) => status === 'working')).toBe(true);
+  });
+
+  it('upload the kept music file for the music job, without asking the addon or downloading again', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addTuneBridge();
+    harness.addon.answerAudioLinks = () => Promise.resolve({ status: 200, body: { links: [] } });
+    await harness.startAndFindSpotlightByName();
+    const askCount = harness.addon.requests.length;
+    harness.site.queueJob(NAME_MUSIC_JOB);
+    await waitUntil(() => harness.hasLog('[link-jobs] music lj_31: audio uploaded'));
+    expect(harness.site.uploads).toEqual([{ jobId: 'lj_31', contentType: 'audio/ogg', text: 'OggS-spotlight.ogg' }]);
+    expect(harness.site.stateChecks).toEqual(['lj_31']);
+    expect(harness.addon.requests).toHaveLength(askCount);
+    expect(harness.nameFindFileUrls).toEqual([`${TUNE_BRIDGE_URL}/files/spotlight.ogg`]);
+    expect(harness.savedSources.at(-1)).toEqual([{ songId: 'ls_12', source: { addonId: 'tune-bridge', addonName: 'Tune Bridge', link: null } }]);
+    await waitForMusicJobFoldersToGo();
+  });
+
+  it('ask the same addon again with the same facts when the kept file is gone, then upload', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addTuneBridge();
+    harness.addon.answerAudioLinks = () => Promise.resolve({ status: 200, body: { links: [] } });
+    await harness.startAndFindSpotlightByName();
+    await rm(path.join(workFolder, 'addon-downloads'), { recursive: true, force: true });
+    harness.site.queueJob(NAME_MUSIC_JOB);
+    await waitUntil(() => harness.hasLog('[link-jobs] music lj_31: audio uploaded'));
+    expect(harness.getAudioLinksBodies(ADDON_URL)).toEqual([SPOTLIGHT_AUDIO_LINKS_BODY]);
+    expect(harness.getAudioLinksBodies(TUNE_BRIDGE_URL)).toEqual([SPOTLIGHT_AUDIO_LINKS_BODY, SPOTLIGHT_AUDIO_LINKS_BODY]);
+    expect(harness.nameFindFileUrls).toEqual([`${TUNE_BRIDGE_URL}/files/spotlight.ogg`, `${TUNE_BRIDGE_URL}/files/spotlight.ogg`]);
+    expect(harness.site.uploads).toEqual([{ jobId: 'lj_31', contentType: 'audio/ogg', text: 'OggS-spotlight.ogg' }]);
+    await waitForMusicJobFoldersToGo();
+  });
+
+  it('answer the music job failed when the addon that found it is off, or no longer has the music', async () => {
+    const harness = new LinkJobsHarness();
+    harness.addons = [];
+    harness.addTuneBridge();
+    await harness.startAndFindSpotlightByName();
+    await rm(path.join(workFolder, 'addon-downloads'), { recursive: true, force: true });
+    harness.addon.answerTuneBridgeAudioLinks = () => Promise.resolve({ status: 200, body: { links: [], error: 'Gone.' } });
+    harness.site.queueJob(NAME_MUSIC_JOB);
+    await waitUntil(() => harness.site.answers.some(({ jobId }) => jobId === 'lj_31'));
+    harness.addons = harness.addons.map((addon) => ({ ...addon, isEnabled: false }));
+    harness.site.queueJob({ ...NAME_MUSIC_JOB, id: 'lj_32' });
+    harness.site.queueJob({ ...NAME_MUSIC_JOB, id: 'lj_33', ref: 'r2' });
+    await waitUntil(() => harness.site.answers.filter(({ jobId }) => jobId !== 'lj_30').length === 3);
+    expect(harness.site.answers.filter(({ jobId }) => jobId !== 'lj_30').sort((first, second) => first.jobId.localeCompare(second.jobId))).toEqual([
+      { jobId: 'lj_31', answer: { status: 'failed', reason: 'Tune Bridge couldn’t get the music.' } },
+      { jobId: 'lj_32', answer: { status: 'failed', reason: 'Tune Bridge is turned off in Sync.' } },
+      { jobId: 'lj_33', answer: { status: 'failed', reason: 'Sync no longer has this song. Find it again.' } },
+    ]);
     expect(harness.site.uploads).toEqual([]);
     await waitForMusicJobFoldersToGo();
   });
