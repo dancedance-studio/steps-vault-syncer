@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse } from '../network/http-client';
 import { getAddonBaseUrl, InvalidAddonAddressError } from './addon-address';
-import { buildInstalledAddon, fetchAddonManifest, fetchAudioLinks, isAddonSetToMusicOnly, loadSavedAddon, withAddonOption } from './addon-client';
+import { buildInstalledAddon, fetchAddonManifest, fetchAudioLinks, isAddonSetToMusicOnly, loadSavedAddon, withAddonOption, withRefreshedManifest } from './addon-client';
 import { parseAddonOptions, type AddonChoiceOption } from './addon-options';
 import { parseAddonManifest, type AddonManifest, type AddonSongFacts } from './addon-protocol';
 import { fetchSongSource, waitForSongSource } from './song-source-client';
@@ -193,6 +193,27 @@ describe('addon options', () => {
     expect(loadSavedAddon({ ...savedBeforeOptions, manifest: { ...MANIFEST, protocol: 2 } })).toBeNull();
     expect(loadSavedAddon({ baseUrl: 7 })).toBeNull();
     expect(loadSavedAddon(null)).toBeNull();
+  });
+});
+
+describe('withRefreshedManifest', () => {
+  const songSearchManifest: AddonManifest = { ...MANIFEST_WITH_OPTIONS, version: '0.7.0', provides: ['audio-links', 'video-links', 'song-search'] };
+
+  it('takes an addon’s new version and new abilities that see only the song’s facts, keeping the player’s picks', () => {
+    const addon = withAddonOption({ addon: buildInstalledAddon({ baseUrl: ADDON.baseUrl, manifest: MANIFEST_WITH_OPTIONS, consentedAt: ADDON.consentedAt }), optionId: 'media', value: 'audio' });
+    const refreshed = withRefreshedManifest({ addon, manifest: songSearchManifest });
+    expect(refreshed.manifest).toEqual(songSearchManifest);
+    expect(refreshed.optionValues).toEqual({ media: 'audio' });
+    expect({ ...refreshed, manifest: addon.manifest }).toEqual(addon);
+  });
+
+  it('keeps the old manifest when the addon newly wants what the player types, until the player adds it again', () => {
+    const songSourceManifest = parseAddonManifest({ ...MANIFEST, provides: ['audio-links', 'song-source'], inputs: [{ id: 'title', kind: 'search', label: 'Song title' }] });
+    expect(withRefreshedManifest({ addon: ADDON, manifest: songSourceManifest })).toBe(ADDON);
+  });
+
+  it('changes nothing when another addon answers at the same address', () => {
+    expect(withRefreshedManifest({ addon: ADDON, manifest: { ...MANIFEST, id: 'other.addon' } })).toBe(ADDON);
   });
 });
 

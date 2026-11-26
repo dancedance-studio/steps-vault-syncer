@@ -22,6 +22,7 @@ import {
   startDeviceSignIn,
   DancedanceClient,
   withAddonOption,
+  withRefreshedManifest,
   writeGeneratedSong,
   type ActivityLogEvent,
   type AddonManifest,
@@ -233,8 +234,33 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     if (this.deviceToken) this.siteLinkJobs.start();
     void this.generatorSettings.loadDancedanceGenerator().then(() => { this.publish(); });
     void this.refreshTokenBalance();
+    void this.refreshAddonManifests();
     this.publish();
     await this.scanMusic();
+  }
+
+  /**
+   * Each addon that is on is asked for its manifest again, so one that learned something new since it was added (song
+   * search, for example) is used as it is now; withRefreshedManifest says what may change without asking the player.
+   * An addon that doesn't answer keeps what was saved. Addons that are off aren't asked, so their programs aren't started.
+   */
+  private async refreshAddonManifests(): Promise<void> {
+    const manifestsByAddonId = new Map<string, AddonManifest>();
+    await Promise.all(
+      this.settings.addons
+        .filter((addon) => addon.isEnabled)
+        .map(async (addon) => {
+          const fetched = await fetchAddonManifest({ httpClient: this.serviceClient, address: addon.baseUrl }).catch(() => null);
+          if (fetched) manifestsByAddonId.set(addon.manifest.id, fetched.manifest);
+        }),
+    );
+    // The settings may have changed while the addons answered, so the new manifests go into the settings as they are now.
+    const addons = this.settings.addons.map((addon) => {
+      const manifest = manifestsByAddonId.get(addon.manifest.id);
+      return manifest ? withRefreshedManifest({ addon, manifest }) : addon;
+    });
+    if (addons.every((addon, index) => JSON.stringify(addon) === JSON.stringify(this.settings.addons[index]))) return;
+    await this.saveSettings({ ...this.settings, addons });
   }
 
   /** When Sync quits, programs it started for addons and generators stop too, and the website hears it is leaving. */
