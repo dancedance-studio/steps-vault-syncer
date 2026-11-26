@@ -1,5 +1,5 @@
 /** Builds what the addon screens show from installed addons; shared by the website and the desktop app. */
-import { getAddonOptionValues, isAddonProviding, isHostOnSites, parseUrlOrNull, type AddonManifest, type AddonOption, type AddonOptionValues, type InstalledAddon } from '@dancedance/sync-core';
+import { getAddonOptionValues, getIgnoredAbilityReasonOrNull, isAddonProviding, isHostOnSites, parseUrlOrNull, type AddonManifest, type AddonOption, type AddonOptionValues, type InstalledAddon } from '@dancedance/sync-core';
 import type { AddonInstallPreview, AddonOptionView, AddonView, LinkFieldView, LinksTabView, SongSourceTabView } from '../sync-ui-types';
 
 export function buildAddonView(addon: InstalledAddon): AddonView {
@@ -14,7 +14,13 @@ export function buildAddonView(addon: InstalledAddon): AddonView {
     health: { kind: 'working', note: addon.baseUrl },
     options: buildAddonOptionViews({ options: manifest.options, values: addon.optionValues }),
     isAudioSource: isAddonProviding({ manifest, ability: 'audio-links' }),
+    ...buildIgnoredAbilityNote(manifest),
   };
+}
+
+function buildIgnoredAbilityNote(manifest: AddonManifest): Pick<AddonView, 'ignoredAbilityNote'> {
+  const reason = getIgnoredAbilityReasonOrNull(manifest);
+  return reason === null ? {} : { ignoredAbilityNote: reason };
 }
 
 /** The consent step's preview: every option starts at the addon's default. */
@@ -68,10 +74,11 @@ function getSongSourcesThatAreOn(addons: readonly InstalledAddon[]): InstalledAd
   return addons.filter((addon) => addon.isEnabled && isAddonProviding({ manifest: addon.manifest, ability: 'song-source' }));
 }
 
-/** "Audio and video links · New songs to make": what Sync asks the addon for. */
+/** "Audio and video links · Song search · New songs to make": what Sync asks the addon for. */
 function getProvidesText(manifest: AddonManifest): string {
   const providedTexts: string[] = [];
   if (isAddonProviding({ manifest, ability: 'audio-links' })) providedTexts.push(isAddonProviding({ manifest, ability: 'video-links' }) ? 'Audio and video links' : 'Audio links');
+  if (isAddonProviding({ manifest, ability: 'song-search' })) providedTexts.push('Song search');
   if (isAddonProviding({ manifest, ability: 'song-source' })) providedTexts.push('New songs to make');
   return providedTexts.join(' · ');
 }

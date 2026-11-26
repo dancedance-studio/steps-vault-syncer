@@ -121,6 +121,8 @@ export interface AddonView {
   options: readonly AddonOptionView[];
   /** False for an addon that only brings new songs: it is never asked for a library song's music. Missing means true. */
   isAudioSource?: boolean;
+  /** Why Sync ignores an ability the addon declares, for example song search without audio links. Missing means none. */
+  ignoredAbilityNote?: string;
   isNew?: boolean;
 }
 
